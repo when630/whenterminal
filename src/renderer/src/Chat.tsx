@@ -1387,7 +1387,7 @@ export function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQ
                     RUN IN TERMINAL
                   </button>
                 )}
-                <CopyButton text={(item.input as { command: string }).command} className="tool-run" />
+                <CopyButton text={(item.input as { command: string }).command} className="tool-copy" />
               </div>
             )}
             {sub && sub.length > 0 && (

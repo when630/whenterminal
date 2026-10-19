@@ -1108,11 +1108,11 @@ pre { font: 12.5px/1.65 var(--mono); background: transparent; padding: 0; overfl
 .term-xterm .xterm-viewport::-webkit-scrollbar { width: 8px; }
 .term-xterm .xterm-viewport::-webkit-scrollbar-thumb { border-width: 2px; }
 .term-xterm .xterm-viewport::-webkit-scrollbar-thumb:hover, .term-xterm .xterm-viewport::-webkit-scrollbar-thumb:active { border-width: 1px; }
-.tool-run { margin-top: 10px; padding: 5px 10px; border: 1.5px solid currentColor; background: transparent; color: inherit; font: 700 10.5px/1 var(--disp); letter-spacing: 0.08em; }
-.tool-run:hover { background: var(--code-fg); color: var(--code-bg); }
+.tool-run, .tool-copy { margin-top: 10px; padding: 5px 10px; border: 1.5px solid currentColor; background: transparent; color: inherit; font: 700 10.5px/1 var(--disp); letter-spacing: 0.08em; }
+.tool-run:hover, .tool-copy:hover { background: var(--code-fg); color: var(--code-bg); }
 .tool-acts { display: flex; gap: 8px; margin-top: 10px; }
-.tool-acts .tool-run { margin-top: 0; }
-.tool-run.copy-btn.done, .md-pre .copy-btn.done { background: var(--code-fg); color: var(--code-bg); }
+.tool-acts > button { margin-top: 0; }
+.tool-copy.done, .md-pre .copy-btn.done { background: var(--code-fg); color: var(--code-bg); }
 
 /* 대화창 상단: 브랜치·effort */
 .tb-wt .tb-branch { flex: none; overflow: visible; color: var(--ink); font-weight: 600; }

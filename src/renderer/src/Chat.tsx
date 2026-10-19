@@ -12,6 +12,7 @@ import { clock, useNow } from './time'
 import { SubLog, TaskDetail, type DetailTarget } from './TaskDetail'
 import { closeTerminal, execInTerminal, forgetTerminals, pathForComposer, runInTerminal, TerminalDrawer, toggleTerminal } from './terminal'
 import { Markdown } from './Markdown'
+import { CopyButton } from './copy'
 import { FilesOverlay } from './FilesOverlay'
 import { createPortal } from 'react-dom'
 import { AttachButton, useAttach } from './attach'
@@ -1374,15 +1375,20 @@ export function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQ
           </summary>
           <div className="tool-body">
             <ToolInput name={item.name} input={item.input} />
-            {(item.name === 'Bash' || item.name === 'PowerShell') && typeof (item.input as { command?: unknown } | null)?.command === 'string' && onRun && (
-              <button
-                type="button"
-                className="tool-run"
-                onClick={() => onRun((item.input as { command: string }).command)}
-                title="이 명령을 아래 터미널 입력줄에 넣어요. 실행은 직접 해요"
-              >
-                RUN IN TERMINAL
-              </button>
+            {(item.name === 'Bash' || item.name === 'PowerShell') && typeof (item.input as { command?: unknown } | null)?.command === 'string' && (
+              <div className="tool-acts">
+                {onRun && (
+                  <button
+                    type="button"
+                    className="tool-run"
+                    onClick={() => onRun((item.input as { command: string }).command)}
+                    title="이 명령을 아래 터미널 입력줄에 넣어요. 실행은 직접 해요"
+                  >
+                    RUN IN TERMINAL
+                  </button>
+                )}
+                <CopyButton text={(item.input as { command: string }).command} className="tool-run" />
+              </div>
             )}
             {sub && sub.length > 0 && (
               <>

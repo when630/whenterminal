@@ -71,7 +71,7 @@
   - 키맵 `terminal`(기본 `Ctrl+T`): 닫힘·접힘이면 펼치고 터미널로, 펼쳐져 있으면 입력창 → 터미널, 터미널에서 누르면 접고 입력창으로. 접어도 셸은 돈다. 높이는 끌어서(localStorage)
   - 열기·접기·펼치기·닫기 움직임(`useDrawerMotion`): 서랍 높이만 한 번 움직이고, 그동안 `.term-body` 높이를 고정해 xterm이 프레임마다 fit하지 않게 한다. 접히는 동안(`folding`)은 펼친 모습 그대로, 닫히는 동안(`leaving`)은 마지막 화면을 붙잡아 둔다. 대화를 옮겨 바뀐 것은 움직이지 않는다
   - 터미널에 포커스가 있으면(`[data-terminal]`) App은 앱을 오가는 키(terminal·terminalClose·goHome·help·search·탭 이동·새 탭·설정·⌥A~L)만 받고 나머지(Esc·Ctrl+C·Ctrl+L …)는 셸로. 선택이 있을 때 Ctrl+C·Ctrl+Shift+C 복사, Ctrl+V·Ctrl+Shift+V 붙여넣기(macOS는 Ctrl+Shift+V·⌘V. 처리한 키는 `preventDefault`까지 해야 Chromium 붙여넣기 이벤트로 두 번 들어가지 않는다)
-  - Bash·PowerShell 도구 줄의 RUN IN TERMINAL: 명령을 입력줄에 넣기만 한다(실행은 사용자 Enter). SEND TO CLAUDE: 선택한 출력을 입력창에 코드 블록으로
+  - Bash·PowerShell 도구 줄의 RUN IN TERMINAL: 명령을 입력줄에 넣기만 한다(실행은 사용자 Enter). 옆의 COPY는 명령을 클립보드로(`copy.tsx` `CopyButton`). SEND TO CLAUDE: 선택한 출력을 입력창에 코드 블록으로
   - 대화·프로젝트 닫기, 작업 공간 버리기 전에 셸을 끝낸다 (셸이 작업 공간 폴더를 잡고 있으면 지울 수 없다). 셸은 설정 `terminalShell`(AUTO는 pwsh → PowerShell, macOS는 $SHELL), 환경 변수는 사용자 것 그대로
   - 셸 고르기: 서랍 머리의 셸 이름(`ShellPicker`)을 누르면 이 컴퓨터에 있는 셸(`availableShells`: pwsh·PowerShell·Git Bash·cmd·WSL / zsh·bash·fish, WSL은 레지스트리 `Lxss`로 확인)이 펼쳐진다. 고르면 지금 셸을 끝내고 새로 띄우며, 다음 터미널의 기본값(`terminalShell`)으로도 저장한다
   - Windows에서 셸을 끝낼 때는 `taskkill /T /F`로 프로세스 트리를 먼저 끝낸다. node-pty `kill()`만 하면 앱 종료 중에 셸·conhost가 남아 앱이 끝나지 않는다
@@ -120,7 +120,7 @@
 - 툴팁: 요소에는 그냥 `title`을 쓴다. `tooltip.tsx`(`useTooltips`, App 루트)가 처음 올릴 때 `data-tip`으로 옮겨 OS 풍선 대신 `.tip`으로 보여준다. 누른 요소·`aria-expanded=true`인 요소에는 띄우지 않는다
 - 펼치는 목록(모델·effort·셸): `.model-list` + `ListHead`(ModelPicker.tsx) 머리줄 + `.model-row` 한 줄 행. 누른 칸 아래(셸은 위)에 붙어서 내려오고(`drop-in`), 긴 설명은 말줄임 + title
 - 긴 알림 접기(`Divider`, Chat.tsx): 백그라운드 에이전트가 끝나면 SDK가 그 보고 전문을 `task_notification.summary`로 보내 `TASK DONE · …` 구분선에 들어간다. 본문이 140자(`DIVIDER_LINE`)를 넘거나 여러 줄이면 머리(`TASK DONE`)와 첫 줄만 한 줄로 보이고, 펼치면 본문을 Markdown 글로. 메인 답은 접지 않는다
-- 답변은 `Markdown.tsx`(react-markdown, 원시 HTML 비허용). 링크는 메인이 외부 브라우저로만 연다 (`setWindowOpenHandler`, `will-navigate` 차단)
+- 답변은 `Markdown.tsx`(react-markdown, 원시 HTML 비허용). 코드 블록(`CodeBlock`)은 올리면 오른쪽 위에 COPY. 링크는 메인이 외부 브라우저로만 연다 (`setWindowOpenHandler`, `will-navigate` 차단)
 - 알림(`main/notify.ts`): 확인 요청·작업 끝남·터미널 명령 끝남·한도 경고(설정 `notify`의 approval·done·terminal·usage). 누르면 `IPC.navigate`로 그 대화로. 배지는 렌더러가 `setBadge`로 보낸다
 - 대기열(OPEN-003): `AgentManager.send`가 `maxConcurrent`를 넘으면 `queued`로 두고, 상태가 끝나면 `drain()`. 확인 대기도 자리를 차지한다
   - 한도 보류(OPEN-006): 사용량이 바뀔 때마다 메인이 `manager.setLimit`. 5시간·주간 창이 100%이고 서버가 허용이라고 하지 않았으면(`limitAllowed`, 추가 사용량) 새 작업을 초기화 시각+5초까지 `atCapacity`로 잡아 두고 그때 `drain()`. `queue` 이벤트의 `until`로 작업 줄에 `LIMIT · 09:00 재개`. 입력창은 이때 Enter 두 번 확인을 건너뛴다

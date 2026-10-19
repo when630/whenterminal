@@ -823,6 +823,11 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .md code { font: 0.9em var(--mono); padding: 1px 5px; background: var(--wash-2); }
 .md pre { margin: 0.6em 0 1em; padding: 12px 14px; background: var(--code-bg); color: var(--code-fg); max-height: 480px; }
 .md pre code { padding: 0; background: transparent; font-size: 12.5px; }
+/* 코드 블록 복사: 블록에 올리면 오른쪽 위에 나온다 */
+.md-pre { position: relative; }
+.md-pre .copy-btn { position: absolute; top: 6px; right: 6px; padding: 4px 8px; border: 1.5px solid var(--code-fg); background: var(--code-bg); color: var(--code-fg); font: 700 10px/1 var(--disp); letter-spacing: 0.08em; opacity: 0; transition: opacity var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
+.md-pre:hover .copy-btn, .md-pre .copy-btn:focus-visible, .md-pre .copy-btn.done { opacity: 1; }
+.md-pre .copy-btn:hover { background: var(--code-fg); color: var(--code-bg); }
 .md blockquote { margin: 0.6em 0; padding: 2px 14px; box-shadow: inset 4px 0 0 var(--signal); color: var(--gray); }
 .md hr { border: 0; border-top: var(--rule); margin: 1em 0; }
 .md-table { overflow-x: auto; margin: 0.6em 0 1em; }
@@ -1105,6 +1110,9 @@ pre { font: 12.5px/1.65 var(--mono); background: transparent; padding: 0; overfl
 .term-xterm .xterm-viewport::-webkit-scrollbar-thumb:hover, .term-xterm .xterm-viewport::-webkit-scrollbar-thumb:active { border-width: 1px; }
 .tool-run { margin-top: 10px; padding: 5px 10px; border: 1.5px solid currentColor; background: transparent; color: inherit; font: 700 10.5px/1 var(--disp); letter-spacing: 0.08em; }
 .tool-run:hover { background: var(--code-fg); color: var(--code-bg); }
+.tool-acts { display: flex; gap: 8px; margin-top: 10px; }
+.tool-acts .tool-run { margin-top: 0; }
+.tool-run.copy-btn.done, .md-pre .copy-btn.done { background: var(--code-fg); color: var(--code-bg); }
 
 /* 대화창 상단: 브랜치·effort */
 .tb-wt .tb-branch { flex: none; overflow: visible; color: var(--ink); font-weight: 600; }

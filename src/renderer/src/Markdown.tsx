@@ -1,6 +1,7 @@
-import { memo } from 'react'
+import { memo, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { CopyButton } from './copy'
 
 /** 주소 앞에 scheme(http: 등)이 붙어 있는지. 없으면 상대 경로 */
 const hasScheme = (s: string): boolean => /^[a-z][a-z0-9+.-]*:/i.test(s)
@@ -48,6 +49,8 @@ export const Markdown = memo(function Markdown({ text, fileUrl, onOpen, remote }
             }
             return <img src={fileUrl && s && !hasScheme(s) ? new URL(s, fileUrl).toString() : s} alt={alt ?? ''} />
           },
+          // 코드 블록은 오른쪽 위에 복사 버튼
+          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
           // 표는 넓으면 가로로 스크롤
           table: ({ children }) => (
             <div className="md-table">
@@ -61,3 +64,14 @@ export const Markdown = memo(function Markdown({ text, fileUrl, onOpen, remote }
     </div>
   )
 })
+
+/** 답변의 코드 블록. 복사 버튼은 블록 밖에 두어 가로·세로 스크롤해도 제자리에 있다 */
+function CodeBlock({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const ref = useRef<HTMLPreElement>(null)
+  return (
+    <div className="md-pre">
+      <pre ref={ref}>{children}</pre>
+      <CopyButton text={() => (ref.current?.textContent ?? '').replace(/\n$/, '')} />
+    </div>
+  )
+}

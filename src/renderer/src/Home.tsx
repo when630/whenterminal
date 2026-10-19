@@ -3,7 +3,7 @@ import { ALWAYS_SCOPE_LABEL, ALWAYS_SCOPE_TIP, ELICITATION_TOOL, needsChoice, ty
 import { refocusAfterClick, useRefocus } from './focus'
 import { HOME_ROW } from './keys'
 import { boxIn, EASE, Odo, Presence, PresenceList, reducedMotion, Roll, useLayoutMotion, usePresenceList } from './motion'
-import { IDLE_KEY, STAGES, type TaskRef } from './state'
+import { backgroundAgents, describeBackground, IDLE_KEY, isActive, STAGES, subActivity, type TaskRef } from './state'
 import { elapsed, useNow } from './time'
 import { Markdown } from './Markdown'
 import { AttachButton, useAttach } from './attach'
@@ -260,13 +260,18 @@ function TaskCard({ r, now, selected, leaving, onSelect, onOpen, onRespond }: {
   const pending = state.permissions[0]
   const stage = Math.min(task.stage, STAGES.length - 1)
   const progress = Math.min(1, (stage + 0.6) / STAGES.length)
+  // 메인 턴은 끝났고 하위 에이전트만 도는 중: 끝나면 CLI가 모델을 다시 불러 이 띠가 그대로 이어진다
+  const agents = isActive(state.status) ? [] : backgroundAgents(state)
+  const bg = agents.length > 0
+  const lead = agents[0]
+  const bgActivity = lead ? `BACKGROUND · AGENT ${agents.length} · ${subActivity(lead.toolUseId ? state.subs?.[lead.toolUseId] : undefined, lead.toolUseId ? state.progress?.[lead.toolUseId] : undefined)}` : ''
   const respond = (e: React.MouseEvent, decision: PermissionDecision): void => {
     e.stopPropagation()
     if (pending) onRespond(r.project.id, r.conversationId, pending.requestId, decision)
   }
   return (
     <article
-      className={`task ${selected ? 'selected' : ''} ${pending ? 'waiting' : ''} ${leaving ? 'leaving' : ''}`}
+      className={`task ${selected ? 'selected' : ''} ${pending ? 'waiting' : ''} ${bg ? 'bg' : ''} ${leaving ? 'leaving' : ''}`}
       data-layout-id={r.conversationId}
       data-layout-kind="task"
       onClick={() => onSelect(r.conversationId)}
@@ -286,11 +291,11 @@ function TaskCard({ r, now, selected, leaving, onSelect, onOpen, onRespond }: {
             </div>
             <div className="band-title" title={task.instruction}>{task.instruction}</div>
             <div className="act">
-              <Roll text={pending ? 'WAITING FOR YOU' : task.activity} className="act-text" />
+              <Roll text={pending ? 'WAITING FOR YOU' : bg ? bgActivity : task.activity} className="act-text" />
             </div>
           </div>
-          <div className="band-side" aria-label={`진행 단계: ${STAGES[stage]}`}>
-            {pending ? <span className="q" aria-hidden="true">?</span> : <span className="stage-word"><Roll text={state.status === 'queued' ? 'QUEUED' : STAGES[stage]} /></span>}
+          <div className="band-side" aria-label={bg ? `백그라운드 에이전트 ${agents.length}개` : `진행 단계: ${STAGES[stage]}`} title={bg ? agents.map((a) => describeBackground(a, state.items).text).join('\n') : undefined}>
+            {pending ? <span className="q" aria-hidden="true">?</span> : <span className="stage-word"><Roll text={state.status === 'queued' ? 'QUEUED' : bg ? 'AGENT' : STAGES[stage]} /></span>}
           </div>
         </div>
         <div className={`cf ${pending ? 'open' : ''}`}>
@@ -326,8 +331,8 @@ function TaskCard({ r, now, selected, leaving, onSelect, onOpen, onRespond }: {
             )}
           </div>
         </div>
-        <div className="band-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
-          <i style={{ width: `${progress * 100}%` }} />
+        <div className="band-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={bg ? undefined : Math.round(progress * 100)}>
+          <i style={{ width: bg ? '100%' : `${progress * 100}%` }} />
         </div>
       </div>
     </article>
@@ -346,6 +351,8 @@ function IdleCard({ r, now, selected, leaving, onSelect, onOpen }: {
   onOpen: (r: TaskRef) => void
 }): React.JSX.Element {
   const { task, state } = r
+  // 끝나지 않을 수 있는 셸·모니터는 RUNNING으로 올리지 않고 수만 붙인다
+  const bgCount = state.background?.length ?? 0
   return (
     <article
       className={`idle-row ${selected ? 'selected' : ''} ${leaving ? 'leaving' : ''}`}
@@ -358,6 +365,7 @@ function IdleCard({ r, now, selected, leaving, onSelect, onOpen }: {
         <span className="idle-key" aria-hidden="true">{HOME_ROW[r.projectIndex] ?? ''}</span>
         <span className="idle-proj">{r.project.name}</span>
         <span className="idle-tt">{task.instruction || r.title}</span>
+        <Presence show={bgCount > 0} className="idle-bg mono" title={state.background?.map((b) => describeBackground(b, state.items).text).join('\n')}>BG {bgCount}</Presence>
         <span className={`idle-st ${state.status === 'error' ? 'bad' : ''}`}>{RESULT_LABEL[state.status] ?? 'IDLE'}</span>
         <span className="idle-ago mono">{task.finishedAt ? elapsed(task.finishedAt, now) : ''}</span>
       </span>

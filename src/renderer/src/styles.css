@@ -197,6 +197,8 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .dot-waiting_approval { background: var(--signal); border-color: var(--signal); animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
 .dot-error { background: var(--signal); border-color: var(--signal); }
 .dot-done { background: currentColor; }
+/* 메인 턴은 끝났고 하위 에이전트가 도는 중 */
+.dot-background { animation: blink-soft var(--pulse) var(--ease-io) infinite; }
 .dot-stopped, .dot-queued, .dot-idle { opacity: 0.35; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.12; } }
 @keyframes blink-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
@@ -294,6 +296,7 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .idle-tt { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .idle-st { flex: none; font: 900 12px/1 var(--disp); letter-spacing: 0.06em; }
 .idle-st.bad { color: var(--signal); }
+.idle-bg { flex: none; font-size: 11px; padding: 0 4px; box-shadow: inset 0 0 0 1.5px currentColor; }
 .idle-row.selected .idle-st.bad { color: inherit; }
 .idle-ago { flex: none; font: 11.5px var(--mono); opacity: 0.7; }
 .empty { padding: 18px 24px; color: var(--gray); font-weight: 600; border-bottom: var(--rule); }
@@ -322,6 +325,10 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .task.selected .band-bar i { background: var(--signal); }
 .task.waiting .band-bar i { background: var(--on-signal); }
 .task.selected .band-bar i::after, .task.waiting .band-bar i::after { opacity: 0; }
+/* 백그라운드 에이전트만 남음: 칠한 막대 대신 빈 줄무늬, 단계 글자는 옅게 맥동 */
+.task.bg .band-bar i { background: transparent; }
+.task.bg .band-bar i::after { opacity: 1; background-image: repeating-linear-gradient(-45deg, currentColor 0 2px, transparent 2px 14px); }
+.task.bg .stage-word { animation: blink-soft var(--pulse) var(--ease-io) infinite; }
 @keyframes stripes { to { transform: translateX(19.8px); } }
 .cf { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.45s var(--ease-out), opacity 0.3s var(--ease-io); }
 .cf.open { grid-template-rows: 1fr; opacity: 1; }

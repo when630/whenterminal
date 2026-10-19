@@ -4,7 +4,7 @@ import { openConversations, type Project, type UpdateState, type UsageInfo, type
 import { STATUS_LABEL } from '@shared/types'
 import { formatReset, limitLevel } from '@shared/usage'
 import { HOME_ROW } from './keys'
-import { isActive, projectStatus, STAGES, type ConversationMap } from './state'
+import { backgroundAgents, isActive, projectStatus, STAGES, type ConversationMap } from './state'
 
 interface Props {
   projects: Project[]
@@ -144,6 +144,8 @@ export function Sidebar(props: Props): React.JSX.Element {
                 <span className={`minibar ${status === 'waiting_approval' ? 'wait' : ''}`} role="img" aria-label={`${STATUS_LABEL[status]} · 진행 ${Math.round(progress * 100)}%`}>
                   <i style={{ width: `${Math.round(progress * 100)}%` }} />
                 </span>
+              ) : openConversations(p).some((c) => backgroundAgents(convs[c.id]).length > 0) ? (
+                <span className="dot dot-background" title="BACKGROUND AGENT" />
               ) : (
                 <span className={`dot dot-${status}`} title={STATUS_LABEL[status]} />
               )}
@@ -163,6 +165,7 @@ export function Sidebar(props: Props): React.JSX.Element {
               <div className="threads">
                 {openConversations(p).map((c) => {
                   const st = convs[c.id]?.status ?? 'idle'
+                  const bg = !isActive(st) && backgroundAgents(convs[c.id]).length > 0
                   return (
                     <button
                       type="button"
@@ -172,7 +175,7 @@ export function Sidebar(props: Props): React.JSX.Element {
                     >
                       <span className="nav-name">{c.title}</span>
                       <CtxPct percent={convs[c.id]?.context?.percent ?? c.contextPercent} />
-                      <span className={`dot dot-${st}`} title={STATUS_LABEL[st]} />
+                      <span className={`dot ${bg ? 'dot-background' : `dot-${st}`}`} title={bg ? 'BACKGROUND AGENT' : STATUS_LABEL[st]} />
                     </button>
                   )
                 })}

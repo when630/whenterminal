@@ -533,6 +533,20 @@ export function artifactsOf(items: TranscriptItem[]): ArtifactLink[] {
 
 export const isActive =(st: AgentStatus): boolean => st === 'running' || st === 'waiting_approval' || st === 'queued'
 
+/**
+ * 메인 턴은 끝났지만 뒤에서 하위 에이전트(워크플로 포함)가 도는 백그라운드 작업.
+ * 끝나면 CLI가 모델을 다시 부르므로 홈에서는 RUNNING에 둔다. 셸·모니터는 끝나지 않을 수 있어 여기 넣지 않는다
+ */
+export function backgroundAgents(state: ConversationState | undefined): BackgroundTask[] {
+  return (state?.background ?? []).filter((b) => {
+    const label = describeBackground(b, state!.items).label
+    return label === 'AGENT' || label === 'WORKFLOW'
+  })
+}
+
+/** 홈·사이드바에서 '돌고 있음'으로 보는 대화: 실행 중이거나 백그라운드 에이전트가 남아 있음 */
+export const isBusy = (state: ConversationState | undefined): boolean => !!state && (isActive(state.status) || backgroundAgents(state).length > 0)
+
 /** 카드 상태 = 하위 대화 중 가장 급한 것 (기획서 5장) */
 export function projectStatus(project: Project, convs: ConversationMap): AgentStatus {
   let best: AgentStatus = 'idle'
@@ -574,7 +588,7 @@ export interface TaskRef {
 export const IDLE_KEY = 'idle:'
 
 /**
- * 진행 중 작업(최근 시작 순), 쉬는 대화(열린 대화 중 한 번이라도 작업을 끝낸 것, 최근 끝난 순), 보고서(최근 완료 순).
+ * 진행 중 작업(최근 시작 순, 백그라운드 에이전트만 남은 대화 포함), 쉬는 대화(열린 대화 중 한 번이라도 작업을 끝낸 것, 최근 끝난 순), 보고서(최근 완료 순).
  * 끝난 작업은 쉬는 대화와 보고서 양쪽에 나온다 (진행 띠는 아래 NO RUNNING으로 내려가고, 보고서는 따로 위에서 들어온다)
  */
 export function collectTasks(projects: Project[], convs: ConversationMap): { running: TaskRef[]; idle: TaskRef[]; reports: TaskRef[] } {
@@ -587,7 +601,7 @@ export function collectTasks(projects: Project[], convs: ConversationMap): { run
       const task = state?.task
       if (!state || !task) continue
       const ref = (): TaskRef => ({ project, projectIndex, conversationId: c.id, title: c.title, tag: c.tag, state, task })
-      if (isActive(state.status)) {
+      if (isBusy(state)) {
         running.push(ref())
         continue
       }

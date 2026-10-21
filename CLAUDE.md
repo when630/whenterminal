@@ -49,7 +49,7 @@
 
 - 인증은 구독 전용: 자식 프로세스 env에서 `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`을 제거한다 (`subscriptionEnv`). 이 동작을 바꾸지 말 것
 - SDK API는 추측하지 말고 `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts`에서 확인
-- 권한 모드는 `MODE_CYCLE`(기본 → 편집 자동 허용 → 자동 → 플랜). 자동(`auto`)은 모델 분류기가 승인/거절하고 판단 못 한 것만 `canUseTool`로 묻는다. 모드 변경이 거절되면 원래 모드로 되돌리고, 세션이 스스로 바꾼 모드(status 메시지의 `permissionMode`)도 저장값에 맞춘다
+- 권한 모드는 `MODE_CYCLE`(기본 → 편집 자동 허용 → 자동 → 플랜 → 바이패스). 자동(`auto`)은 모델 분류기가 승인/거절하고 판단 못 한 것만 `canUseTool`로 묻는다. 바이패스(`bypassPermissions`, 라벨 `BYPASS`)는 묻지 않고 모두 허용하며, 띄울 때 `allowDangerouslySkipPermissions`가 있어야 바꿀 수 있어 `baseOptions`에 넣어 두었다(미리 띄운 CLI도 이 모드로 claim되게). 모드 변경이 거절되면 원래 모드로 되돌리고, 세션이 스스로 바꾼 모드(status 메시지의 `permissionMode`)도 저장값에 맞춘다
 - `canUseTool` 옵션의 `defaultToNo`(한 키 승인 금지)와 `suppressAlwaysAllowRule`(항상 허용 금지)을 UI에서 반드시 지킨다
   - '항상 허용'은 SDK `suggestions`를 그대로 `updatedPermissions`로 돌려준다. 범위는 CLI가 정한 대로(파일 편집은 이 세션의 acceptEdits, 폴더 밖 읽기는 세션, 명령·WebFetch는 프로젝트 `localSettings`)이고 넓히지 않는다. `describeAlways()`가 무엇을 어디까지 기억하는지 풀어 `PermissionRequest.always`로 보내고 버튼에 `npm view * · PROJECT`처럼 보인다(섞이면 가장 좁은 범위). 제안이 없으면(`cd .. && git status`처럼 이어 붙인 명령) 한 번 허용과 같으므로 `suppressAlwaysAllow`로 버튼·A 키를 감춘다
 - 대화창에서 `Esc`는 실행 중단 전용. 나가기(홈)는 `Ctrl+H` (기획서 초안의 ``Ctrl+` ``에서 변경)
@@ -60,6 +60,7 @@
   - 중단: `Esc` / 선택 글자 없을 때 `Ctrl+C`. Esc 대체 키(Ctrl+[)는 두지 않는다. 닫기·취소도 모두 Esc
   - 패널 세부 내용: `Ctrl+J`/`Ctrl+Shift+J` 패널 순서(AGENTS → BACKGROUND)대로 펼치고 마지막 다음은 대화 기록, `Ctrl+B` 돌아가기, `Ctrl+Shift+X` 펼친 작업 멈춤. App이 Chat의 `panelRef`(`PanelControl`)로 다룬다
   - Alt 니모닉과 겹치지 않도록 Windows에서는 기본 메뉴를 없앴다 (`Menu.setApplicationMenu(null)`). 개발 중 `Ctrl+Shift+I` 개발자 도구, `Ctrl+Shift+R` 새로고침
+- 맞춤법 검사는 끈다(`webPreferences.spellcheck: false`)
 - Windows 창은 테두리 없는 창(`frame: false`): 제목 표시줄·창 버튼이 없다. 사이드바 로고(`.side .brand`, `-webkit-app-region: drag`)를 잡고 옮기고 더블클릭하면 최대화, 크기 조절은 가장자리, 닫기는 `Alt+F4`(트레이로 숨김). macOS는 기본 제목 표시줄 그대로
 - 창 숨기기(전역 호출 키로 끄기·Alt+F4·macOS 닫기)는 `hideWindow()` 한 곳에서: Windows는 `blur()` 뒤 `hide()`(숨기기만 하면 포커스를 가진 창이 없어져 원래 쓰던 창으로 돌아가지 않는다), macOS는 `app.hide()`(앞에 쓰던 앱이 다시 활성). 다시 보일 때 macOS는 `app.show()`부터. `window.spec.ts`가 포커스가 돌아가는지 본다
 - 트레이 아이콘: Windows는 설정에서 고른 앱 아이콘을 16px(+1.25~2배)로 줄여 쓰고 아이콘을 바꾸면 같이 바뀐다(`makeTrayIcon`). macOS는 메뉴 막대 관례대로 흑백 템플릿 이미지
@@ -140,6 +141,7 @@
   - 그 밖에 zip(Windows·macOS)과 dmg. `dist` 스크립트는 `--publish never`라 빌드만 하고 올리지 않는다
 - 설정(`SettingsScreen.tsx`, `Ctrl+,` / macOS 메뉴 ⌘,): `userData/settings.json` (`src/main/settings.ts`). 첫 화면 전에 preload가 동기로 읽어(`initialSettings`) 테마 깜빡임이 없다
   - 탭 두 개: GENERAL(테마·아이콘·실행·업데이트·알림)과 SHORTCUTS(키맵). 마지막에 본 탭은 localStorage `wt-settings-tab`. 키맵 `nextConversation`/`prevConversation`(기본 Ctrl+Tab)으로도 넘기고(키를 기록하는 중에는 아님), 탭 줄에서 좌우 화살표. 도움말 ANYWHERE에 `Settings: switch tab`
+  - 글꼴(FONT): 질문 `questionFont`(DISPLAY=`--kr`·PRETENDARD·CASCADIA CODE NF, `.msg.user`)·답변 `answerFont`(`.msg.assistant`, 답변 안 제목은 그대로 `--kr`)·화면 `textFont`(메뉴·입력창)·코드 `codeFont`(GEIST MONO·CASCADIA CODE NF, 코드 블록·파일 보기·터미널). `FONTS`(keymap.ts)의 목록을 `applyFonts`가 `:root` style의 `--question-font`·`--answer-font`·`--font`·`--mono`로 덮는다(질문이 DISPLAY가 아니면 `--question-weight` 700). Cascadia Code NF는 `assets/fonts`에 woff2로 번들(OFL, 깔려 있으면 `local()` 먼저). 터미널은 `applyFont`로 글꼴을 받은 뒤 다시 재고 fit한다
   - 테마: `:root[data-theme]`로 색 토큰만 바꾼다 (포스터·종이·세이지·먹·밤). 새 색을 쓸 때는 직접 색 대신 역할 토큰(`--sel-bg/fg`, `--on-signal`, `--code-bg/fg`, `--line`, `--shadow`)을 쓸 것
   - 단축키: 동작 목록·기본값은 `src/shared/keymap.ts`(`ACTIONS`), 판정은 `matches()`(keys.ts). App의 키 처리와 화면의 키 표시는 모두 `useKeymap()`을 거친다. 새 단축키는 ACTIONS에 추가하고 하드코딩하지 말 것
   - 고정 키(바꿀 수 없음): Esc, ⌥A~L·Ctrl+1~9 프로젝트 이동, 선택 없을 때 Ctrl+C, 방향키. 대화창·전역 범위 키는 Ctrl/Alt/Meta가 있어야 한다 (입력 중 오작동 방지)

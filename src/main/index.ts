@@ -587,6 +587,8 @@ function createWindow(): void {
       contextIsolation: true,
       // 아티팩트를 앱 안에서 본다 (설정은 artifact-view.ts의 will-attach-webview가 강제)
       webviewTag: true,
+      // 입력창 맞춤법 검사(빨간 밑줄)는 끈다
+      spellcheck: false,
     },
   })
   win.once('ready-to-show', () => {

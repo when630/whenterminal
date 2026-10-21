@@ -124,6 +124,8 @@ export function baseOptions(cb: SessionCallbacks, prefs: BasePrefs): Options {
     // 설정의 훅이 도는 것을 화면에 보인다 (hook_started·hook_progress·hook_response)
     includeHookEvents: true,
     pathToClaudeCodeExecutable: claudeExecutable(),
+    // 모드에 BYPASS(bypassPermissions)를 둔다. 띄울 때 켜 두지 않으면 그 모드로 바꿀 수 없다(미리 띄운 CLI의 claim도 거절)
+    allowDangerouslySkipPermissions: true,
   }
 }
 

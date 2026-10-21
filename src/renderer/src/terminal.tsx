@@ -155,9 +155,13 @@ function wire(): void {
   })
   // 테마를 바꾸면 터미널 색도 따라간다
   new MutationObserver(() => {
-    const { theme } = themeFromCss()
-    entries.forEach((e) => (e.term.options.theme = theme))
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    const { theme, font } = themeFromCss()
+    entries.forEach((e) => {
+      e.term.options.theme = theme
+      // 설정에서 코드 글꼴을 바꾸면(:root style의 --mono) 글자 폭이 달라지므로 다시 맞춘다
+      if (e.term.options.fontFamily !== font) applyFont(e, font)
+    })
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] })
 }
 
 // ── 오래 돈 명령이 끝나면 알림 ─────────────────────────────
@@ -316,6 +320,20 @@ function armReady(e: Entry): void {
   e.ready = new Promise<void>((r) => (e.markReady = r))
 }
 
+/**
+ * 글꼴을 받은 뒤에 xterm에 준다. xterm은 글꼴을 바꿀 때만 글자 폭을 재므로, 덜 받은 채 주면 대신 쓴 글꼴 폭으로 굳는다.
+ * 받은 뒤 같은 이름을 다시 주면 재지 않으므로 빈 값으로 한 번 바꿨다가 돌린다
+ */
+function applyFont(e: Entry, font: string): void {
+  e.term.options.fontFamily = font
+  void document.fonts.load(`13px ${font}`).then(() => {
+    if (e.term.options.fontFamily !== font) return
+    e.term.options.fontFamily = 'monospace'
+    e.term.options.fontFamily = font
+    if (e.opened) e.fit.fit()
+  })
+}
+
 function entryOf(projectId: string, conversationId: string, termId: string): Entry {
   wire()
   const found = entries.get(termId)
@@ -331,6 +349,7 @@ function entryOf(projectId: string, conversationId: string, termId: string): Ent
   const el = document.createElement('div')
   el.className = 'term-xterm'
   const entry: Entry = { term, fit, search, el, projectId, conversationId, opened: false, started: false, ready: Promise.resolve(), markReady: () => {}, typed: '' }
+  if (!document.fonts.check(`13px ${font}`)) applyFont(entry, font)
   armReady(entry)
   term.registerLinkProvider({ provideLinks: (y, cb) => cb(pathLinks(entry, y)) })
   term.onData((d) => {

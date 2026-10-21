@@ -166,8 +166,31 @@ export const APP_ICONS: { id: AppIconId; name: string; note: string }[] = [
   { id: 'slots', name: 'SLOTS', note: 'A~L 프로젝트 자리' },
 ]
 
+export type FontId = 'display' | 'pretendard' | 'geist' | 'cascadia'
+
+/** 글꼴 (설정 FONT). css는 --font·--mono·--answer-font·--question-font에 넣는 목록. 한글이 없는 글꼴은 뒤의 글꼴로 넘어간다 */
+export const FONTS: Record<FontId, { name: string; css: string }> = {
+  display: { name: 'DISPLAY', css: "'WT Display', 'Black Han Sans', 'Pretendard Variable', sans-serif" },
+  pretendard: { name: 'PRETENDARD', css: "'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" },
+  geist: { name: 'GEIST MONO', css: "'Geist Mono', 'SF Mono', 'Cascadia Code', 'D2Coding', Consolas, monospace" },
+  cascadia: { name: 'CASCADIA CODE NF', css: "'Cascadia Code NF', 'D2Coding', Consolas, 'Pretendard Variable', monospace" },
+}
+/** 칸마다 고를 수 있는 글꼴. 질문은 큰 글자(DISPLAY: Archivo + Black Han Sans)가 기본, 터미널은 고정폭만 */
+export const TEXT_FONTS: FontId[] = ['pretendard', 'cascadia']
+export const QUESTION_FONTS: FontId[] = ['display', 'pretendard', 'cascadia']
+export const ANSWER_FONTS: FontId[] = ['pretendard', 'cascadia']
+export const CODE_FONTS: FontId[] = ['geist', 'cascadia']
+
 export interface Settings {
   theme: ThemeId
+  /** 메뉴·입력창 같은 화면 글꼴 */
+  textFont: FontId
+  /** 대화의 내 질문 글꼴 */
+  questionFont: FontId
+  /** 대화의 답변 본문 글꼴 */
+  answerFont: FontId
+  /** 코드·터미널 글꼴 */
+  codeFont: FontId
   appIcon: AppIconId
   notify: NotifySettings
   /** 동시에 실행할 대화 수 (OPEN-003). 0이면 제한 없음. 넘치면 대기열에서 차례를 기다린다 */
@@ -193,7 +216,7 @@ export interface Settings {
   keymap: Partial<Keymap>
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'poster', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
+export const DEFAULT_SETTINGS: Settings = { theme: 'poster', textFont: 'pretendard', questionFont: 'display', answerFont: 'pretendard', codeFont: 'geist', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
 
 export function effectiveKeymap(settings: Settings): Keymap {
   return { ...DEFAULT_KEYMAP, ...settings.keymap }

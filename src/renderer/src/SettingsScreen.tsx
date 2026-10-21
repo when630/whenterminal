@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Presence } from './motion'
-import { ACTIONS, APP_ICONS, conflictsOf, DEFAULT_KEYMAP, effectiveKeymap, SCOPE_LABEL, THEMES, type ActionDef, type ActionId, type ActionScope, type Settings, type ThemeId } from '@shared/keymap'
+import { ACTIONS, ANSWER_FONTS, APP_ICONS, CODE_FONTS, conflictsOf, FONTS, QUESTION_FONTS, TEXT_FONTS, DEFAULT_KEYMAP, effectiveKeymap, SCOPE_LABEL, THEMES, type ActionDef, type ActionId, type ActionScope, type Settings, type ThemeId } from '@shared/keymap'
 import type { TerminalShellOption, UpdateState } from '@shared/types'
 import { Keys } from './KeyHint'
 import { ALT_LABEL, eventToBinding, matches } from './keys'
@@ -232,6 +232,39 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
               )
             })}
           </div>
+        </section>
+
+        <section className="set-sec" aria-labelledby="set-font">
+          <h2 id="set-font" className="col-h">FONT</h2>
+          {([
+            ['questionFont', 'Question font', '대화에서 내가 보낸 질문이에요. DISPLAY는 포스터 같은 큰 글자예요', QUESTION_FONTS],
+            ['answerFont', 'Answer font', '답변 본문이에요. 답변 안의 제목은 큰 글자, 코드는 Code font로 나와요', ANSWER_FONTS],
+            ['textFont', 'Text font', '메뉴·입력창 같은 화면 글자예요. 한글은 고른 글꼴에 없으면 Pretendard로 나와요', TEXT_FONTS],
+            ['codeFont', 'Code font', '코드 블록·파일 보기·터미널 글자예요. Cascadia Code NF는 Nerd Font 기호가 들어 있어 셸 프롬프트 아이콘이 보여요', CODE_FONTS],
+          ] as const).map(([key, label, note, ids]) => (
+            <div key={key} className="krow">
+              <span className="krow-label">
+                {label}
+                <span className="krow-note">{note}</span>
+              </span>
+              <span className="seg" role="radiogroup" aria-label={label}>
+                {ids.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={settings[key] === id}
+                    className={settings[key] === id ? 'on' : ''}
+                    style={{ fontFamily: FONTS[id].css }}
+                    onClick={() => settings[key] !== id && void save({ ...settings, [key]: id })}
+                  >
+                    {FONTS[id].name}
+                  </button>
+                ))}
+              </span>
+              <span className="krow-side" />
+            </div>
+          ))}
         </section>
 
         <section className="set-sec" aria-labelledby="set-icon">

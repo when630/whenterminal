@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { join } from 'node:path'
-import { ACTIONS, APP_ICONS, DEFAULT_SETTINGS, normalize, THEMES, type Settings } from '@shared/keymap'
+import { ACTIONS, ANSWER_FONTS, APP_ICONS, CODE_FONTS, QUESTION_FONTS, DEFAULT_SETTINGS, normalize, TEXT_FONTS, THEMES, type Settings } from '@shared/keymap'
 import type { TerminalShell } from '@shared/types'
 import { readJson, writeJson } from './json-file'
 
@@ -30,6 +30,10 @@ export class SettingsStore {
 function sanitize(raw: unknown): Settings {
   const o = (raw ?? {}) as Partial<Settings>
   const theme = THEMES.some((t) => t.id === o.theme) ? o.theme! : DEFAULT_SETTINGS.theme
+  const textFont = TEXT_FONTS.includes(o.textFont!) ? o.textFont! : DEFAULT_SETTINGS.textFont
+  const questionFont = QUESTION_FONTS.includes(o.questionFont!) ? o.questionFont! : DEFAULT_SETTINGS.questionFont
+  const answerFont = ANSWER_FONTS.includes(o.answerFont!) ? o.answerFont! : DEFAULT_SETTINGS.answerFont
+  const codeFont = CODE_FONTS.includes(o.codeFont!) ? o.codeFont! : DEFAULT_SETTINGS.codeFont
   const keymap: Settings['keymap'] = {}
   for (const a of ACTIONS) {
     const v = o.keymap?.[a.id]
@@ -57,5 +61,5 @@ function sanitize(raw: unknown): Settings {
   const away = bool(o.away, DEFAULT_SETTINGS.away)
   const promptSuggestions = bool(o.promptSuggestions, DEFAULT_SETTINGS.promptSuggestions)
   const budgetWhenHot = bool(o.budgetWhenHot, DEFAULT_SETTINGS.budgetWhenHot)
-  return { theme, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
+  return { theme, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
 }

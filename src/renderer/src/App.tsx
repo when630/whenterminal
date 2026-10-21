@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MAX_PROJECTS, MODE_CYCLE, needsChoice, QUICK_PROJECT_ID, openConversations, type AgentMode, type StoredTask, type PermissionDecision, type PermissionExtra, type Project, type UpdateState, type UsageInfo } from '@shared/types'
 import { applyEvent, collectBackground, collectTasks, IDLE_KEY, mostUrgentConversation, type ConversationMap, type TaskInfo, type TaskRef } from './state'
 import { Home, type DispatchOrigin } from './Home'
@@ -8,7 +8,7 @@ import { Sidebar } from './Sidebar'
 import { Ticker } from './Ticker'
 import { HOME_ROW, isEscape, isInterruptCopy, matches, physicalCode, projectIndexFromKey } from './keys'
 import { ACTIONS, effectiveKeymap, THEMES, type ActionId, type Settings } from '@shared/keymap'
-import { applyTheme, KeymapContext } from './settings'
+import { applyFonts, applyTheme, KeymapContext } from './settings'
 import { SettingsScreen } from './SettingsScreen'
 import { HelpOverlay } from './HelpOverlay'
 import { SearchOverlay } from './SearchOverlay'
@@ -87,6 +87,7 @@ export function App(): React.JSX.Element {
     applyTheme(settings.theme, themeApplied.current)
     themeApplied.current = true
   }, [settings.theme])
+  useLayoutEffect(() => applyFonts(settings), [settings.textFont, settings.questionFont, settings.answerFont, settings.codeFont])
   useEffect(() => {
     const offs = [
       window.api.onSettingsChanged(setSettings),

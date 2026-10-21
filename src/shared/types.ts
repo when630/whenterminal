@@ -30,13 +30,14 @@ export const STATUS_LABEL: Record<AgentStatus, string> = {
  * Shift+Tab 순환 순서: 기본 → 편집 자동 허용 → 자동 → 플랜.
  * auto는 모델 분류기가 도구 실행마다 승인/거절하고, 판단하지 못한 것만 canUseTool로 사용자에게 묻는다
  */
-export type AgentMode = 'default' | 'acceptEdits' | 'auto' | 'plan'
-export const MODE_CYCLE: AgentMode[] = ['default', 'acceptEdits', 'auto', 'plan']
+export type AgentMode = 'default' | 'acceptEdits' | 'auto' | 'plan' | 'bypassPermissions'
+export const MODE_CYCLE: AgentMode[] = ['default', 'acceptEdits', 'auto', 'plan', 'bypassPermissions']
 export const MODE_LABEL: Record<AgentMode, string> = {
   default: 'DEFAULT',
   acceptEdits: 'ACCEPT EDITS',
   auto: 'AUTO',
   plan: 'PLAN',
+  bypassPermissions: 'BYPASS',
 }
 export const isAgentMode = (m: unknown): m is AgentMode => MODE_CYCLE.includes(m as AgentMode)
 

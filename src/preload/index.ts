@@ -102,6 +102,7 @@ const api: WhenTerminalApi = {
   checkUpdate: () => ipcRenderer.invoke(IPC.checkUpdate),
   applyUpdate: () => ipcRenderer.send(IPC.applyUpdate),
   onUpdate: (cb) => subscribe(IPC.updateChanged, cb),
+  onWindowShown: (cb) => subscribe(IPC.windowShown, cb),
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
+import { isWindowShown, onWindowShown } from './window-shown'
 
-/** 경과 시간 표시용 현재 시각 (주기적으로 갱신) */
+/** 경과 시간 표시용 현재 시각 (주기적으로 갱신). 창이 숨은 동안은 갱신하지 않고, 다시 보이면 바로 맞춘다 */
 export function useNow(intervalMs = 15_000): number {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), intervalMs)
-    return () => clearInterval(t)
+    const t = setInterval(() => isWindowShown() && setNow(Date.now()), intervalMs)
+    const off = onWindowShown((shown) => shown && setNow(Date.now()))
+    return () => {
+      clearInterval(t)
+      off()
+    }
   }, [intervalMs])
   return now
 }

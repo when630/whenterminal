@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { HOME_ROW } from './keys'
 import { reducedMotion } from './motion'
+import { isWindowShown, onWindowShown } from './window-shown'
 import { STAGES, type BackgroundRef, type TaskRef } from './state'
 
 interface Props {
@@ -23,8 +24,14 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
     // 한 벌이 창 너비보다 짧으면 다음 벌이 화면 가운데서 튀어나오므로, 한 벌의 최소 너비를 창 너비로 맞춘다
     const fit = (): void => el.style.setProperty('--ticker-w', `${box.getBoundingClientRect().width}px`)
     fit()
-    const ro = new ResizeObserver(fit)
+    // 한 벌의 폭은 크기가 바뀔 때만 잰다. 프레임마다 scrollWidth를 읽으면 그때마다 문서 전체 레이아웃을 강제로 다시 한다
+    let half = el.scrollWidth / 2
+    const ro = new ResizeObserver(() => {
+      fit()
+      half = el.scrollWidth / 2
+    })
     ro.observe(box)
+    ro.observe(el)
     // 처음에는 오른쪽 끝 바깥에서 들어온다
     let offset = -box.clientWidth
     let last = performance.now()
@@ -33,7 +40,6 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
       // 프레임이 드물게 와도(부하·절전) 속도는 그대로. 창이 숨었다 돌아올 때는 visibilitychange에서 last를 다시 잡는다
       const dt = Math.min(now - last, 250) / 1000
       last = now
-      const half = el.scrollWidth / 2
       if (half > 0) {
         offset += SPEED * dt
         if (offset >= half) offset %= half
@@ -43,6 +49,8 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
     }
     const start = (): void => {
       cancelAnimationFrame(raf)
+      // 창이 숨은 동안은 돌지 않는다 (숨어도 그리기는 계속하므로)
+      if (!isWindowShown()) return
       if (reducedMotion()) {
         el.style.transform = ''
         return
@@ -56,10 +64,12 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
     // 앱이 떠 있는 동안 OS의 애니메이션 효과 설정이 바뀌어도 따라간다
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     start()
+    const offShown = onWindowShown(start)
     document.addEventListener('visibilitychange', onVisible)
     mq.addEventListener('change', start)
     return () => {
       cancelAnimationFrame(raf)
+      offShown()
       ro.disconnect()
       document.removeEventListener('visibilitychange', onVisible)
       mq.removeEventListener('change', start)

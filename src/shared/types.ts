@@ -779,6 +779,7 @@ export const IPC = {
   checkUpdate: 'update:check',
   applyUpdate: 'update:apply',
   updateChanged: 'update:changed',
+  windowShown: 'window:shown',
   dropQueued: 'agent:drop-queued',
   toolResult: 'agent:tool-result',
   rewind: 'agent:rewind',
@@ -969,4 +970,6 @@ export interface WhenTerminalApi {
   /** 받아 둔 업데이트가 있으면 재시작해 설치, 아니면 릴리즈 페이지를 연다 */
   applyUpdate(): void
   onUpdate(cb: (state: UpdateState) => void): () => void
+  /** 앱 창이 숨거나(트레이·최소화) 다시 보일 때 */
+  onWindowShown(cb: (shown: boolean) => void): () => void
 }

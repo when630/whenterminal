@@ -239,8 +239,8 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
           {([
             ['questionFont', 'Question font', '대화에서 내가 보낸 질문이에요. DISPLAY는 포스터 같은 큰 글자예요', QUESTION_FONTS],
             ['answerFont', 'Answer font', '답변 본문이에요. 답변 안의 제목은 큰 글자, 코드는 Code font로 나와요', ANSWER_FONTS],
-            ['textFont', 'Text font', '메뉴·입력창 같은 화면 글자예요. 한글은 고른 글꼴에 없으면 Pretendard로 나와요', TEXT_FONTS],
-            ['codeFont', 'Code font', '코드 블록·파일 보기·터미널 글자예요. Cascadia Code NF는 Nerd Font 기호가 들어 있어 셸 프롬프트 아이콘이 보여요', CODE_FONTS],
+            ['textFont', 'Text font', '메뉴·입력창 같은 화면 글자예요. 한글은 고른 글꼴에 없으면 Pretendard로 나와요(D2Coding NF는 한글도 있어요)', TEXT_FONTS],
+            ['codeFont', 'Code font', '코드 블록·파일 보기·터미널 글자예요. NF 글꼴은 Nerd Font 기호가 들어 있어 셸 프롬프트 아이콘이 보여요', CODE_FONTS],
           ] as const).map(([key, label, note, ids]) => (
             <div key={key} className="krow">
               <span className="krow-label">

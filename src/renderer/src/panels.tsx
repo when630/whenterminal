@@ -3,7 +3,7 @@ import type { DidFailLoadEvent, DidNavigateEvent, WebviewTag } from 'electron'
 import { Presence, PresenceList } from './motion'
 import type { AgentOption, McpServerInfo, MemoryFile, PermissionRuleSource, PermissionsInfo, RewindScope, SessionOption, SessionStatus } from '@shared/types'
 import { ARTIFACT_PARTITION, MODE_LABEL } from '@shared/types'
-import { artifactsOf, relPath as relPathOf, summarizeInput as summarizeInputOf, type TranscriptItem } from './state'
+import { artifactsOf, isRunningTool, relPath as relPathOf, summarizeInput as summarizeInputOf, type TranscriptItem } from './state'
 import { elapsed, useNow } from './time'
 import { GitPanel } from './GitPanel'
 
@@ -184,7 +184,7 @@ function ToolsPanel({ items, since, root, onClose, onJumpToTool }: Props & { sin
   for (const t of list) byName.set(t.name, (byName.get(t.name) ?? 0) + 1)
   const counts = [...byName.entries()].sort((a, b) => b[1] - a[1])
   const errors = list.filter((t) => t.isError).length
-  const running = list.filter((t) => t.result === undefined).length
+  const running = list.filter(isRunningTool).length
   return (
     <Frame title="TOOLS" sub={`${list.length} CALLS${errors ? ` · ${errors} ERRORS` : ''}${running ? ` · ${running} RUNNING` : ''}`} onClose={onClose}>
       {list.length === 0 && <div className="empty">아직 부른 도구가 없어요.</div>}
@@ -199,7 +199,7 @@ function ToolsPanel({ items, since, root, onClose, onJumpToTool }: Props & { sin
       )}
       <ul className="pn-list" aria-label="도구 호출">
         {list.map((t, i) => {
-          const status = t.result === undefined ? 'RUNNING' : t.isError ? 'ERROR' : 'DONE'
+          const status = t.stopped ? 'STOPPED' : t.result === undefined ? 'RUNNING' : t.isError ? 'ERROR' : 'DONE'
           return (
             <li key={t.toolUseId}>
               <button type="button" className="pn-row" onClick={() => onJumpToTool(t.toolUseId)} title="대화 기록에서 이 호출을 펼쳐요">

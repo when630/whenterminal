@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { AgentProgress, SubItem, TaskOutput } from '@shared/types'
-import { agentInfo, describeBackground, isAgentTool, relPath, subActivity, summarizeInput, type ConversationState, type ToolItem } from './state'
+import { useOpened } from './opened'
+import { agentInfo, describeBackground, isAgentTool, isRunningTool, relPath, subActivity, summarizeInput, type ConversationState, type ToolItem } from './state'
 import { clock, useNow } from './time'
 import { Markdown } from './Markdown'
 
@@ -34,7 +35,7 @@ export function TaskDetail({ target, state, projectId, conversationId, root, onC
   const agentItem = agentToolUseId ? (state.items.findLast((i) => i.type === 'tool' && i.toolUseId === agentToolUseId) as ToolItem | undefined) : undefined
 
   if (agentToolUseId) {
-    const live = target.kind === 'task' ? !!task : agentItem?.result === undefined
+    const live = target.kind === 'task' ? !!task : !!agentItem && isRunningTool(agentItem)
     return (
       <AgentDetail
         toolUseId={agentToolUseId}
@@ -198,7 +199,7 @@ function AgentDetail({ toolUseId, item, subs, progress, live, background, starte
         {list.length === 0 ? (
           <div className="empty">{live ? '하위 에이전트가 시작하는 중이에요…' : '이번 실행에서 받은 활동이 없어요. 앱을 다시 켜기 전에 돌았던 에이전트일 수 있어요.'}</div>
         ) : (
-          <SubLog list={list} subs={subs} root={root} />
+          <SubLog list={list} subs={subs} root={root} live={live} />
         )}
         {item?.result !== undefined && !background && (
           <div className="td-result">
@@ -212,7 +213,7 @@ function AgentDetail({ toolUseId, item, subs, progress, live, background, starte
 }
 
 /** 하위 에이전트의 활동 목록. 그 안에서 또 띄운 에이전트는 들여 써서 이어 보인다 */
-export function SubLog({ list, subs, root, depth = 0 }: { list: SubItem[]; subs: Record<string, SubItem[]>; root: string; depth?: number }): React.JSX.Element {
+export function SubLog({ list, subs, root, live = true, depth = 0 }: { list: SubItem[]; subs: Record<string, SubItem[]>; root: string; live?: boolean; depth?: number }): React.JSX.Element {
   return (
     <ol className="sub-log">
       {list.map((i, idx) =>
@@ -222,19 +223,32 @@ export function SubLog({ list, subs, root, depth = 0 }: { list: SubItem[]; subs:
           </li>
         ) : (
           <li key={i.toolUseId} className={`sub-tool ${i.isError ? 'error' : ''}`}>
-            <details>
-              <summary>
-                <span className="sub-name">{i.name}</span>
-                <span className="sub-arg">{relPath(summarizeInput(i.input), root)}</span>
-                <span className={`sub-st ${i.result === undefined ? 'run' : ''}`}>{i.result === undefined ? 'RUNNING' : i.isError ? 'ERROR' : 'DONE'}</span>
-              </summary>
-              <pre>{JSON.stringify(i.input, null, 2)}</pre>
-              {i.result !== undefined && <pre className="sub-out">{i.result || '(no output)'}</pre>}
-            </details>
-            {isAgentTool(i.name) && subs[i.toolUseId]?.length && depth < 3 ? <SubLog list={subs[i.toolUseId]} subs={subs} root={root} depth={depth + 1} /> : null}
+            <SubTool item={i} root={root} live={live} />
+            {isAgentTool(i.name) && subs[i.toolUseId]?.length && depth < 3 ? <SubLog list={subs[i.toolUseId]} subs={subs} root={root} live={live} depth={depth + 1} /> : null}
           </li>
         ),
       )}
     </ol>
+  )
+}
+
+/** 하위 에이전트의 도구 호출 한 줄. 에이전트가 끝났는데 결과가 없으면 중단된 것(STOPPED) */
+function SubTool({ item: i, root, live }: { item: Extract<SubItem, { type: 'tool' }>; root: string; live: boolean }): React.JSX.Element {
+  const [opened, onToggle] = useOpened()
+  const running = i.result === undefined && live
+  return (
+    <details onToggle={onToggle}>
+      <summary>
+        <span className="sub-name">{i.name}</span>
+        <span className="sub-arg">{relPath(summarizeInput(i.input), root)}</span>
+        <span className={`sub-st ${running ? 'run' : ''}`}>{running ? 'RUNNING' : i.result === undefined ? 'STOPPED' : i.isError ? 'ERROR' : 'DONE'}</span>
+      </summary>
+      {opened && (
+        <>
+          <pre>{JSON.stringify(i.input, null, 2)}</pre>
+          {i.result !== undefined && <pre className="sub-out">{i.result || '(no output)'}</pre>}
+        </>
+      )}
+    </details>
   )
 }

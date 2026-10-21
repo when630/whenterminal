@@ -15,6 +15,23 @@
   font-display: swap;
   src: local('Cascadia Code NF'), url('./assets/fonts/CascadiaCodeNF.woff2') format('woff2');
 }
+/* 설정 FONT의 D2Coding NF (Nerd Fonts v3.5.1 D2KodingLigature, 한글 포함). 라이선스 OFL: assets/fonts/D2Coding-OFL.txt */
+@font-face {
+  font-family: 'D2Coding NF';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('D2CodingLigature Nerd Font'), local('D2KodingLigature Nerd Font'), url('./assets/fonts/D2CodingNF-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'D2Coding NF';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('D2CodingLigature Nerd Font Bold'), local('D2KodingLigature Nerd Font Bold'), url('./assets/fonts/D2CodingNF-Bold.woff2') format('woff2');
+}
+/* 창이 숨은 동안(트레이·최소화) 반복 애니메이션을 멈춘다. 창은 숨어도 그리기를 계속하므로(backgroundThrottling: false) 멈추지 않으면 계속 그린다 */
+:root[data-window-hidden] *, :root[data-window-hidden] *::before, :root[data-window-hidden] *::after { animation-play-state: paused !important; }
 /* WHENTERMINAL 디자인 토큰 — G안: 스위스 포스터. 흰 종이 + 검은 굵은 선 + 신호색 빨강 하나.
    크기·굵기 대비로 위계를 만들고, 색은 '사람이 봐야 할 것'(승인 대기·오류)에만 쓴다. */
 :root {

@@ -1,6 +1,7 @@
 import { cloneElement, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactElement } from 'react'
 import { Terminal, type ILink, type IMarker } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { onWindowShown } from './window-shown'
 import { SearchAddon, type ISearchOptions } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
@@ -162,6 +163,8 @@ function wire(): void {
       if (e.term.options.fontFamily !== font) applyFont(e, font)
     })
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] })
+  // 창이 숨은 동안 커서 깜빡임을 멈춘다 (숨어도 그리기는 계속하므로)
+  onWindowShown((shown) => entries.forEach((e) => (e.term.options.cursorBlink = shown)))
 }
 
 // ── 오래 돈 명령이 끝나면 알림 ─────────────────────────────

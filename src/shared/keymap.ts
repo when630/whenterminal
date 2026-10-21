@@ -166,7 +166,7 @@ export const APP_ICONS: { id: AppIconId; name: string; note: string }[] = [
   { id: 'slots', name: 'SLOTS', note: 'A~L 프로젝트 자리' },
 ]
 
-export type FontId = 'display' | 'pretendard' | 'geist' | 'cascadia'
+export type FontId = 'display' | 'pretendard' | 'geist' | 'cascadia' | 'd2coding'
 
 /** 글꼴 (설정 FONT). css는 --font·--mono·--answer-font·--question-font에 넣는 목록. 한글이 없는 글꼴은 뒤의 글꼴로 넘어간다 */
 export const FONTS: Record<FontId, { name: string; css: string }> = {
@@ -174,12 +174,13 @@ export const FONTS: Record<FontId, { name: string; css: string }> = {
   pretendard: { name: 'PRETENDARD', css: "'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" },
   geist: { name: 'GEIST MONO', css: "'Geist Mono', 'SF Mono', 'Cascadia Code', 'D2Coding', Consolas, monospace" },
   cascadia: { name: 'CASCADIA CODE NF', css: "'Cascadia Code NF', 'D2Coding', Consolas, 'Pretendard Variable', monospace" },
+  d2coding: { name: 'D2CODING NF', css: "'D2Coding NF', D2Coding, Consolas, monospace" },
 }
 /** 칸마다 고를 수 있는 글꼴. 질문은 큰 글자(DISPLAY: Archivo + Black Han Sans)가 기본, 터미널은 고정폭만 */
-export const TEXT_FONTS: FontId[] = ['pretendard', 'cascadia']
-export const QUESTION_FONTS: FontId[] = ['display', 'pretendard', 'cascadia']
-export const ANSWER_FONTS: FontId[] = ['pretendard', 'cascadia']
-export const CODE_FONTS: FontId[] = ['geist', 'cascadia']
+export const TEXT_FONTS: FontId[] = ['pretendard', 'cascadia', 'd2coding']
+export const QUESTION_FONTS: FontId[] = ['display', 'pretendard', 'cascadia', 'd2coding']
+export const ANSWER_FONTS: FontId[] = ['pretendard', 'cascadia', 'd2coding']
+export const CODE_FONTS: FontId[] = ['geist', 'cascadia', 'd2coding']
 
 export interface Settings {
   theme: ThemeId

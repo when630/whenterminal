@@ -289,11 +289,14 @@ export function App(): React.JSX.Element {
   const closeConversation = useCallback(async (projectId: string, conversationId: string) => {
     const next = await window.api.closeConversation(projectId, conversationId)
     forgetTerminals(conversationId)
-    // 보고서가 보고함에 남을 수 있으므로 상태는 지우지 않는다. 실행 중이었다면 중단으로 바꾼다
+    // 보고서가 보고함에 남을 수 있으므로 작업(task)은 남기고, 화면 기록·하위 에이전트 기록은 비운다(닫은 대화가 메모리를 계속 쥐지 않게).
+    // 다시 열리면 기록은 세션 파일에서 되살린다. 실행 중이었다면 중단으로 바꾼다
     setConvs((prev) => {
       const s = prev[conversationId]
-      if (!s || (s.status !== 'running' && s.status !== 'waiting_approval' && s.status !== 'queued')) return prev
-      return { ...prev, [conversationId]: { ...s, status: 'stopped', permissions: [], task: s.task ? { ...s.task, finishedAt: s.task.finishedAt ?? Date.now() } : s.task } }
+      if (!s) return prev
+      const busy = s.status === 'running' || s.status === 'waiting_approval' || s.status === 'queued'
+      const task = s.task && busy ? { ...s.task, finishedAt: s.task.finishedAt ?? Date.now() } : s.task
+      return { ...prev, [conversationId]: { status: busy ? 'stopped' : s.status, mode: s.mode, model: s.model, items: [], permissions: [], updatedAt: s.updatedAt, task, finishedTask: s.finishedTask } }
     })
     setView((v) => (v.screen === 'chat' && v.conversationId === conversationId ? { screen: 'chat', projectId, conversationId: next } : v))
   }, [])

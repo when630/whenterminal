@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { refocusAfterClick, stillTyping, useRefocus } from './focus'
 import { ALWAYS_SCOPE_LABEL, ALWAYS_SCOPE_TIP, ELICITATION_TOOL, MODE_CYCLE, MODE_LABEL, openConversations, REFUSAL_TOOL, STATUS_LABEL, type AgentOption, type AskQuestion, type EffortInfo, type EffortLevel, type GitBranch, type UsageInfo, type SlashCommandInfo, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRequest, type Project, type BackgroundTask, type AgentProgress, type RefusalChoice, type SubItem } from '@shared/types'
-import { agentInfo, artifactsOf, describeBackground, emptyConversation, foldSummaries, isAgentTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ArtifactLink, type ConversationMap, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
+import { agentInfo, artifactsOf, describeBackground, emptyConversation, foldSummaries, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ArtifactLink, type ConversationMap, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
 import type { GoalInfo, MemoryRecall } from '@shared/types'
 import { PANEL_TITLE, ToolPanelView, type ToolPanel } from './panels'
 import { usePromptHistory } from './drafts'
@@ -13,6 +13,7 @@ import { SubLog, TaskDetail, type DetailTarget } from './TaskDetail'
 import { closeTerminal, execInTerminal, forgetTerminals, pathForComposer, runInTerminal, TerminalDrawer, toggleTerminal } from './terminal'
 import { Markdown } from './Markdown'
 import { CopyButton } from './copy'
+import { useOpened } from './opened'
 import { FilesOverlay } from './FilesOverlay'
 import { createPortal } from 'react-dom'
 import { AttachButton, useAttach } from './attach'
@@ -644,6 +645,19 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   let toolCount = 0
   // 도구 호출 묶음은 요약 한 줄 아래로 접어 그린다
   const nodes = useMemo(() => foldSummaries(state.items), [state.items])
+  // 기록 줄(Item)은 memo라 콜백이 렌더마다 바뀌면 소용이 없다. 늘 같은 함수를 주고 그 안에서 지금 값을 부른다
+  const itemActs = useRef({ conversationId, projectId: project.id, editQueued, cancelQueued, openTool })
+  itemActs.current = { conversationId, projectId: project.id, editQueued, cancelQueued, openTool }
+  const acts = useMemo(
+    () => ({
+      run: (cmd: string) => void runInTerminal(itemActs.current.projectId, itemActs.current.conversationId, cmd),
+      edit: (id: string) => void itemActs.current.editQueued(id),
+      cancel: (id: string) => void itemActs.current.cancelQueued(id),
+      rewind: (uuid: string) => itemActs.current.openTool({ kind: 'rewind', uuid }),
+      expand: (toolUseId: string) => window.api.toolResult(itemActs.current.projectId, itemActs.current.conversationId, toolUseId),
+    }),
+    [],
+  )
   const [approving, setApproving] = useState(false)
   const approveDenied = (): void => {
     if (!denied.length || approving) return
@@ -857,13 +871,14 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 n={item.type === 'tool' ? ++toolCount : 0}
                 root={root}
                 enter={idx >= seen.current.count}
-                subs={state.subs}
-                progress={state.progress}
-                onRun={(cmd) => void runInTerminal(project.id, conversationId, cmd)}
-                onQueueEdit={(id) => void editQueued(id)}
-                onQueueCancel={(id) => void cancelQueued(id)}
-                onRewind={!busy && state.status !== 'queued' ? (uuid) => openTool({ kind: 'rewind', uuid }) : undefined}
-                onExpand={(toolUseId) => window.api.toolResult(project.id, conversationId, toolUseId)}
+                // 에이전트 줄만 하위 기록을 받는다 (나머지 줄은 하위 기록이 바뀌어도 다시 그리지 않게)
+                subs={item.type === 'tool' && isAgentTool(item.name) ? state.subs : undefined}
+                progress={item.type === 'tool' && isAgentTool(item.name) ? state.progress : undefined}
+                onRun={acts.run}
+                onQueueEdit={acts.edit}
+                onQueueCancel={acts.cancel}
+                onRewind={!busy && state.status !== 'queued' ? acts.rewind : undefined}
+                onExpand={acts.expand}
               />
             )
             if (node.kind === 'item') return render(node.item, node.idx)
@@ -1299,8 +1314,10 @@ interface ItemProps {
   onExpand?: (toolUseId: string) => Promise<string | null>
 }
 
-export function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand }: ItemProps): React.JSX.Element {
+/** 대화 기록 한 줄. memo: 다른 대화·다른 줄의 이벤트로 기록 전체를 다시 그리지 않는다 */
+export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand }: ItemProps): React.JSX.Element {
   const e = enter ? ' enter' : ''
+  const [opened, onToggle] = useOpened()
   // 차례를 기다리던 글이 보내지면 EDIT/CANCEL은 잠시 남아 나간다
   const acts = usePresence(item.type === 'user' && item.pending && item.queuedId ? item.queuedId : null)
   switch (item.type) {
@@ -1358,12 +1375,12 @@ export function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQ
       )
     }
     case 'tool': {
-      const status = item.result === undefined ? (item.elapsedS !== undefined ? `RUNNING ${item.elapsedS}s` : 'RUNNING') : item.isError ? 'ERROR' : 'DONE'
+      const status = item.stopped ? 'STOPPED' : item.result === undefined ? (item.elapsedS !== undefined ? `RUNNING ${item.elapsedS}s` : 'RUNNING') : item.isError ? 'ERROR' : 'DONE'
       // 하위 에이전트: 그 안에서 한 일을 펼쳐 볼 수 있게 한다
       const sub = isAgentTool(item.name) ? subs?.[item.toolUseId] : undefined
       const subTools = progress?.[item.toolUseId]?.tools ?? sub?.filter((i) => i.type === 'tool').length ?? 0
       return (
-        <details className={`tool ${item.isError ? 'error' : ''}${e}`} data-tool-id={item.toolUseId} data-idx={di}>
+        <details className={`tool ${item.isError ? 'error' : ''}${e}`} data-tool-id={item.toolUseId} data-idx={di} onToggle={onToggle}>
           <summary>
             <span className="tool-n">{String(n).padStart(2, '0')}</span>
             <span className="tool-name">{item.name}</span>
@@ -1371,9 +1388,11 @@ export function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQ
               {relPath(summarizeInput(item.input), root)}
               {sub && <span className="tool-sub"> · {subTools} TOOLS</span>}
             </span>
-            <span className={`tool-st ${item.result === undefined ? 'run' : ''}`}>{status}</span>
+            <span className={`tool-st ${isRunningTool(item) ? 'run' : ''}`}>{status}</span>
           </summary>
           <div className="tool-body">
+            {opened && (
+            <>
             <ToolInput name={item.name} input={item.input} />
             {(item.name === 'Bash' || item.name === 'PowerShell') && typeof (item.input as { command?: unknown } | null)?.command === 'string' && (
               <div className="tool-acts">
@@ -1393,16 +1412,18 @@ export function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQ
             {sub && sub.length > 0 && (
               <>
                 <h5>AGENT LOG · {sub.length}</h5>
-                <SubLog list={sub} subs={subs ?? {}} root={root} />
+                <SubLog list={sub} subs={subs ?? {}} root={root} live={!item.stopped} />
               </>
             )}
             {item.result !== undefined && <ToolOutput toolUseId={item.toolUseId} text={item.result} truncated={item.truncated} onExpand={onExpand} />}
+            </>
+            )}
           </div>
         </details>
       )
     }
   }
-}
+})
 
 /** 도구 결과. 화면에는 앞부분만 와 있으므로 SHOW ALL을 누르면 세션 기록에서 전문을 읽는다 */
 function ToolOutput({ toolUseId, text, truncated, onExpand }: { toolUseId: string; text: string; truncated?: boolean; onExpand?: (toolUseId: string) => Promise<string | null> }): React.JSX.Element {
@@ -1448,37 +1469,39 @@ function Divider({ text, enter, idx }: { text: string; enter: string; idx?: numb
     return <div className={`divider${enter}`} role="separator" data-idx={idx}>■ {text}</div>
   }
   const first = body.split('\n').find((l) => l.trim())?.trim() ?? ''
+  return <DividerFold head={head} first={first} body={body} enter={enter} idx={idx} />
+}
+
+function DividerFold({ head, first, body, enter, idx }: { head: string; first: string; body: string; enter: string; idx?: number }): React.JSX.Element {
+  const [opened, onToggle] = useOpened()
   return (
-    <details className={`divider fold${enter}`} data-idx={idx}>
+    <details className={`divider fold${enter}`} data-idx={idx} onToggle={onToggle}>
       <summary>
         <span className="divider-k">■ {head}</span>
         <span className="divider-first">{first}</span>
       </summary>
-      <div className="divider-body">
-        <Markdown text={body} />
-      </div>
+      <div className="divider-body">{opened && <Markdown text={body} />}</div>
     </details>
   )
 }
 
 function Thinking({ text, streaming, enter, idx }: { text: string; streaming: boolean; enter: boolean; idx?: number }): React.JSX.Element {
   const first = text.trim().split('\n').find(Boolean) ?? ''
+  const [opened, onToggle] = useOpened()
   return (
-    <details className={`thinking ${streaming ? 'streaming' : ''}${enter ? ' enter' : ''}`} data-idx={idx}>
+    <details className={`thinking ${streaming ? 'streaming' : ''}${enter ? ' enter' : ''}`} data-idx={idx} onToggle={onToggle}>
       <summary>
         <span className="thinking-k">{streaming ? 'THINKING' : 'THOUGHT'}</span>
         <span className="thinking-first">{first}</span>
       </summary>
-      <div className="thinking-body">
-        <Markdown text={text} />
-      </div>
+      <div className="thinking-body">{opened && <Markdown text={text} />}</div>
     </details>
   )
 }
 
 /** 도구 호출 묶음: CLI가 만든 한 줄 요약 아래로 접는다. 도는 중이거나 오류가 있으면 펼쳐 둔다 */
 function ToolGroup({ summary, tools, enter, children }: { summary: string; tools: ToolItem[]; enter: boolean; children: React.ReactNode }): React.JSX.Element {
-  const running = tools.some((t) => t.result === undefined)
+  const running = tools.some(isRunningTool)
   const errors = tools.filter((t) => t.isError).length
   const [open, setOpen] = useState(running || errors > 0)
   return (
@@ -1497,15 +1520,16 @@ function ToolGroup({ summary, tools, enter, children }: { summary: string; tools
 /** 이번 턴에 들어간 기억 (memory_recall). 접힌 채로 파일 이름만, 펼치면 경로·내용 */
 function MemoryItem({ recall, enter, idx }: { recall: MemoryRecall; enter: boolean; idx?: number }): React.JSX.Element {
   const name = (p: string): string => (p.startsWith('<synthesis:') ? 'SYNTHESIS' : (p.split(/[\\/]/).pop() ?? p))
+  const [opened, onToggle] = useOpened()
   return (
-    <details className={`memory${enter ? ' enter' : ''}`} data-idx={idx}>
+    <details className={`memory${enter ? ' enter' : ''}`} data-idx={idx} onToggle={onToggle}>
       <summary>
         <span className="memory-k">MEMORY</span>
         <span className="memory-n">{recall.memories.length}</span>
         <span className="memory-list">{recall.memories.map((m) => name(m.path)).join(' · ')}</span>
       </summary>
       <div className="memory-body">
-        {recall.memories.map((m, i) => (
+        {opened && recall.memories.map((m, i) => (
           <div key={`${m.path}:${i}`} className="memory-row">
             <h5>
               {m.scope.toUpperCase()} · <span className="mono">{m.path}</span>

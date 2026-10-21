@@ -8,8 +8,8 @@ export type TranscriptItem =
   | { type: 'assistant'; text: string; streaming: boolean; at: number }
   /** 모델의 생각 (요약본). 접힌 채로 보인다 */
   | { type: 'thinking'; text: string; streaming: boolean; at: number }
-  /** truncated: 결과 전문은 세션 기록에 (펼칠 때 읽는다). elapsedS: 도는 동안의 경과 시간 */
-  | { type: 'tool'; toolUseId: string; name: string; input: unknown; result?: string; isError?: boolean; truncated?: boolean; elapsedS?: number; at: number }
+  /** truncated: 결과 전문은 세션 기록에 (펼칠 때 읽는다). elapsedS: 도는 동안의 경과 시간. stopped: 턴이 끝났는데 결과가 끝내 오지 않음(중단) */
+  | { type: 'tool'; toolUseId: string; name: string; input: unknown; result?: string; isError?: boolean; truncated?: boolean; elapsedS?: number; stopped?: boolean; at: number }
   | { type: 'notice'; text: string; tone: 'info' | 'warn' | 'error'; mono?: boolean; at: number }
   | { type: 'divider'; text: string; at: number }
   /** 설정의 훅이 도는 것 (살아 있는 세션에서만. 기록 파일에는 남지 않는다) */
@@ -94,20 +94,38 @@ const SUB_LIMIT = 300
 
 export const isAgentTool = (name: string): boolean => name === 'Agent' || name === 'Task'
 
+/** 결과를 기다리는 도구 호출 (중단돼 결과가 끝내 오지 않은 것은 뺀다) */
+export const isRunningTool = (i: TranscriptItem): i is ToolItem => i.type === 'tool' && i.result === undefined && !i.stopped
+
 function newTask(instruction: string, now: number): TaskInfo {
   return { instruction, startedAt: now, stage: 0, activity: 'STARTING', tools: 0, files: [], unread: false, archived: false }
 }
 
 export function applyEvent(prev: ConversationState | undefined, event: AgentEvent): ConversationState {
-  const s: ConversationState = prev ? { ...prev, items: [...prev.items], permissions: [...prev.permissions] } : emptyConversation()
+  // items는 바꿀 때만 복사한다(items()). 기록과 상관없는 이벤트(context·background·progress …)에 배열이 새로 생기면
+  // 화면이 기록 전체를 다시 계산하고 그린다
+  const s: ConversationState = prev ? { ...prev } : emptyConversation()
+  let own = !prev
+  const items = (): TranscriptItem[] => {
+    if (!own) {
+      s.items = [...s.items]
+      own = true
+    }
+    return s.items
+  }
   const now = Date.now()
   s.updatedAt = now
   const last = s.items[s.items.length - 1]
   const finalizeStreaming = (): void => {
-    if ((last?.type === 'assistant' || last?.type === 'thinking') && last.streaming) s.items[s.items.length - 1] = { ...last, streaming: false }
+    if ((last?.type === 'assistant' || last?.type === 'thinking') && last.streaming) items()[s.items.length - 1] = { ...last, streaming: false }
   }
   const task = (patch: Partial<TaskInfo>): void => {
     if (s.task) s.task = { ...s.task, ...patch }
+  }
+  const stopOrphans = (): void => {
+    if (!s.items.some((i) => i.type === 'tool' && i.result === undefined && !i.stopped)) return
+    s.items = s.items.map((i) => (i.type === 'tool' && i.result === undefined && !i.stopped ? { ...i, stopped: true, elapsedS: undefined } : i))
+    own = true
   }
   const startTask = (instruction: string): void => {
     if (s.task?.finishedAt) s.finishedTask = { ...s.task, status: s.status }
@@ -126,6 +144,8 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
         task({ finishedAt: undefined, stage: Math.min(s.task.stage, STAGES.length - 1), activity: 'RESUMED', unread: false, priorDurationMs: s.task.durationMs })
         s.finishedTask = undefined
       }
+      // 턴이 끝났는데 결과가 없는 도구는 중단된 것: 결과가 끝내 오지 않으므로 RUNNING에서 내린다
+      if (event.status === 'done' || event.status === 'error' || event.status === 'stopped') stopOrphans()
       if (s.task && (event.status === 'done' || event.status === 'error' || event.status === 'stopped')) {
         task({ finishedAt: now, stage: event.status === 'done' ? STAGES.length : s.task.stage, unread: true })
       }
@@ -136,7 +156,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     case 'user':
       finalizeStreaming()
       s.suggestion = undefined
-      s.items.push({ type: 'user', text: event.text, at: now, uuid: event.uuid, queuedId: event.queuedId, pending: event.next || undefined })
+      items().push({ type: 'user', text: event.text, at: now, uuid: event.uuid, queuedId: event.queuedId, pending: event.next || undefined })
       // 실행 중에 보낸 메시지는 지금 작업을 덮지 않는다. 차례가 오면 task_start
       if (!event.next) startTask(event.text)
       break
@@ -145,51 +165,51 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       startTask(event.text)
       // 기다리던 메시지가 이제 보내졌다: 되감기 기준점을 받고 대기 표시를 뗀다
       const idx = event.queuedId ? s.items.findIndex((i) => i.type === 'user' && i.queuedId === event.queuedId) : -1
-      if (idx >= 0) s.items[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'user' }>), pending: undefined, uuid: event.uuid }
+      if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'user' }>), pending: undefined, uuid: event.uuid }
       break
     }
     case 'unqueued':
       s.items = s.items.filter((i) => !(i.type === 'user' && i.queuedId === event.queuedId))
       break
     case 'text_delta':
-      if (last?.type === 'assistant' && last.streaming) s.items[s.items.length - 1] = { ...last, text: last.text + event.text }
+      if (last?.type === 'assistant' && last.streaming) items()[s.items.length - 1] = { ...last, text: last.text + event.text }
       else {
         finalizeStreaming()
-        s.items.push({ type: 'assistant', text: event.text, streaming: true, at: now })
+        items().push({ type: 'assistant', text: event.text, streaming: true, at: now })
       }
       if (s.task && s.task.stage < 1) task({ activity: 'WRITING' })
       break
     case 'assistant_text':
-      if (last?.type === 'assistant' && last.streaming) s.items[s.items.length - 1] = { type: 'assistant', text: event.text, streaming: false, at: last.at }
+      if (last?.type === 'assistant' && last.streaming) items()[s.items.length - 1] = { type: 'assistant', text: event.text, streaming: false, at: last.at }
       else {
         finalizeStreaming()
-        s.items.push({ type: 'assistant', text: event.text, streaming: false, at: now })
+        items().push({ type: 'assistant', text: event.text, streaming: false, at: now })
       }
       task({ summary: event.text })
       break
     case 'thinking_delta':
-      if (last?.type === 'thinking' && last.streaming) s.items[s.items.length - 1] = { ...last, text: last.text + event.text }
+      if (last?.type === 'thinking' && last.streaming) items()[s.items.length - 1] = { ...last, text: last.text + event.text }
       else {
         finalizeStreaming()
-        s.items.push({ type: 'thinking', text: event.text, streaming: true, at: now })
+        items().push({ type: 'thinking', text: event.text, streaming: true, at: now })
       }
       task({ activity: 'THINKING' })
       break
     case 'thinking':
-      if (last?.type === 'thinking' && last.streaming) s.items[s.items.length - 1] = { type: 'thinking', text: event.text, streaming: false, at: last.at }
+      if (last?.type === 'thinking' && last.streaming) items()[s.items.length - 1] = { type: 'thinking', text: event.text, streaming: false, at: last.at }
       else {
         finalizeStreaming()
-        s.items.push({ type: 'thinking', text: event.text, streaming: false, at: now })
+        items().push({ type: 'thinking', text: event.text, streaming: false, at: now })
       }
       break
     case 'tool_progress': {
       const idx = s.items.findLastIndex((i) => i.type === 'tool' && i.toolUseId === event.toolUseId)
-      if (idx >= 0) s.items[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'tool' }>), elapsedS: event.elapsedS }
+      if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'tool' }>), elapsedS: event.elapsedS }
       break
     }
     case 'notice':
       finalizeStreaming()
-      s.items.push({ type: 'notice', text: event.text, tone: event.tone, mono: event.mono, at: now })
+      items().push({ type: 'notice', text: event.text, tone: event.tone, mono: event.mono, at: now })
       break
     case 'retry':
       task({ activity: `RETRY ${event.attempt}/${event.max} · ${Math.round(event.delayMs / 1000)}s` })
@@ -209,10 +229,10 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
         exitCode: event.exitCode ?? prev?.exitCode,
         at: prev?.at ?? now,
       }
-      if (prev) s.items[idx] = item
+      if (prev) items()[idx] = item
       else {
         finalizeStreaming()
-        s.items.push(item)
+        items().push(item)
       }
       if (event.phase === 'start' && s.task) task({ activity: `HOOK ${event.event}` })
       break
@@ -231,7 +251,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       break
     case 'tool_use': {
       finalizeStreaming()
-      s.items.push({ type: 'tool', toolUseId: event.toolUseId, name: event.name, input: event.input, at: now })
+      items().push({ type: 'tool', toolUseId: event.toolUseId, name: event.name, input: event.input, at: now })
       if (s.task) {
         const st = stageForTool(event.name, event.input)
         const file = str((event.input as Record<string, unknown> | null)?.file_path)
@@ -246,14 +266,14 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     }
     case 'tool_result': {
       const idx = s.items.findLastIndex((i) => i.type === 'tool' && i.toolUseId === event.toolUseId)
-      if (idx >= 0) s.items[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'tool' }>), result: event.content, isError: event.isError, truncated: event.truncated, elapsedS: undefined }
+      if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'tool' }>), result: event.content, isError: event.isError, truncated: event.truncated, elapsedS: undefined, stopped: undefined }
       // 이번 작업에서 남은 도구가 없으면 모델이 결과를 보고 다음 걸음을 고르는 중 (중단된 턴의 도구는 결과가 끝내 오지 않으므로 뺀다)
       const since = s.task?.startedAt ?? 0
-      if (!s.items.some((i) => i.type === 'tool' && i.result === undefined && i.at >= since)) task({ activity: 'THINKING' })
+      if (!s.items.some((i) => isRunningTool(i) && i.at >= since)) task({ activity: 'THINKING' })
       break
     }
     case 'permission_request':
-      s.permissions.push(event.request)
+      s.permissions = [...s.permissions, event.request]
       task({ activity: 'WAITING FOR YOU' })
       break
     case 'permission_resolved':
@@ -262,11 +282,11 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     case 'result':
       finalizeStreaming()
       task({ durationMs: (s.task?.priorDurationMs ?? 0) + event.durationMs, costUsd: event.costUsd, activity: 'REPORTED' })
-      if (event.subtype !== 'success') s.items.push({ type: 'notice', text: `종료: ${event.subtype}`, tone: 'error', at: now })
+      if (event.subtype !== 'success') items().push({ type: 'notice', text: `종료: ${event.subtype}`, tone: 'error', at: now })
       break
     case 'error':
       finalizeStreaming()
-      s.items.push({ type: 'notice', text: event.message, tone: 'error', at: now })
+      items().push({ type: 'notice', text: event.message, tone: 'error', at: now })
       break
     case 'context':
       s.context = event.context
@@ -283,34 +303,34 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       // 조건을 못 미쳐 다시 도는 것과 목표가 풀린 것은 구분선으로 남긴다
       if (event.goal && prev && event.goal.iterations > prev.iterations) {
         finalizeStreaming()
-        s.items.push({ type: 'divider', text: `GOAL NOT MET · ${event.goal.iterations}${event.goal.lastReason ? ` · ${event.goal.lastReason}` : ''}`, at: now })
+        items().push({ type: 'divider', text: `GOAL NOT MET · ${event.goal.iterations}${event.goal.lastReason ? ` · ${event.goal.lastReason}` : ''}`, at: now })
       } else if (event.goal && (!prev || prev.condition !== event.goal.condition)) {
         finalizeStreaming()
-        s.items.push({ type: 'divider', text: `GOAL · ${event.goal.condition}`, at: now })
+        items().push({ type: 'divider', text: `GOAL · ${event.goal.condition}`, at: now })
       } else if (!event.goal && prev) {
         finalizeStreaming()
-        s.items.push({ type: 'divider', text: `GOAL MET · ${prev.condition}`, at: now })
+        items().push({ type: 'divider', text: `GOAL MET · ${prev.condition}`, at: now })
       }
       break
     }
     case 'tool_summary':
       finalizeStreaming()
-      s.items.push({ type: 'summary', summary: event.summary, ids: event.toolUseIds, at: now })
+      items().push({ type: 'summary', summary: event.summary, ids: event.toolUseIds, at: now })
       break
     case 'memory':
       finalizeStreaming()
-      s.items.push({ type: 'memory', recall: event.recall, at: now })
+      items().push({ type: 'memory', recall: event.recall, at: now })
       break
     case 'away_denied': {
       finalizeStreaming()
       const label = event.call.title ?? `${event.call.toolName} ${summarizeInput(event.call.input)}`.trim()
-      s.items.push({ type: 'notice', text: `AWAY · DENIED · ${label}`, tone: 'warn', at: now })
+      items().push({ type: 'notice', text: `AWAY · DENIED · ${label}`, tone: 'warn', at: now })
       if (s.task) task({ denied: [...(s.task.denied ?? []), event.call] })
       break
     }
     case 'budget':
       finalizeStreaming()
-      s.items.push({ type: 'divider', text: `BUDGET · ${Math.round(event.tokens / 1000)}K TOKENS · 구독 한도가 높아 이 세션은 예산 안에서 마무리해요`, at: now })
+      items().push({ type: 'divider', text: `BUDGET · ${Math.round(event.tokens / 1000)}K TOKENS · 구독 한도가 높아 이 세션은 예산 안에서 마무리해요`, at: now })
       break
     case 'history':
       // 이미 이번 실행에서 대화가 시작됐으면 덮지 않는다
@@ -326,7 +346,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       const list = [...(s.subs?.[event.parent] ?? []), event.item]
       s.subs = { ...s.subs, [event.parent]: list.length > SUB_LIMIT ? list.slice(-SUB_LIMIT) : list }
       // 앞에서 기다리는(포그라운드) 에이전트면 작업 줄에 그 에이전트가 하는 일을 보인다
-      if (event.item.type === 'tool' && s.items.some((i) => i.type === 'tool' && i.toolUseId === event.parent && i.result === undefined)) {
+      if (event.item.type === 'tool' && s.items.some((i) => isRunningTool(i) && i.toolUseId === event.parent)) {
         task({ activity: `AGENT · ${activityForTool(event.item.name, event.item.input)}` })
       }
       break
@@ -346,7 +366,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       break
     case 'task_note':
       finalizeStreaming()
-      s.items.push({ type: 'divider', text: event.text, at: now })
+      items().push({ type: 'divider', text: event.text, at: now })
       break
     case 'model':
       s.model = { id: event.model, label: event.label }
@@ -357,7 +377,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     case 'compacted': {
       const k = (n: number): string => (n >= 1000 ? `${Math.round(n / 1000)}K` : String(n))
       const label = event.trigger === 'auto' ? 'AUTO COMPACT' : 'COMPACT'
-      s.items.push({ type: 'divider', text: `${label} · ${k(event.preTokens)}${event.postTokens !== undefined ? ` → ${k(event.postTokens)}` : ''} tokens`, at: now })
+      items().push({ type: 'divider', text: `${label} · ${k(event.preTokens)}${event.postTokens !== undefined ? ` → ${k(event.postTokens)}` : ''} tokens`, at: now })
       break
     }
     case 'cleared':
@@ -427,6 +447,8 @@ export function foldSummaries(items: TranscriptItem[]): RenderNode[] {
 function fromHistory(items: HistoryItem[]): TranscriptItem[] {
   return items.map((h): TranscriptItem => {
     if (h.type === 'assistant' || h.type === 'thinking') return { ...h, streaming: false, at: 0 }
+    // 되살린 기록에서 결과가 없는 도구는 그때 중단된 것
+    if (h.type === 'tool' && h.result === undefined) return { ...h, stopped: true, at: 0 }
     return { ...h, at: 0 }
   })
 }
@@ -458,7 +480,7 @@ export type ToolItem = Extract<TranscriptItem, { type: 'tool' }>
 /** 앞에서 기다리는(포그라운드) 하위 에이전트: 결과가 아직 안 온 Agent 도구 호출. 백그라운드 에이전트는 BACKGROUND 쪽에 나온다 */
 export function runningAgents(items: TranscriptItem[], background: BackgroundTask[]): ToolItem[] {
   const bg = new Set(background.map((b) => b.toolUseId))
-  return items.filter((i): i is ToolItem => i.type === 'tool' && isAgentTool(i.name) && i.result === undefined && !bg.has(i.toolUseId))
+  return items.filter((i): i is ToolItem => isRunningTool(i) && isAgentTool(i.name) && !bg.has(i.toolUseId))
 }
 
 /** 에이전트를 띄운 도구 입력에서 설명·종류·지시문 */

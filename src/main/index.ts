@@ -589,8 +589,18 @@ function createWindow(): void {
       webviewTag: true,
       // 입력창 맞춤법 검사(빨간 밑줄)는 끈다
       spellcheck: false,
+      // 숨기거나 최소화해도 그리기를 멈추지 않는다. 기본값(true)이면 숨은 동안 그려 둔 화면을 버려서, 다시 열 때 새로 그릴 때까지 바탕색만 보인다.
+      // 대신 숨은 동안 도는 것은 렌더러가 windowShown을 받아 스스로 멈춘다 (window-shown.ts)
+      backgroundThrottling: false,
     },
   })
+  const sendShown = (shown: boolean): void => win?.webContents.send(IPC.windowShown, shown)
+  win.on('hide', () => sendShown(false))
+  win.on('minimize', () => sendShown(false))
+  win.on('show', () => sendShown(!win?.isMinimized()))
+  win.on('restore', () => sendShown(!!win?.isVisible()))
+  // 로그인할 때 숨긴 채로 시작하면 hide 이벤트가 없다
+  win.webContents.on('did-finish-load', () => sendShown(!!win?.isVisible() && !win.isMinimized()))
   win.once('ready-to-show', () => {
     if (!startHidden()) win?.show()
   })

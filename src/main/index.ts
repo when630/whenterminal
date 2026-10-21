@@ -502,6 +502,35 @@ function bootstrap(): void {
     writeFileSync(res.filePath, await exportMarkdown(conv.sessionId, cwdOf(project, conv), conv.title), 'utf8')
     return res.filePath
   })
+  // /diag: 오래 켜 둔 렌더러가 무엇에 메모리를 쓰는지 보려고 지표와 힙 스냅샷을 남긴다 (패키징한 앱은 개발자 도구가 없다)
+  ipcMain.handle(IPC.diagnose, async (_e, renderer: unknown) => {
+    if (!win) throw new Error('창이 없어요')
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const dir = join(app.getPath('userData'), 'diag', stamp)
+    mkdirSync(dir, { recursive: true })
+    const wc = win.webContents
+    const dbg = wc.debugger
+    let attached = false
+    try {
+      if (!dbg.isAttached()) {
+        dbg.attach('1.3')
+        attached = true
+      }
+    } catch {
+      // 다른 디버거가 붙어 있으면 지표 없이 스냅샷만
+    }
+    const cdp = (method: string): Promise<unknown> => (dbg.isAttached() ? dbg.sendCommand(method).catch((err: unknown) => ({ error: String(err) })) : Promise.resolve(null))
+    await cdp('Performance.enable')
+    const before = await cdp('Performance.getMetrics')
+    await cdp('HeapProfiler.collectGarbage')
+    const metrics = await cdp('Performance.getMetrics')
+    const dom = await cdp('Memory.getDOMCounters')
+    if (attached) dbg.detach()
+    const report = { at: new Date().toISOString(), version: app.getVersion(), uptimeSec: Math.round(process.uptime()), appMetrics: app.getAppMetrics(), beforeGc: before, metrics, dom, renderer }
+    writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2))
+    await wc.takeHeapSnapshot(join(dir, 'renderer.heapsnapshot'))
+    return dir
+  })
   ipcMain.handle(IPC.sessionStatus, (_e, projectId: string, conversationId: string) => manager.sessionStatus(projectId, conversationId))
   ipcMain.handle(IPC.accountStatus, (_e, refresh?: boolean) => manager.accountStatus(refresh))
   ipcMain.handle(IPC.loginCommand, () => loginCommand())

@@ -446,6 +446,11 @@ function closeTab(conversationId: string, termId: string, refocus = true): void 
   })
 }
 
+/** /diag: 살아 있는 터미널 화면 수와 각 버퍼 줄 수 */
+export function terminalStats(): { termId: string; lines: number; cols: number }[] {
+  return [...entries].map(([termId, e]) => ({ termId, lines: e.term.buffer.normal.length, cols: e.term.cols }))
+}
+
 /**
  * 대화를 닫았을 때(대화·프로젝트 닫기, 작업 공간 버리기): 메인이 셸을 이미 끝냈으므로 화면(xterm)과 서랍 상태만 버린다.
  * 남겨 두면 다시 연 대화에서 셸 없는 터미널이 멈춘 채로 보인다

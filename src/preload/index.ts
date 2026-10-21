@@ -42,6 +42,17 @@ const api: WhenTerminalApi = {
   memoryFiles: (projectId) => ipcRenderer.invoke(IPC.memoryFiles, projectId),
   openPath: (path, create) => ipcRenderer.invoke(IPC.openPath, path, create),
   exportConversation: (projectId, conversationId) => ipcRenderer.invoke(IPC.exportConversation, projectId, conversationId),
+  diagnose: (renderer) => ipcRenderer.invoke(IPC.diagnose, renderer),
+  rendererMemory: async () => {
+    const safe = <T>(f: () => T): T | string => {
+      try {
+        return f()
+      } catch (err) {
+        return String(err)
+      }
+    }
+    return { blink: safe(() => process.getBlinkMemoryInfo()), heap: safe(() => process.getHeapStatistics()), process: await process.getProcessMemoryInfo().catch((err) => String(err)) }
+  },
   sessionStatus: (projectId, conversationId) => ipcRenderer.invoke(IPC.sessionStatus, projectId, conversationId),
   accountStatus: (refresh) => ipcRenderer.invoke(IPC.accountStatus, refresh),
   loginCommand: () => ipcRenderer.invoke(IPC.loginCommand),

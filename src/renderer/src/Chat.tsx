@@ -10,7 +10,7 @@ import { matchesTerms, searchableText, searchTerms } from '@shared/search'
 import { EASE, Equalizer, Presence, PresenceList, reducedMotion, Roll, usePresence, usePresenceList } from './motion'
 import { clock, useNow } from './time'
 import { SubLog, TaskDetail, type DetailTarget } from './TaskDetail'
-import { closeTerminal, execInTerminal, forgetTerminals, pathForComposer, runInTerminal, TerminalDrawer, toggleTerminal } from './terminal'
+import { closeTerminal, execInTerminal, forgetTerminals, pathForComposer, runInTerminal, terminalStats, TerminalDrawer, toggleTerminal } from './terminal'
 import { Markdown } from './Markdown'
 import { CopyButton } from './copy'
 import { useOpened } from './opened'
@@ -522,7 +522,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     const text = raw.trim()
     if (!text) return
     // 앱이 직접 처리하는 명령: /compact [요약 지시], /clear, /close, /rename [이름], 그리고 명령 화면들
-    const cmd = /^\/(compact|clear|reset|new|close|rename|rewind|resume|fork|export|mcp|agents|permissions|hooks|add-dir|memory|status|login|goal|tag|files|git)\b\s*([\s\S]*)$/.exec(text)
+    const cmd = /^\/(compact|clear|reset|new|close|rename|rewind|resume|fork|export|mcp|agents|permissions|hooks|add-dir|memory|status|login|goal|tag|files|git|diag)\b\s*([\s\S]*)$/.exec(text)
     if (cmd) {
       if (!keepDraft) setDraft('')
       const arg = cmd[2].trim()
@@ -557,6 +557,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
           return
         case 'export':
           void window.api.exportConversation(project.id, conversationId).then((path) => path && setNotice({ ok: true, text: `저장했어요 · ${path}` }), (err) => setNotice({ ok: false, text: err instanceof Error ? err.message : String(err) }))
+          return
+        case 'diag':
+          setNotice({ ok: true, text: 'DIAG · 진단 파일을 만드는 중이에요 (몇 초 걸려요)' })
+          void diagnose(convs).then((dir) => setNotice({ ok: true, text: `DIAG · 저장했어요 · ${dir}` }), (err) => setNotice({ ok: false, text: err instanceof Error ? err.message : String(err) }))
           return
         case 'mcp': return openTool({ kind: 'mcp' })
         case 'agents': return openTool({ kind: 'agents' })
@@ -1919,3 +1923,40 @@ function PlanBox({ cls, req, onRespond }: { cls: string; req: PermissionRequest;
   )
 }
 
+/** /diag: 화면 상태가 얼마나 쌓였는지(대화마다 기록 줄·글자 수, 하위 기록, 터미널)와 렌더러 메모리를 메인에 넘겨 힙 스냅샷과 함께 저장 */
+async function diagnose(convs: ConversationMap): Promise<string> {
+  const size = (v: unknown): number => {
+    try {
+      return JSON.stringify(v)?.length ?? 0
+    } catch {
+      return -1
+    }
+  }
+  const conversations = Object.entries(convs).map(([id, s]) => ({
+    id,
+    status: s.status,
+    items: s.items.length,
+    itemChars: size(s.items),
+    tools: s.items.filter((i) => i.type === 'tool').length,
+    subsKeys: Object.keys(s.subs ?? {}).length,
+    subsItems: Object.values(s.subs ?? {}).reduce((n, l) => n + l.length, 0),
+    subsChars: size(s.subs),
+    progressKeys: Object.keys(s.progress ?? {}).length,
+    background: s.background?.length ?? 0,
+  }))
+  const renderer = {
+    conversations,
+    terminals: terminalStats(),
+    memory: await window.api.rendererMemory(),
+    localStorageChars: (() => {
+      try {
+        let n = 0
+        for (let i = 0; i < localStorage.length; i++) n += (localStorage.getItem(localStorage.key(i)!) ?? '').length
+        return n
+      } catch {
+        return -1
+      }
+    })(),
+  }
+  return window.api.diagnose(renderer)
+}

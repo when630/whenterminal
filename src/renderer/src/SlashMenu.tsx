@@ -13,6 +13,7 @@ export const LOCAL: SlashCommandInfo[] = [
   { name: 'resume', description: '이 폴더의 지난 세션을 이어 열어요', argumentHint: '', builtin: true },
   { name: 'fork', description: '지금 대화를 복제해 새 탭에서 따로 이어 가요', argumentHint: '[이름]', builtin: true },
   { name: 'export', description: '대화를 마크다운 파일로 저장해요', argumentHint: '', builtin: true },
+  { name: 'diag', description: '앱이 메모리를 어디에 쓰는지 진단 파일로 남겨요', argumentHint: '', builtin: true },
   { name: 'mcp', description: 'MCP 서버 상태를 보고 다시 연결하거나 켜고 꺼요', argumentHint: '', builtin: true },
   { name: 'agents', description: '쓸 수 있는 하위 에이전트 종류를 봐요', argumentHint: '', builtin: true },
   { name: 'permissions', description: '권한 규칙·추가 폴더·훅을 보고 고쳐요', argumentHint: '', aliases: ['hooks'], builtin: true },

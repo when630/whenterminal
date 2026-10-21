@@ -796,6 +796,7 @@ export const IPC = {
   memoryFiles: 'agent:memory-files',
   openPath: 'app:open-path',
   exportConversation: 'agent:export',
+  diagnose: 'app:diagnose',
   sessionStatus: 'agent:session-status',
   accountStatus: 'agent:account-status',
   loginCommand: 'agent:login-command',
@@ -876,6 +877,10 @@ export interface WhenTerminalApi {
   openPath(path: string, create?: boolean): Promise<string>
   /** 대화를 마크다운 파일로 저장 (저장 창). 취소면 null */
   exportConversation(projectId: string, conversationId: string): Promise<string | null>
+  /** /diag: 렌더러 메모리 지표·DOM 수·화면 상태 개수(renderer)와 V8 힙 스냅샷을 userData/diag/<시각>에 저장하고 그 폴더를 돌려준다 */
+  diagnose(renderer: unknown): Promise<string>
+  /** 이 렌더러 프로세스의 Blink·V8 메모리 (진단용) */
+  rendererMemory(): Promise<unknown>
   sessionStatus(projectId: string, conversationId: string): Promise<SessionStatus>
   accountStatus(refresh?: boolean): Promise<AccountStatus>
   /** 터미널에서 로그인할 때 칠 명령 (번들된 CLI 경로 포함) */

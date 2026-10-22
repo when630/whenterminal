@@ -454,6 +454,11 @@ function ReportSheet({ r, wrapRef, scrollRef, closeRef, onClosed, onOpenChat, on
       el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 200 + i * 55, easing: EASE, fill: 'backwards' })
     })
   }, [])
+  // 닫히는 움직임은 fill forwards라 사라질 때 취소한다. 남기면 문서 타임라인이 뗀 상세 화면을 붙잡는다
+  useLayoutEffect(() => {
+    const els = [scrimRef.current, inRef.current, bgRef.current]
+    return () => els.forEach((el) => el?.getAnimations().forEach((a) => a.cancel()))
+  }, [])
 
   const closing = useRef(false)
   const close = (): void => {

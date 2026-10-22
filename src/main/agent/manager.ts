@@ -129,14 +129,14 @@ export class AgentManager {
     this.send(projectId, conversationId, text, `! ${result.command}`)
   }
 
-  /** display: 화면·입력창 되돌리기에 쓸 글 (보내는 글과 다를 때) */
-  send(projectId: string, conversationId: string, text: string, display?: string): void {
+  /** display: 화면·입력창 되돌리기에 쓸 글 (보내는 글과 다를 때). after: 실행 중이면 지금 작업이 끝난 뒤에 */
+  send(projectId: string, conversationId: string, text: string, display?: string, after = false): void {
     const session = this.getOrCreate(projectId, conversationId)
     // 질문 창은 동시 실행 제한을 받지 않는다 (작업이 꽉 차 있어도 바로 답해야 하므로). 제목도 고정
-    if (projectId === QUICK_PROJECT_ID) return session.send(text, true, undefined, display)
+    if (projectId === QUICK_PROJECT_ID) return session.send(text, true, undefined, display, after)
     this.draftTitle(projectId, conversationId, display ?? text)
     // 이미 실행 중인 대화에 이어 보내는 건 자리를 더 쓰지 않는다
-    if (session.isBusy()) return session.send(text, true, undefined, display)
+    if (session.isBusy()) return session.send(text, true, undefined, display, after)
     const alreadyWaiting = this.waiting.some((w) => w.conversationId === conversationId)
     if (alreadyWaiting || this.atCapacity()) {
       const id = randomUUID()
@@ -149,7 +149,7 @@ export class AgentManager {
   }
 
   /** 차례를 기다리던 메시지를 빼고 그 글을 돌려준다 (자리 대기열 또는 세션이 들고 있던 것). 이미 보냈으면 null */
-  dropQueued(projectId: string, conversationId: string, queuedId: string): string | null {
+  async dropQueued(projectId: string, conversationId: string, queuedId: string): Promise<string | null> {
     const i = this.waiting.findIndex((w) => w.id === queuedId)
     if (i >= 0) {
       const [w] = this.waiting.splice(i, 1)
@@ -160,7 +160,7 @@ export class AgentManager {
       this.announcePositions()
       return w.display ?? w.text
     }
-    return this.sessions.get(conversationId)?.dropHeld(queuedId) ?? null
+    return (await this.sessions.get(conversationId)?.dropHeld(queuedId)) ?? null
   }
 
   /** 새 세션의 첫 메시지(처음, 또는 클리어한 뒤)면 그 메시지로 임시 제목을 붙인다. 직접 붙인 이름은 그대로 */

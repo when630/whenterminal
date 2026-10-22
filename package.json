@@ -1,7 +1,7 @@
 {
   "name": "whenterminal",
   "productName": "WHENTERMINAL",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "private": true,
   "description": "개인용 상주형 Claude 에이전트 데스크톱 앱 (Claude Agent SDK + Electron)",
   "main": "./out/main/index.js",
@@ -14,6 +14,7 @@
     "smoke": "node scripts/sdk-smoke.mjs",
     "test:session": "esbuild scripts/session-test.ts --bundle --platform=node --format=esm --packages=external --alias:electron=./scripts/electron-stub.ts --tsconfig=tsconfig.node.json --outfile=out/test/session-test.mjs && node out/test/session-test.mjs",
     "test:spare": "esbuild scripts/spare-test.ts --bundle --platform=node --format=esm --packages=external --alias:electron=./scripts/electron-stub.ts --tsconfig=tsconfig.node.json --outfile=out/test/spare-test.mjs && node out/test/spare-test.mjs",
+    "test:steer": "esbuild scripts/steer-test.ts --bundle --platform=node --format=esm --packages=external --alias:electron=./scripts/electron-stub.ts --tsconfig=tsconfig.node.json --outfile=out/test/steer-test.mjs && node out/test/steer-test.mjs",
     "dist": "npm run build && electron-builder --publish never",
     "dist:mac": "npm run build && electron-builder --mac --publish never",
     "dist:win": "npm run build && electron-builder --win --x64 --publish never",

@@ -4,7 +4,8 @@ import { STATUS_PRIORITY } from '@shared/types'
 
 export type TranscriptItem =
   /** uuid: 되감기 기준점. queuedId가 있고 pending이면 아직 차례를 기다리는 메시지 (고치거나 뺄 수 있다) */
-  | { type: 'user'; text: string; at: number; uuid?: string; queuedId?: string; pending?: boolean }
+  /** steer: 실행 중에 보내 지금 턴에 끼워 넣은 메시지 (모델이 읽으면 folded로 pending이 풀린다) */
+  | { type: 'user'; text: string; at: number; uuid?: string; queuedId?: string; pending?: boolean; steer?: boolean }
   | { type: 'assistant'; text: string; streaming: boolean; at: number }
   /** 모델의 생각 (요약본). 접힌 채로 보인다 */
   | { type: 'thinking'; text: string; streaming: boolean; at: number }
@@ -156,7 +157,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     case 'user':
       finalizeStreaming()
       s.suggestion = undefined
-      items().push({ type: 'user', text: event.text, at: now, uuid: event.uuid, queuedId: event.queuedId, pending: event.next || undefined })
+      items().push({ type: 'user', text: event.text, at: now, uuid: event.uuid, queuedId: event.queuedId, pending: event.next || undefined, steer: event.steer })
       // 실행 중에 보낸 메시지는 지금 작업을 덮지 않는다. 차례가 오면 task_start
       if (!event.next) startTask(event.text)
       break
@@ -166,6 +167,12 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       // 기다리던 메시지가 이제 보내졌다: 되감기 기준점을 받고 대기 표시를 뗀다
       const idx = event.queuedId ? s.items.findIndex((i) => i.type === 'user' && i.queuedId === event.queuedId) : -1
       if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'user' }>), pending: undefined, uuid: event.uuid }
+      break
+    }
+    case 'folded': {
+      // 지금 턴에 끼워 넣은 메시지를 모델이 읽었다: 대기 표시를 뗀다 (작업은 그대로 이어진다)
+      const idx = s.items.findIndex((i) => i.type === 'user' && i.queuedId === event.queuedId)
+      if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'user' }>), pending: undefined, queuedId: undefined }
       break
     }
     case 'unqueued':

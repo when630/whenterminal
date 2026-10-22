@@ -594,7 +594,7 @@ export function App(): React.JSX.Element {
     const screen = view.screen
     const out: PaletteEntry[] = []
     // 키맵 동작: 지금 화면에서 쓸 수 있는 것만. 홈 카드 이동·확인 요청 답·터미널 안 찾기처럼 그 자리에서만 뜻이 있는 것은 뺀다
-    const skip = new Set<ActionId>(['summon', 'palette', 'down', 'up', 'toRunning', 'toReports', 'open', 'archive', 'newTask', 'allow', 'always', 'deny', 'terminalFind'])
+    const skip = new Set<ActionId>(['summon', 'palette', 'down', 'up', 'toRunning', 'toReports', 'open', 'archive', 'newTask', 'allow', 'always', 'deny', 'terminalFind', 'sendAfter'])
     for (const a of ACTIONS) {
       if (skip.has(a.id)) continue
       if (a.scope === 'chat' && screen !== 'chat') continue

@@ -215,10 +215,22 @@ export class AgentSession {
   /** 활동이 아닌 감시자(ambient) 작업 id. 끝남 알림도 구분선으로 보이지 않는다 */
   private ambientTasks = new Set<string>()
   /**
-   * 실행 중에 보낸 메시지. CLI로 바로 넘기면 지금 턴에 섞이거나 Esc 뒤에도 살아남아 돌므로(interrupt의 still_queued),
-   * 앱이 들고 있다가 턴이 끝나면 하나씩 보낸다. 메시지 하나 = 작업 하나
+   * 지금 작업이 끝난 뒤에 보내기로 한 메시지(sendAfter·컴팩트 중). 앱이 들고 있다가 턴이 끝나면 하나씩 보낸다. 메시지 하나 = 작업 하나
    */
   private held: HeldMessage[] = []
+  /**
+   * 실행 중에 보내 CLI 명령 대기열에 바로 넣은 메시지. CLI가 다음 도구 호출 사이에 지금 턴으로 접어 넣는다(답 메시지·result의
+   * user_message_uuids에 uuid가 나온다 → folded). 턴이 끝날 때까지 접히지 않으면 CLI가 다음 턴으로 돌리므로 그때 새 작업으로 시작한다(startFolded).
+   * CLI는 실행 중에 들어온 메시지를 곧바로 대화에 붙여 두므로(cancelAsyncMessage·interrupt cancelQueued 모두 이미 늦음) EDIT/CANCEL은 두지 않는다
+   */
+  private folding: (HeldMessage & { uuid: string })[] = []
+  /**
+   * Esc로 멈출 때 아직 읽지 않았던 끼워 넣은 메시지. CLI는 그 메시지에 답하려고 새 턴을 스스로 여는데, Esc는 실행 중단이므로
+   * 그 턴이 열리면(user_message_uuids에 나오면) 바로 다시 멈추고 화면에 보이지 않게 삼킨다 (swallowTurn)
+   */
+  private abandoned = new Set<string>()
+  /** 버린 메시지 때문에 열린 턴: 글·도구·result를 화면에 보내지 않는다 */
+  private swallowTurn = false
   /** ExitPlanMode를 승인한 뒤 바꿀 모드. CLI가 플랜 모드를 빠져나온 직후(status)에 적용한다 */
   private afterPlan: AgentMode | null = null
   private afterPlanTimer: ReturnType<typeof setTimeout> | null = null
@@ -288,10 +300,18 @@ export class AgentSession {
    * 실행 중(또는 컴팩트 중)이면 들고 있다가 지금 턴이 끝난 뒤 보낸다.
    * display: 보내는 글과 화면의 글이 다를 때(`!명령` 출력). 바로 보낼 때는 말풍선 없이 작업만 시작한다 (출력 항목이 이미 있다)
    */
-  send(text: string, echo = true, queuedId?: string, display?: string): void {
+  send(text: string, echo = true, queuedId?: string, display?: string, after = false): void {
     if (this.turnOpen() || this.manualCompact) {
       const id = queuedId ?? randomUUID()
-      if (echo) this.emit({ kind: 'user', text: display ?? text, next: true, queuedId: id })
+      // 기본은 지금 턴에 끼워 넣는다 (Claude Code처럼 다음 도구 호출 사이에 읽는다). 컴팩트 중·sendAfter는 끝난 뒤에
+      const steer = !after && !this.manualCompact && !!this.queue
+      if (echo) this.emit({ kind: 'user', text: display ?? text, next: true, queuedId: id, steer: steer || undefined })
+      if (steer) {
+        const uuid = randomUUID()
+        this.folding.push({ id, text, display, uuid })
+        this.queue!.push(text, uuid)
+        return
+      }
       this.held.push({ id, text, display })
       return
     }
@@ -312,17 +332,66 @@ export class AgentSession {
     this.emit({ kind: 'notice', text: `! ${command}\n${output || '(출력 없음)'}`, tone: 'info', mono: true })
   }
 
-  /** 들고 있던 메시지를 보내지 않는다. 그 글을 돌려준다 (없으면 null) */
-  dropHeld(queuedId: string): string | null {
+  /** 들고 있던(또는 아직 접히지 않은) 메시지를 보내지 않는다. 그 글을 돌려준다 (이미 읽었으면 null) */
+  async dropHeld(queuedId: string): Promise<string | null> {
     const i = this.held.findIndex((h) => h.id === queuedId)
-    if (i < 0) return null
-    const [h] = this.held.splice(i, 1)
+    if (i >= 0) {
+      const [h] = this.held.splice(i, 1)
+      this.emit({ kind: 'unqueued', queuedId })
+      return h.display ?? h.text
+    }
+    const f = this.folding.find((x) => x.id === queuedId)
+    if (!f || !(await this.cancelFolding(f))) return null
     this.emit({ kind: 'unqueued', queuedId })
-    return h.display ?? h.text
+    return f.display ?? f.text
+  }
+
+  /** CLI 대기열에 넣은 메시지를 거둬들인다. 이미 꺼내 갔으면(접히는 중·접힘) false */
+  private async cancelFolding(f: { uuid: string }): Promise<boolean> {
+    // cancelAsyncMessage는 sdk.mjs의 Query에 있지만 sdk.d.ts의 Query 타입에는 빠져 있다 (control request cancel_async_message)
+    const q = this.q as unknown as { cancelAsyncMessage?: (uuid: string) => Promise<boolean> } | null
+    let cancelled = false
+    try {
+      cancelled = (await q?.cancelAsyncMessage?.(f.uuid)) === true
+    } catch (err) {
+      console.warn('cancelAsyncMessage 실패', err)
+    }
+    if (cancelled) this.folding = this.folding.filter((x) => x.uuid !== f.uuid)
+    return cancelled
+  }
+
+  /** 답 메시지·result가 이번 턴에 읽은 메시지(user_message_uuids)를 알려 왔다: 끼워 넣은 메시지가 접혀 들어갔다 */
+  private consumed(uuids: string[] | undefined): void {
+    if (!uuids?.length) return
+    if (this.abandoned.size && uuids.some((u) => this.abandoned.has(u))) {
+      // Esc로 버린 메시지로 CLI가 연 턴: 바로 멈추고 화면에 보내지 않는다
+      for (const u of uuids) this.abandoned.delete(u)
+      this.swallowTurn = true
+      void this.q?.interrupt().catch((err: unknown) => console.warn('interrupt 실패', err))
+      return
+    }
+    if (!this.folding.length) return
+    const read = new Set(uuids)
+    const hit = this.folding.filter((f) => read.has(f.uuid))
+    if (!hit.length) return
+    this.folding = this.folding.filter((f) => !read.has(f.uuid))
+    for (const f of hit) this.emit({ kind: 'folded', queuedId: f.id })
+  }
+
+  /** 턴이 끝날 때까지 접히지 않은 메시지: CLI가 이어서 다음 턴으로 돌리므로, 그 메시지를 새 작업으로 시작한다. 다시 보내지 않는다 */
+  private startFolded(): boolean {
+    const f = this.folding[0]
+    if (!f) return false
+    this.emit({ kind: 'task_start', text: f.display ?? f.text, queuedId: f.id, uuid: f.uuid })
+    this.quietCommand = null
+    this.setStatus('running')
+    return true
   }
 
   private dispatch(text: string, uuid: string): void {
     if (!this.q) this.start()
+    // 새로 보낸 메시지와 함께 묶여 도는 턴은 멈추지 않는다
+    this.abandoned.clear()
     this.quietCommand = null
     // 턴 밖의 확인 요청을 기다리는 중이면 표시는 그대로 두고, 답한 뒤 RUNNING으로
     if (this.status === 'waiting_approval') this.askFrom = 'running'
@@ -383,10 +452,12 @@ export class AgentSession {
    */
   private onIdle(): void {
     this.interrupted = false
+    this.swallowTurn = false
+    this.abandoned.clear()
     if (this.status !== 'running' || this.inflight.length || this.pending.size || this.manualCompact || this.quietCommand) return
     console.warn('result 없이 턴이 끝나 상태를 정리함')
     this.setStatus('done')
-    this.sendHeld()
+    if (!this.startFolded()) this.sendHeld()
   }
 
   /** AWAY에서 거절한 호출을 승인한다. 같은 호출이 다시 오면 묻지 않고 허용 (한 번씩) */
@@ -461,7 +532,17 @@ export class AgentSession {
     // 응답을 기다리는 사이에 끊긴 턴의 result가 먼저 와도 오류로 보이지 않게 먼저 바꾼다
     this.setStatus('stopped')
     try {
-      await this.q.interrupt()
+      // cancelQueued: 지금 턴에 끼워 넣으려고 CLI가 꺼내 간 메시지까지 함께 멈춘다. 빼면 그 메시지가 다음 턴으로 혼자 돈다
+      // (sdk.mjs의 interrupt는 { cancelQueued }를 받지만 sdk.d.ts의 Query.interrupt 타입에는 인자가 없다)
+      const interrupt = this.q.interrupt.bind(this.q) as (o?: { cancelQueued?: boolean }) => Promise<{ cancelled?: string[] } | undefined>
+      await interrupt({ cancelQueued: true })
+      // 아직 읽지 않은 끼워 넣은 메시지: CLI가 그 메시지로 새 턴을 열면 그 턴도 멈춘다
+      const gone = this.folding.splice(0)
+      for (const f of gone) {
+        this.abandoned.add(f.uuid)
+        this.emit({ kind: 'unqueued', queuedId: f.id })
+      }
+      if (gone.length) this.emit({ kind: 'task_note', text: `CANCELLED · 작업 중에 보낸 메시지 ${gone.length}개도 읽기 전에 멈췄어요` })
     } catch (err) {
       console.warn('interrupt 실패', err)
     }
@@ -646,6 +727,8 @@ export class AgentSession {
         this.queue = new MessageQueue()
         this.startCold()
         for (const m of resend) this.queue.push(m.text, m.uuid)
+        // 지금 턴에 끼워 넣으려던 메시지도 새 프로세스로
+        for (const f of this.folding) this.queue.push(f.text, f.uuid)
       },
     )
   }
@@ -772,6 +855,9 @@ export class AgentSession {
         this.claiming = false
         this.inflight = []
         this.quietCommand = null
+        // 끼워 넣으려던 메시지는 프로세스와 함께 사라졌다: 끝난 뒤에 보낼 것으로 돌린다 (다음 sendHeld가 새 프로세스로 보낸다)
+        this.held.unshift(...this.folding.map(({ id, text, display }) => ({ id, text, display })))
+        this.folding = []
         // 백그라운드 작업은 CLI 프로세스와 함께 끝난다
         this.setBackground([])
         this.interrupted = false
@@ -896,6 +982,8 @@ export class AgentSession {
         }
         break
       case 'stream_event':
+        if (msg.parent_tool_use_id === null) this.consumed((msg as { user_message_uuids?: string[] }).user_message_uuids)
+        if (this.swallowTurn) break
         // 명령(/goal)이 모델 턴을 열었다
         if (msg.parent_tool_use_id === null && msg.event.type === 'message_start') {
           if (this.quietCommand) this.promoteCommand()
@@ -923,6 +1011,8 @@ export class AgentSession {
           }
           break
         }
+        this.consumed((msg as { user_message_uuids?: string[] }).user_message_uuids)
+        if (this.swallowTurn) break
         // 스트리밍 시작을 놓쳤어도 답이 오면 작업으로 올린다
         if (this.quietCommand) this.promoteCommand()
         else this.resumeTurn()
@@ -933,7 +1023,7 @@ export class AgentSession {
         }
         break
       case 'user': {
-        if (typeof msg.message.content === 'string') break
+        if (typeof msg.message.content === 'string' || this.swallowTurn) break
         if (msg.parent_tool_use_id !== null) {
           const parent = msg.parent_tool_use_id
           for (const block of msg.message.content) {
@@ -967,6 +1057,12 @@ export class AgentSession {
       case 'result':
         // 미리 띄운 CLI가 claim을 거절하면 보냈던 메시지에 not_claimed 오류 결과가 온다. 새 프로세스로 다시 보내므로 작업 끝으로 치지 않는다
         if (this.claiming && msg.subtype !== 'success' && msg.errors?.some((e) => e.startsWith('not_claimed'))) break
+        if (this.swallowTurn) {
+          // Esc로 버린 메시지 때문에 열렸다가 멈춘 턴의 결과
+          this.swallowTurn = false
+          break
+        }
+        this.consumed((msg as { user_message_uuids?: string[] }).user_message_uuids)
         void this.refreshContext()
         if (this.quietCommand) {
           // /goal 같은 명령의 결과: 작업이 아니다
@@ -1003,7 +1099,8 @@ export class AgentSession {
             this.askFrom = fin
           }
         }
-        this.sendHeld()
+        // 접히지 않고 남은 메시지는 CLI가 다음 턴으로 돌린다 (확인 대기가 남았으면 그 턴이 열릴 때 resumeTurn이 이어 간다)
+        if (this.status === 'waiting_approval' || !this.startFolded()) this.sendHeld()
         break
     }
   }

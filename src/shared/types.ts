@@ -631,11 +631,14 @@ export type AgentEvent =
   /** quiet: 확인 요청에 답하고 전 상태로 돌아간 것. 작업이 새로 끝난 게 아니라 보고서·알림을 건드리지 않는다 */
   | { kind: 'status'; status: AgentStatus; quiet?: boolean }
   /** next: 화면에만 보이고 작업은 차례가 오면(task_start) 시작한다. queuedId는 기다리는 동안 고치거나 뺄 때의 손잡이, uuid는 되감기 기준점 */
-  | { kind: 'user'; text: string; next?: boolean; queuedId?: string; uuid?: string }
+  /** steer: 실행 중에 보내 지금 턴에 끼워 넣는 메시지 (모델이 다음 도구 호출 사이에 읽으면 folded) */
+  | { kind: 'user'; text: string; next?: boolean; queuedId?: string; uuid?: string; steer?: boolean }
   /** 기다리던 메시지를 실제로 보냈다. 이 메시지의 작업이 지금 시작된다 */
   | { kind: 'task_start'; text: string; queuedId?: string; uuid?: string }
   /** 기다리던 메시지를 보내지 않기로 했다 (고치려고 꺼냈거나 취소) */
   | { kind: 'unqueued'; queuedId: string }
+  /** 지금 턴에 끼워 넣은 메시지를 모델이 읽었다 */
+  | { kind: 'folded'; queuedId: string }
   | { kind: 'text_delta'; text: string }
   | { kind: 'assistant_text'; text: string }
   /** 모델의 생각 (요약본). delta는 스트리밍 조각, thinking은 완성본 */
@@ -842,7 +845,8 @@ export interface WhenTerminalApi {
   /** 홈의 작업 지시창: 쓰지 않은 대화가 있으면 재사용하고 없으면 새로 만들어 작업을 보낸다. 대화 ID 반환 */
   /** continueId가 있으면 그 대화에 이어서, 없으면 새 대화(또는 아직 안 쓴 대화)로 */
   startTask(projectId: string, text: string, continueId?: string): Promise<string>
-  send(projectId: string, conversationId: string, text: string): Promise<void>
+  /** after: 실행 중이면 지금 작업이 끝난 뒤에 보낸다 (기본은 지금 턴에 끼워 넣어 다음 도구 호출 사이에 읽게) */
+  send(projectId: string, conversationId: string, text: string, after?: boolean): Promise<void>
   interrupt(projectId: string, conversationId: string): Promise<void>
   /** 백그라운드 작업(셸·모니터 등) 하나만 멈춘다. 대화의 실행은 그대로 */
   stopTask(projectId: string, conversationId: string, taskId: string): Promise<void>

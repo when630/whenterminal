@@ -14,8 +14,9 @@
   - 파일 3개를 함께 돌린다(`workers: 3`, 파일 안의 테스트는 차례로). 일부만: `npm run test:e2e -- terminal`(파일 이름), `-- -g "검색"`(테스트 이름)
   - 끝난 앱은 정상 종료를 기다리지 않고 프로세스 트리째 끝낸다(`quit`). 시간을 기다리는 동작은 테스트에서 줄여 쓴다(예: 터미널 명령 끝남 기준 `window.__termLongMs`)
 - `npm run test:session` — `AgentSession` 통합 테스트 (권한 요청→허용→파일 생성). 구독 사용량을 조금 씀
+- `npm run test:steer` — 실행 중에 보낸 메시지 통합 테스트 (haiku): 지금 턴에 끼워 넣기(folded·같은 작업)·Esc로 함께 멈춤(새 턴 없음)·끝난 뒤 보내기(after). 짧은 모델 호출 3번
 - `npm run test:spare` — CLI 미리 띄우기 통합 테스트 (스페어 claim으로 답 받기, 프로젝트 설정 `model` 때문에 claim이 거절되면 `query()` 폴백). 짧은 모델 호출 2번
-  - 두 테스트는 Electron 없이 node로 돌리므로 esbuild `--alias:electron=./scripts/electron-stub.ts`로 `app.isPackaged`만 대역을 끼운다
+  - 세 테스트는 Electron 없이 node로 돌리므로 esbuild `--alias:electron=./scripts/electron-stub.ts`로 `app.isPackaged`만 대역을 끼운다
 
 ## 구조
 
@@ -166,6 +167,8 @@
 - CLI가 화면에만 보이는 것들도 받는다: `local_command_output`(/context 등 출력, `notice` mono) · `informational`(notice 이상) · `notification` · `api_retry`(`retry` → 작업 줄 `RETRY n/m`) · `permission_denied`(자동 모드 거절) · `tool_progress`(도구 줄 `RUNNING 12s`) · `auth_status`. 생각은 `thinking`/`thinking_delta` 이벤트 → 접힌 `Thinking` 항목
   - 설정의 훅(PreToolUse·PostToolUse·Stop …)이 도는 것도 보인다 (`includeHookEvents`, `hook_started/progress/response` → `hook` 이벤트 → 대화 기록의 `hook` 항목 `HOOK 이벤트 · 이름 · RUNNING/OK/ERROR`, 펼치면 출력). 기록 파일에는 남지 않아 되살린 대화에는 없다
 - 도구 결과는 앞 4000자만 보내고(`truncated`), 펼쳐서 SHOW ALL을 누르면 `toolResult`가 세션 기록에서 전문을 읽는다
+- 실행 중에 보낸 메시지: 기본은 지금 턴에 끼워 넣는다(Claude Code처럼). 세션 `send`가 uuid를 붙여 바로 CLI에 넣고(`folding`), CLI가 다음 도구 호출 사이에 접어 넣으면 답 메시지·result의 `user_message_uuids`에 나와 `folded` 이벤트(대기 표시만 뗌, 작업은 그대로). 턴이 끝날 때까지 안 접히면 CLI가 다음 턴으로 돌리므로 `startFolded`가 새 작업으로 시작한다(다시 보내지 않음). 말풍선은 `NEXT STEP`이고 EDIT·CANCEL이 없다: CLI가 들어오자마자 대화에 붙여 `cancelAsyncMessage`·interrupt `cancelQueued` 모두 늦다(`test:steer`로 확인). Esc는 아직 안 읽은 것을 `abandoned`에 두고, CLI가 그 메시지로 새 턴을 열면(`consumed`) 바로 다시 interrupt하고 그 턴을 화면에 보내지 않는다(`swallowTurn`)
+  - 끝난 뒤 보내기: 키맵 `sendAfter`(기본 `Ctrl+Enter`) → `send(…, after)` → 세션이 들고 있다가(`held`) 턴이 끝나면 새 작업으로. 말풍선 `NEXT`. 컴팩트 중에 보낸 것도 같다
 - 차례를 기다리는 메시지(`queuedId`): 자리 대기열(manager `waiting`)과 세션이 들고 있는 것(`held`) 모두 EDIT(입력창으로 되돌림)·CANCEL(`dropQueued`)
 - 입력창 ↑↓: 보낸 글 기록(`usePromptHistory`, localStorage `wt-hist:`). 입력이 비었거나 첫/끝 줄일 때만. `@`는 파일·폴더(끝에 `/`)·`@agent-이름`(`supportedAgents`)
   - 메뉴가 열린 입력창에는 `data-menu-open`을 달아 App의 전역 키 처리(Esc 중단, Ctrl+K 등)를 건너뛴다

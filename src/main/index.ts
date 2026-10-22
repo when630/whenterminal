@@ -298,8 +298,8 @@ function bootstrap(): void {
     manager.send(projectId, conv.id, text)
     return conv.id
   })
-  ipcMain.handle(IPC.send,(_e, projectId: string, conversationId: string, text: string) =>
-    manager.send(projectId, conversationId, text),
+  ipcMain.handle(IPC.send, (_e, projectId: string, conversationId: string, text: string, after?: boolean) =>
+    manager.send(projectId, conversationId, text, undefined, after === true),
   )
   ipcMain.handle(IPC.interrupt, (_e, projectId: string, conversationId: string) => manager.interrupt(projectId, conversationId))
   ipcMain.handle(IPC.stopTask, (_e, projectId: string, conversationId: string, taskId: string) => manager.stopTask(projectId, conversationId, taskId))

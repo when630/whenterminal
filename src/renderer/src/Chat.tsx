@@ -5,7 +5,8 @@ import { agentInfo, artifactsOf, describeBackground, emptyConversation, foldSumm
 import type { GoalInfo, MemoryRecall } from '@shared/types'
 import { PANEL_TITLE, ToolPanelView, type ToolPanel } from './panels'
 import { usePromptHistory } from './drafts'
-import { HOME_ROW } from './keys'
+import { HOME_ROW, matches } from './keys'
+import { useKeymap } from './settings'
 import { matchesTerms, searchableText, searchTerms } from '@shared/search'
 import { EASE, Equalizer, Presence, PresenceList, reducedMotion, Roll, usePresence, usePresenceList } from './motion'
 import { clock, useNow } from './time'
@@ -81,6 +82,7 @@ export interface PanelControl {
 
 export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onRespond, panelRef, jump, openPanel, away, suggestions }: Props): React.JSX.Element {
   const state = convs[conversationId] ?? emptyConversation()
+  const km = useKeymap()
   // 쓰던 글은 대화마다 남는다 (탭을 옮기거나 앱을 껐다 켜도)
   const [draft, setDraft] = useDraft(conversationId)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -518,7 +520,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   }, [notice])
   const noticeShown = usePresence(notice, 220)
 
-  const submit = (raw = draft, keepDraft = false): void => {
+  /** after: 실행 중이면 지금 작업이 끝난 뒤에 보낸다 (키맵 sendAfter). 아니면 지금 턴에 끼워 넣어 다음 도구 호출 사이에 읽게 한다 */
+  const submit = (raw = draft, keepDraft = false, after = false): void => {
     const text = raw.trim()
     if (!text) return
     // 앱이 직접 처리하는 명령: /compact [요약 지시], /clear, /close, /rename [이름], 그리고 명령 화면들
@@ -598,7 +601,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     }
     setDraft('')
     history.push(text)
-    void window.api.send(project.id, conversationId, text)
+    void window.api.send(project.id, conversationId, text, after)
   }
 
   /** 입력창 커서 자리(입력창에 포커스가 없으면 끝)에 경로를 넣는다. 앞 글과 붙지 않게 띄운다. 터미널 경로 Ctrl+클릭·파일 찾기의 @경로 */
@@ -1040,6 +1043,11 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 e.currentTarget.blur()
                 return
               }
+              if (matches(e.nativeEvent, km.sendAfter) && !e.nativeEvent.isComposing) {
+                e.preventDefault()
+                submit(undefined, false, true)
+                return
+              }
               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 submit()
@@ -1331,9 +1339,14 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
           {item.text}
           {acts.item && (
             <span className={`msg-acts ${acts.leaving ? 'leaving' : ''}`}>
-              <span className="msg-wait">NEXT</span>
-              <button type="button" onClick={() => onQueueEdit?.(acts.item!)} title="보내지 않고 입력창으로 되돌려요">EDIT</button>
-              <button type="button" onClick={() => onQueueCancel?.(acts.item!)} title="이 메시지를 보내지 않아요">CANCEL</button>
+              <span className="msg-wait" title={item.steer ? '지금 작업 중에 읽어요. 다음 도구 호출 사이에 반영돼요' : '지금 작업이 끝난 뒤에 보내요'}>{item.steer ? 'NEXT STEP' : 'NEXT'}</span>
+              {/* 지금 턴에 끼워 넣은 메시지는 CLI가 곧바로 가져가 고치거나 뺄 수 없다 (멈추려면 Esc) */}
+              {!item.steer && (
+                <>
+                  <button type="button" onClick={() => onQueueEdit?.(acts.item!)} title="보내지 않고 입력창으로 되돌려요">EDIT</button>
+                  <button type="button" onClick={() => onQueueCancel?.(acts.item!)} title="이 메시지를 보내지 않아요">CANCEL</button>
+                </>
+              )}
             </span>
           )}
           {!item.pending && item.uuid && onRewind && (

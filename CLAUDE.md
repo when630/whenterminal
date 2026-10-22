@@ -182,6 +182,7 @@
   - 사라지는 요소는 `usePresence`(motion.tsx)로 잠시 붙잡아 `leaving` 클래스로 나가게 한다. 요소 하나는 `<Presence show>`, 목록의 줄은 `usePresenceList`/`<PresenceList>`(빠진 줄을 원래 자리에 잠시 남긴다). 대화·프로젝트를 옮기면 이전 것의 잔상이 새 화면에 남으므로 `scope`(대화 ID 등)를 주거나 붙잡은 값에 ID를 넣어 걸러낸다. 대화 기록은 연 뒤에 새로 들어온 항목만 `enter`로 등장
   - 글자가 통째로 바뀌는 칸은 `key`를 바꿔 `.swap`(흐려졌다 나타남), 숫자는 `<Roll className="num">`(굴러감)·`<Odo>`(한 자리). 펼치는 `details`는 `::details-content` 높이 전환을 같이 둔다
   - 반복 애니메이션은 transform·opacity만 움직인다 (배경 위치 등 다시 그리기 유발 금지). 전광판은 rAF로 일정 속도
+  - `el.animate()`(Web Animations)로 건 무한 반복(`iterations: Infinity`)·`fill: 'forwards'` 애니메이션은 요소가 사라질 때 꼭 `cancel()`한다. 안 하면 요소가 문서에서 빠져도 문서 타임라인에 남아 그 요소가 달린 화면 전체를 붙잡는다(상태 패널 `Equalizer`가 대화를 옮길 때마다 옛 대화 기록 DOM을 통째로 남겨 렌더러가 몇 시간에 수백 MB가 됐다. `/diag` 힙 스냅샷으로 찾음). CSS 애니메이션은 요소와 함께 정리되므로 해당 없음
   - 글꼴 조각이 data URI로 인라인되므로 CSP에 `font-src 'self' data:`가 필요하다
   - 스크롤바는 styles.css 맨 위 `::-webkit-scrollbar` 디자인 하나로 통일한다. 스크롤 요소에 `scrollbar-width: thin`·`scrollbar-color`를 쓰면 Chromium이 그 디자인을 무시하고 OS 기본 막대를 그리므로 쓰지 말 것(숨길 때 `none`만). 좁은 곳은 그 선택자에 `::-webkit-scrollbar { width: 8px }`
   - 모서리는 둥글리지 않는다. `data-layout-id` 요소(진행 띠·보고 줄)에는 CSS 등장 애니메이션을 걸지 말 것. 위치 이동 애니메이션(`motion.tsx`)과 충돌한다. 새로 나타나는 보고 줄은 위에서 떨어지고, 나머지는 아래에서 떠오른다(`useLayoutMotion`)

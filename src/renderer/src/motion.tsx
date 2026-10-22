@@ -232,7 +232,12 @@ export function Roll({ text, className }: { text: string; className?: string }):
     old.className = 'roll-old'
     old.textContent = oldText
     el.appendChild(old)
-    old.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-100%)', opacity: 0 }], { duration: 320, easing: EASE, fill: 'forwards' }).onfinish = () => old.remove()
+    const out = old.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-100%)', opacity: 0 }], { duration: 320, easing: EASE, fill: 'forwards' })
+    // fill forwards 애니메이션은 취소하지 않으면 타임라인에 남아 뗀 요소를 붙잡는다
+    out.onfinish = () => {
+      out.cancel()
+      old.remove()
+    }
     cur?.animate([{ transform: 'translateY(100%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 320, easing: EASE })
   }, [text])
   return (
@@ -300,12 +305,19 @@ export function Equalizer({ mode, bars = 12 }: { mode: EqMode; bars?: number }):
       }
       const lead = bar.animate([{ transform: from }, { transform: EQ_LEAD }], { duration: 320, easing: EASE_IO, fill: 'forwards' })
       lead.onfinish = () => {
-        if (!bar.isConnected || lead.playState === 'idle') return
+        if (lead.playState === 'idle') return
         lead.cancel()
+        if (!bar.isConnected) return
         bar.animate(EQ_LOOP, { duration: 900, delay: i * 70, iterations: Infinity, direction: 'alternate', easing: EASE_IO, fill: 'backwards' })
       }
     })
   }, [mode])
+  // 사라질 때 막대의 애니메이션을 모두 취소한다. 무한 반복·fill forwards 애니메이션은 요소가 문서에서 빠져도 문서 타임라인에 남아
+  // 그 요소가 달린 화면(옛 대화 기록 전체)을 붙잡는다 (대화를 옮길 때마다 기록 DOM이 통째로 쌓이던 원인)
+  useLayoutEffect(() => {
+    const el = ref.current
+    return () => el?.querySelectorAll('i').forEach((bar) => bar.getAnimations().forEach((a) => a.cancel()))
+  }, [])
   return (
     <div className={`sp-eq ${mode}`} ref={ref} aria-hidden="true">
       {Array.from({ length: bars }, (_, i) => <i key={i} />)}

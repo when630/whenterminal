@@ -203,6 +203,8 @@ export interface Settings {
   worktreeDir: string
   /** 로그인할 때 자동 실행 (창은 숨긴 채 트레이에). 패키징한 앱에서만 동작 */
   openAtLogin: boolean
+  /** Windows: 작업 표시줄에 앱 버튼을 두지 않는다 (트레이·전역 호출 키로만 연다). 최소화하면 트레이로 숨긴다 */
+  hideTaskbar: boolean
   /** 대화창 아래 터미널의 셸 */
   terminalShell: TerminalShell
   /**
@@ -218,7 +220,7 @@ export interface Settings {
   keymap: Partial<Keymap>
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'poster', textFont: 'pretendard', questionFont: 'display', answerFont: 'pretendard', codeFont: 'geist', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
+export const DEFAULT_SETTINGS: Settings = { theme: 'poster', textFont: 'pretendard', questionFont: 'display', answerFont: 'pretendard', codeFont: 'geist', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, hideTaskbar: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
 
 export function effectiveKeymap(settings: Settings): Keymap {
   return { ...DEFAULT_KEYMAP, ...settings.keymap }

@@ -59,7 +59,8 @@ function sanitize(raw: unknown): Settings {
   const terminalShell = TERMINAL_SHELLS.includes(o.terminalShell as TerminalShell) ? o.terminalShell! : DEFAULT_SETTINGS.terminalShell
   const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback)
   const away = bool(o.away, DEFAULT_SETTINGS.away)
+  const hideTaskbar = bool(o.hideTaskbar, DEFAULT_SETTINGS.hideTaskbar)
   const promptSuggestions = bool(o.promptSuggestions, DEFAULT_SETTINGS.promptSuggestions)
   const budgetWhenHot = bool(o.budgetWhenHot, DEFAULT_SETTINGS.budgetWhenHot)
-  return { theme, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
+  return { theme, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, hideTaskbar, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
 }

@@ -125,6 +125,7 @@ function bootstrap(): void {
     }
     win?.setBackgroundColor(themeBackground(saved))
     if (saved.openAtLogin !== before.openAtLogin) applyLoginItem(saved)
+    if (saved.hideTaskbar !== before.hideTaskbar && !isMac) win?.setSkipTaskbar(saved.hideTaskbar)
     if (saved.appIcon !== before.appIcon) applyAppIcon(saved)
     // AWAY를 켰으면 기다리던 확인 요청부터 거절해 작업이 이어지게
     if (saved.away !== before.away) manager.setAway(saved.away)
@@ -613,6 +614,8 @@ function createWindow(): void {
     autoHideMenuBar: true,
     // Windows: 제목 표시줄·창 버튼 없는 창. 끌기는 사이드바 로고(-webkit-app-region), 크기 조절은 가장자리, 닫기는 Alt+F4(트레이로)
     frame: isMac,
+    // 작업 표시줄에서 빼기 (설정 hideTaskbar, Windows만). macOS는 Dock이 따로라 건드리지 않는다
+    skipTaskbar: !isMac && settingsStore.get().hideTaskbar,
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,
@@ -628,7 +631,11 @@ function createWindow(): void {
   })
   const sendShown = (shown: boolean): void => win?.webContents.send(IPC.windowShown, shown)
   win.on('hide', () => sendShown(false))
-  win.on('minimize', () => sendShown(false))
+  win.on('minimize', () => {
+    sendShown(false)
+    // 작업 표시줄 버튼이 없으면 최소화한 창은 화면 구석의 작은 막대로 남으므로 트레이로 숨긴다 (다시 열면 showWindow가 restore)
+    if (!isMac && settingsStore.get().hideTaskbar) hideWindow()
+  })
   win.on('show', () => sendShown(!win?.isMinimized()))
   win.on('restore', () => sendShown(!!win?.isVisible()))
   // 로그인할 때 숨긴 채로 시작하면 hide 이벤트가 없다

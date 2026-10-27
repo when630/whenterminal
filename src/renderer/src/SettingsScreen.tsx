@@ -393,7 +393,7 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
           </div>
         </section>
 
-        <section className="set-sec set-sec-cont" aria-label="자동 실행">
+        <section className="set-sec set-sec-cont" aria-label="실행">
           <div className="krow">
             <span className="krow-label">
               Open at login
@@ -414,6 +414,26 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
             </button>
             <span className="krow-side" />
           </div>
+          {window.api.appInfo.platform === 'win32' && (
+            <div className="krow">
+              <span className="krow-label">
+                Hide from taskbar
+                <span className="krow-note">트레이 아이콘이나 전역 호출 키로 열어요. 최소화하면 트레이로 숨어요</span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.hideTaskbar}
+                aria-label="작업 표시줄에서 숨기기"
+                className={`switch ${settings.hideTaskbar ? 'on' : ''}`}
+                onClick={() => void save({ ...settings, hideTaskbar: !settings.hideTaskbar })}
+              >
+                <i />
+                <span>{settings.hideTaskbar ? 'ON' : 'OFF'}</span>
+              </button>
+              <span className="krow-side" />
+            </div>
+          )}
         </section>
 
         <UpdateSection update={update} />

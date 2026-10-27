@@ -13,6 +13,7 @@ import { listChildren, searchFiles } from './files'
 import { gitCheckout, gitCommit, gitDiff, gitLog, gitOverview } from './git-view'
 import { setupArtifactView } from './artifact-view'
 import { fetchRemoteImages, handleFileScheme, registerFileScheme, viewFile } from './file-view'
+import { captureMemoryDump } from './memory-dump'
 import { SettingsStore } from './settings'
 import { applyBadge, Notifier } from './notify'
 import { effectiveKeymap, THEMES, toAccelerator, type Settings } from '@shared/keymap'
@@ -526,7 +527,9 @@ function bootstrap(): void {
     const metrics = await cdp('Performance.getMetrics')
     const dom = await cdp('Memory.getDOMCounters')
     if (attached) dbg.detach()
-    const report = { at: new Date().toISOString(), version: app.getVersion(), uptimeSec: Math.round(process.uptime()), appMetrics: app.getAppMetrics(), beforeGc: before, metrics, dom, renderer }
+    // GC 뒤 할당자별 크기 (스냅샷 밖의 PartitionAlloc·Skia·글꼴 캐시 등). 원본은 memory.trace.json
+    const memoryInfra = await captureMemoryDump(join(dir, 'memory.trace.json'))
+    const report = { at: new Date().toISOString(), version: app.getVersion(), uptimeSec: Math.round(process.uptime()), appMetrics: app.getAppMetrics(), beforeGc: before, metrics, dom, memoryInfra, renderer }
     writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2))
     await wc.takeHeapSnapshot(join(dir, 'renderer.heapsnapshot'))
     return dir

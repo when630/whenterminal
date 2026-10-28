@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Presence } from './motion'
-import { ACTIONS, ANSWER_FONTS, APP_ICONS, CODE_FONTS, conflictsOf, FONTS, QUESTION_FONTS, TEXT_FONTS, DEFAULT_KEYMAP, effectiveKeymap, SCOPE_LABEL, THEMES, type ActionDef, type ActionId, type ActionScope, type Settings, type ThemeId } from '@shared/keymap'
+import { ACTIONS, ANSWER_FONTS, APP_ICONS, CODE_FONTS, conflictsOf, FONTS, QUESTION_FONTS, TEXT_FONTS, DEFAULT_KEYMAP, effectiveKeymap, SCOPE_LABEL, SKINS, themeForSkin, themesOf, type ActionDef, type ActionId, type ActionScope, type Settings, type ThemeId } from '@shared/keymap'
 import type { TerminalShellOption, UpdateState } from '@shared/types'
 import { Keys } from './KeyHint'
 import { ALT_LABEL, eventToBinding, matches } from './keys'
@@ -200,10 +200,45 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
         {saveError && <div className="msg notice error" role="alert">{saveError}</div>}
         {tab === 'general' && (
         <div key="general" className="set-panel" role="tabpanel" id="set-panel-general" aria-labelledby="set-tab-general">
+        <section className="set-sec" aria-labelledby="set-skin">
+          <h2 id="set-skin" className="col-h">SKIN</h2>
+          <p className="set-help">선·모서리·글꼴·배치 같은 모양이에요. 스킨마다 고를 수 있는 색 테마가 따로 있어요.</p>
+          <div className="themes" role="radiogroup" aria-label="스킨">
+            {SKINS.map((k) => {
+              const on = settings.skin === k.id
+              const c = themesOf(k.id)[0].colors
+              return (
+                <button
+                  key={k.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  className={`theme ${on ? 'on' : ''}`}
+                  onClick={() => !on && void save({ ...settings, skin: k.id, theme: themeForSkin(k.id, settings.skinThemes) })}
+                >
+                  <span className={`theme-swatch skin-swatch sk-${k.id}`} style={{ background: c[0], color: c[1] }} aria-hidden="true">
+                    <span className="sw-key">A</span>
+                    <span className="sw-lines">
+                      <i style={{ background: c[1] }} />
+                      <i style={{ background: c[1], opacity: 0.5 }} />
+                      <i style={{ background: c[2], width: '45%' }} />
+                    </span>
+                  </span>
+                  <span className="theme-name">
+                    {k.name}
+                    <Presence show={on} className="theme-on">IN USE</Presence>
+                  </span>
+                  <span className="theme-note">{k.note}</span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
         <section className="set-sec" aria-labelledby="set-theme">
           <h2 id="set-theme" className="col-h">THEME</h2>
           <div className="themes" role="radiogroup" aria-label="색 테마">
-            {THEMES.map((t) => {
+            {themesOf(settings.skin).map((t) => {
               const on = settings.theme === t.id
               return (
                 <button
@@ -237,7 +272,7 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
         <section className="set-sec" aria-labelledby="set-font">
           <h2 id="set-font" className="col-h">FONT</h2>
           {([
-            ['questionFont', 'Question font', '대화에서 내가 보낸 질문이에요. DISPLAY는 포스터 같은 큰 글자예요', QUESTION_FONTS],
+            ['questionFont', 'Question font', '대화에서 내가 보낸 질문이에요. SKIN은 스킨이 정한 글꼴, DISPLAY는 포스터 같은 큰 글자예요', QUESTION_FONTS],
             ['answerFont', 'Answer font', '답변 본문이에요. 답변 안의 제목은 큰 글자, 코드는 Code font로 나와요', ANSWER_FONTS],
             ['textFont', 'Text font', '메뉴·입력창 같은 화면 글자예요. 한글은 고른 글꼴에 없으면 Pretendard로 나와요(D2Coding NF는 한글도 있어요)', TEXT_FONTS],
             ['codeFont', 'Code font', '코드 블록·파일 보기·터미널 글자예요. NF 글꼴은 Nerd Font 기호가 들어 있어 셸 프롬프트 아이콘이 보여요', CODE_FONTS],
@@ -255,7 +290,9 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
                     role="radio"
                     aria-checked={settings[key] === id}
                     className={settings[key] === id ? 'on' : ''}
-                    style={{ fontFamily: FONTS[id].css }}
+                    // SKIN은 지금 스킨의 글꼴 그대로 보인다
+                    style={id === 'skin' ? undefined : { fontFamily: FONTS[id].css }}
+                    title={id === 'skin' ? '지금 스킨이 정한 글꼴이에요' : undefined}
                     onClick={() => settings[key] !== id && void save({ ...settings, [key]: id })}
                   >
                     {FONTS[id].name}

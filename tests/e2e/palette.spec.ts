@@ -51,6 +51,13 @@ test('Ctrl+Shift+P 명령 팔레트: 이름으로 찾아 동작·명령·프로�
   await win.keyboard.press('Enter')
   await expect(win.locator('html')).toHaveAttribute('data-theme', 'sumi')
 
+  // 스킨: 바꾸면 테마는 그 스킨의 것으로
+  await open()
+  await win.keyboard.type('skin zen')
+  await win.keyboard.press('Enter')
+  await expect(win.locator('html')).toHaveAttribute('data-skin', 'zen')
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'zen-sage')
+
   // 없는 말이면 안내, Esc로 닫으면 입력창으로
   await open()
   await win.keyboard.type('zzzz')

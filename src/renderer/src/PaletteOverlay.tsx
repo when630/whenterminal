@@ -6,7 +6,7 @@ import { useKeymap } from './settings'
 /** 팔레트 한 줄. run은 팔레트가 닫힌 뒤에 App이 부른다 */
 export interface PaletteEntry {
   id: string
-  group: 'ACTION' | 'COMMAND' | 'TAB' | 'PROJECT' | 'THEME'
+  group: 'ACTION' | 'COMMAND' | 'TAB' | 'PROJECT' | 'SKIN' | 'THEME'
   label: string
   note?: string
   /** 찾을 때만 쓰는 말 (화면에는 안 보임) */

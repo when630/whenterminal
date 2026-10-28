@@ -82,6 +82,7 @@ export function Sidebar(props: Props): React.JSX.Element {
       </div>
 
       <button type="button" className={`nav nav-home ${activeProjectId === null && !props.settingsOpen ? 'on' : ''}`} onClick={props.onHome}>
+        <NavIcon kind="home" />
         <span className="nav-name">HOME</span>
         <Presence show={unreadTotal > 0} className="pill"><Odo n={unreadTotal} /></Presence>
       </button>
@@ -139,6 +140,8 @@ export function Sidebar(props: Props): React.JSX.Element {
             <button type="button" className={`nav ${on ? 'on' : ''}`} onClick={() => props.onOpenProject(i)} title={`${p.path} · 끌어서 순서를 바꿀 수 있어요`}>
               <span className="nav-key">{HOME_ROW[i] ?? ''}</span>
               <span className="nav-name">{p.name}</span>
+              {/* 읽지 않은 수·상태 표시 묶음. 기본은 display: contents라 배치가 그대로이고 스킨이 따로 놓을 수 있다 */}
+              <span className="nav-marks">
               <Presence show={unread > 0} className="pill"><Odo n={unread} /></Presence>
               {live ? (
                 <span className={`minibar ${status === 'waiting_approval' ? 'wait' : ''}`} role="img" aria-label={`${STATUS_LABEL[status]} · 진행 ${Math.round(progress * 100)}%`}>
@@ -149,6 +152,7 @@ export function Sidebar(props: Props): React.JSX.Element {
               ) : (
                 <span className={`dot dot-${status}`} title={STATUS_LABEL[status]} />
               )}
+              </span>
             </button>
             <button
               type="button"
@@ -203,19 +207,39 @@ export function Sidebar(props: Props): React.JSX.Element {
         onClick={props.onToggleAway}
         title={props.away ? '확인 요청을 묻지 않고 거절하는 중이에요. 거절한 호출은 보고서에 모여요' : '자리를 비울 때 켜요. 확인 요청 때문에 작업이 멈추지 않아요'}
       >
+        <NavIcon kind="away" />
         <span className="nav-name">AWAY</span>
+        {/* 스위치 모양 (기본은 숨김, 스킨이 ON/OFF 글자 대신 쓴다) */}
+        <span className="nav-switch" aria-hidden="true"><i /></span>
         <span className="nav-away-side"><Roll text={props.away ? 'ON' : 'OFF'} className="num" /></span>
       </button>
 
       <button type="button" className={`nav nav-help ${props.helpOpen ? 'on' : ''}`} onClick={props.onHelp} title="모든 단축키를 모아 봐요">
+        <NavIcon kind="help" />
         <span className="nav-name">HELP</span>
       </button>
       <button type="button" className={`nav nav-settings ${props.settingsOpen ? 'on' : ''}`} onClick={props.onSettings}>
+        <NavIcon kind="settings" />
         <span className="nav-name">SETTINGS</span>
       </button>
 
       <Usage usage={usage} onRefresh={props.onRefreshUsage} />
     </nav>
+  )
+}
+
+/** 사이드바 아래 줄의 아이콘. 기본(poster)은 숨기고 아이콘을 쓰는 스킨만 보인다 */
+function NavIcon({ kind }: { kind: 'home' | 'away' | 'help' | 'settings' }): React.JSX.Element {
+  const d = {
+    home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+    away: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
+    help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 4 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01',
+    settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1',
+  }[kind]
+  return (
+    <svg className="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
   )
 }
 
@@ -280,7 +304,7 @@ function Usage({ usage, onRefresh }: { usage: UsageInfo | null; onRefresh: () =>
 function UsageRow({ w, big }: { w: UsageWindow; big: boolean }): React.JSX.Element {
   const hot = limitLevel(w) > 0
   return (
-    <div className={`uw ${big ? 'uw-big' : ''} ${hot ? 'hot' : ''}`} title={w.status === 'rejected' ? '한도에 도달했어요' : undefined}>
+    <div className={`uw ${big ? 'uw-big' : ''} ${hot ? 'hot' : ''}`} title={w.status === 'rejected' ? `${w.label} · 한도에 도달했어요` : w.label}>
       <div className="uw-top">
         <span className="uw-label">{w.label}</span>
         <b>{w.percent !== null ? `${w.percent}%` : '–'}</b>

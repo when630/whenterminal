@@ -162,7 +162,7 @@ function wire(): void {
       // 설정에서 코드 글꼴을 바꾸면(:root style의 --mono) 글자 폭이 달라지므로 다시 맞춘다
       if (e.term.options.fontFamily !== font) applyFont(e, font)
     })
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] })
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-skin', 'style'] })
   // 창이 숨은 동안 커서 깜빡임을 멈춘다 (숨어도 그리기는 계속하므로)
   onWindowShown((shown) => entries.forEach((e) => (e.term.options.cursorBlink = shown)))
 }

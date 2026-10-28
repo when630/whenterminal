@@ -145,8 +145,11 @@
   - 그 밖에 zip(Windows·macOS)과 dmg. `dist` 스크립트는 `--publish never`라 빌드만 하고 올리지 않는다
 - 설정(`SettingsScreen.tsx`, `Ctrl+,` / macOS 메뉴 ⌘,): `userData/settings.json` (`src/main/settings.ts`). 첫 화면 전에 preload가 동기로 읽어(`initialSettings`) 테마 깜빡임이 없다
   - 탭 두 개: GENERAL(테마·아이콘·실행·업데이트·알림)과 SHORTCUTS(키맵). 마지막에 본 탭은 localStorage `wt-settings-tab`. 키맵 `nextConversation`/`prevConversation`(기본 Ctrl+Tab)으로도 넘기고(키를 기록하는 중에는 아님), 탭 줄에서 좌우 화살표. 도움말 ANYWHERE에 `Settings: switch tab`
-  - 글꼴(FONT): 질문 `questionFont`(DISPLAY=`--kr`·PRETENDARD·CASCADIA CODE NF, `.msg.user`)·답변 `answerFont`(`.msg.assistant`, 답변 안 제목은 그대로 `--kr`)·화면 `textFont`(메뉴·입력창)·코드 `codeFont`(GEIST MONO·CASCADIA CODE NF, 코드 블록·파일 보기·터미널). `FONTS`(keymap.ts)의 목록을 `applyFonts`가 `:root` style의 `--question-font`·`--answer-font`·`--font`·`--mono`로 덮는다(질문이 DISPLAY가 아니면 `--question-weight` 700). Cascadia Code NF·D2Coding NF(Nerd Fonts의 D2KodingLigature, 한글 포함·보통/굵게)는 `assets/fonts`에 woff2로 번들(OFL, 깔려 있으면 `local()` 먼저). D2CODING NF는 네 칸 모두에 있다. 터미널은 `applyFont`로 글꼴을 받은 뒤 다시 재고 fit한다
-  - 테마: `:root[data-theme]`로 색 토큰만 바꾼다 (포스터·종이·세이지·먹·밤). 새 색을 쓸 때는 직접 색 대신 역할 토큰(`--sel-bg/fg`, `--on-signal`, `--code-bg/fg`, `--line`, `--shadow`)을 쓸 것
+  - 글꼴(FONT): 질문 `questionFont`(DISPLAY=`--kr`·PRETENDARD·CASCADIA CODE NF, `.msg.user`)·답변 `answerFont`(`.msg.assistant`, 답변 안 제목은 그대로 `--kr`)·화면 `textFont`(메뉴·입력창)·코드 `codeFont`(GEIST MONO·CASCADIA CODE NF, 코드 블록·파일 보기·터미널). 칸마다 기본은 `skin`(SKIN: 지금 스킨이 정한 글꼴, poster는 질문 DISPLAY·답변/화면 PRETENDARD·코드 GEIST MONO)이고, 다른 것을 고르면 `FONTS`(keymap.ts)의 값을 `applyFonts`가 `:root` style의 `--question-font`·`--answer-font`·`--font`·`--mono`로 덮는다(스킨과 상관없이 그 글꼴. 질문 굵기 `--question-weight`는 SKIN이면 스킨 값, DISPLAY 400, 나머지 700). 스킨 없던 예전 설정의 옛 기본값(display·pretendard·geist)은 `sanitize`가 skin으로 옮긴다. Cascadia Code NF·D2Coding NF(Nerd Fonts의 D2KodingLigature, 한글 포함·보통/굵게)는 `assets/fonts`에 woff2로 번들(OFL, 깔려 있으면 `local()` 먼저). D2CODING NF는 네 칸 모두에 있다. 터미널은 `applyFont`로 글꼴을 받은 뒤 다시 재고 fit한다
+  - 스킨(SKIN)과 테마(THEME) 두 축: 스킨은 모양(선·모서리·그림자·글꼴·배치), 테마는 색. `SKINS`·`THEMES`(keymap.ts)이고 테마마다 속한 스킨이 있어(`skin`) 설정·명령 팔레트는 지금 스킨의 테마만 보인다. `Settings.skin`·`theme`·`skinThemes`(스킨마다 마지막 테마, 돌아오면 그것으로, 없으면 스킨의 첫 테마 `themeForSkin`). 테마가 스킨에 맞는지는 메인 `sanitize`가 맞춘다(스킨 없던 예전 설정은 poster)
+  - 적용: `applyTheme(skin, theme)`가 `:root[data-skin]`·`[data-theme]`(기본 poster는 속성 없음). 스킨 CSS는 `src/renderer/src/skins/<스킨>.css`(main.tsx가 styles.css 다음에 import): 모양 규칙은 모두 `:root[data-skin='x']` 아래, 그 스킨 테마의 색 토큰 블록도 같은 파일. poster 테마들(포스터·종이·세이지·먹·밤)은 styles.css. 큰 글자 굵기는 `--disp-w`·`--kr-w` 토큰(font 줄임 속성이 굵기를 되돌리므로)
+  - 스킨만 쓰는 마크업은 styles.css에서 기본 숨김(`.nav-ico` 사이드바 아이콘·`.nav-switch` AWAY 스위치·`.effort-bars` effort 막대·`.permission-kind` 승인창 머리 라벨·`.tb-nopanel` 상태 패널 없는 스킨의 TOOLS/ARTIFACT 버튼)이거나 배치에 끼어들지 않게 `display: contents`(`.nav-marks` 프로젝트 줄 표시 묶음·`.sp-task` 상태 패널 작업 묶음). 승인창의 주 버튼은 `.permission-actions .primary`
+  - 새 색을 쓸 때는 직접 색 대신 역할 토큰(`--sel-bg/fg`, `--on-signal`, `--code-bg/fg`, `--line`, `--shadow`)을 쓸 것. 새 화면·요소를 만들면 스킨 네 개(soft·tui·zen·glass)에서도 볼 것
   - 단축키: 동작 목록·기본값은 `src/shared/keymap.ts`(`ACTIONS`), 판정은 `matches()`(keys.ts). App의 키 처리와 화면의 키 표시는 모두 `useKeymap()`을 거친다. 새 단축키는 ACTIONS에 추가하고 하드코딩하지 말 것
   - 고정 키(바꿀 수 없음): Esc, ⌥A~L·Ctrl+1~9 프로젝트 이동, 선택 없을 때 Ctrl+C, 방향키. 대화창·전역 범위 키는 Ctrl/Alt/Meta가 있어야 한다 (입력 중 오작동 방지)
   - 전역 호출 키(`summon`)는 메인이 다시 등록한다. 실패하면 이전 키를 되살리고 저장하지 않는다
@@ -179,7 +182,7 @@
   - 라벨(상태·모드·단계·버튼·제목·칸 이름·단축키 안내·진행 문구): `RUNNING` `NEEDS YOU` `COMPACT` `READ session.ts`. 설정의 항목 이름만 문장형 영어(`Clear (twice)`)
   - 문장(안내·툴팁·확인 경고·오류 설명·빈 화면): 한국어 해요체. '-습니다' 쓰지 말 것
   - 큰 글자 `--kr`은 `WT Display`(Archivo 900을 굵기 400으로 다시 등록, 라틴만) → Black Han Sans 순서라 영어는 Archivo, 한글은 Black Han Sans로 나온다
-- 디자인은 G안(스위스 포스터): 흰 종이 + 검은 굵은 선 + 신호색 빨강 하나. 토큰은 `src/renderer/src/styles.css` 맨 위
+- 디자인은 G안(스위스 포스터, 기본 poster 스킨): 흰 종이 + 검은 굵은 선 + 신호색 빨강 하나. 토큰은 `src/renderer/src/styles.css` 맨 위. 아래 규칙 중 모양(모서리·굵은 선·큰 글자)은 poster 스킨의 것이고, 빨강의 쓰임·움직임·스크롤바·`data-layout-id` 규칙은 모든 스킨이 지킨다
   - 빨강은 사람이 봐야 할 것(승인 대기·오류)에만 쓴다. 실행 중은 검정, 완료는 외곽선 글자
   - 큰 글자는 Archivo 900(라틴·숫자)과 Black Han Sans(한글), 본문은 Pretendard, 코드는 Geist Mono. 모두 npm 패키지로 번들한다 (오프라인 동작)
   - 움직임 토큰(`--ease-out` 나타남, `--ease-io` 상태 전환, `--spring` 숫자)과 시간(`--t-fast/med/slow`)을 쓴다. 깜빡임은 `steps()` 대신 부드러운 맥동으로, 주기는 `--pulse`(살아 있음)·`--pulse-urgent`(사람이 봐야 함) 둘만
@@ -189,4 +192,4 @@
   - `el.animate()`(Web Animations)로 건 무한 반복(`iterations: Infinity`)·`fill: 'forwards'` 애니메이션은 요소가 사라질 때 꼭 `cancel()`한다. 안 하면 요소가 문서에서 빠져도 문서 타임라인에 남아 그 요소가 달린 화면 전체를 붙잡는다(상태 패널 `Equalizer`가 대화를 옮길 때마다 옛 대화 기록 DOM을 통째로 남겨 렌더러가 몇 시간에 수백 MB가 됐다. `/diag` 힙 스냅샷으로 찾음). CSS 애니메이션은 요소와 함께 정리되므로 해당 없음
   - 글꼴 조각이 data URI로 인라인되므로 CSP에 `font-src 'self' data:`가 필요하다
   - 스크롤바는 styles.css 맨 위 `::-webkit-scrollbar` 디자인 하나로 통일한다. 스크롤 요소에 `scrollbar-width: thin`·`scrollbar-color`를 쓰면 Chromium이 그 디자인을 무시하고 OS 기본 막대를 그리므로 쓰지 말 것(숨길 때 `none`만). 좁은 곳은 그 선택자에 `::-webkit-scrollbar { width: 8px }`
-  - 모서리는 둥글리지 않는다. `data-layout-id` 요소(진행 띠·보고 줄)에는 CSS 등장 애니메이션을 걸지 말 것. 위치 이동 애니메이션(`motion.tsx`)과 충돌한다. 새로 나타나는 보고 줄은 위에서 떨어지고, 나머지는 아래에서 떠오른다(`useLayoutMotion`)
+  - 모서리는 둥글리지 않는다(poster 스킨). `data-layout-id` 요소(진행 띠·보고 줄)에는 CSS 등장 애니메이션을 걸지 말 것. 위치 이동 애니메이션(`motion.tsx`)과 충돌한다. 새로 나타나는 보고 줄은 위에서 떨어지고, 나머지는 아래에서 떠오른다(`useLayoutMotion`)

@@ -46,7 +46,7 @@
   /* 대화 기록 한 기둥의 좌우 여백 */
   /* --code-bg는 터미널(xterm 기본 ANSI 색이 어두운 바탕을 전제)이 쓰므로 어둡게 두고, 기록·세부 화면의 코드 면은 이 옅은 면 */
   --zen-code: var(--wash);
-  --zen-col: 700px;
+  --zen-col: 820px;
   --zen-pad: max(32px, calc((100% - var(--zen-col)) / 2));
 }
 

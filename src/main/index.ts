@@ -633,8 +633,9 @@ function createWindow(): void {
   win.on('hide', () => sendShown(false))
   win.on('minimize', () => {
     sendShown(false)
-    // 작업 표시줄 버튼이 없으면 최소화한 창은 화면 구석의 작은 막대로 남으므로 트레이로 숨긴다 (다시 열면 showWindow가 restore)
-    if (!isMac && settingsStore.get().hideTaskbar) hideWindow()
+    // 작업 표시줄 버튼이 없으면 최소화한 창은 화면 구석의 작은 막대로 남으므로 트레이로 숨긴다 (다시 열면 showWindow가 restore).
+    // 최소화하면서 Windows가 이미 다음 창을 활성화했으므로 숨기기만 한다
+    if (!isMac && settingsStore.get().hideTaskbar && win?.isVisible()) win.hide()
   })
   win.on('show', () => sendShown(!win?.isMinimized()))
   win.on('restore', () => sendShown(!!win?.isVisible()))
@@ -717,6 +718,13 @@ function hideWindow(): void {
   if (isMac) {
     win.hide()
     app.hide()
+    return
+  }
+  // 작업 표시줄에서 숨긴 창(hideTaskbar)은 blur만으로는 Windows가 다음 창을 활성화하지 않아 포커스가 갈 곳을 잃는다.
+  // 최소화는 Windows가 직접 다음 창(원래 쓰던 창)을 활성화하므로 최소화한 뒤 숨긴다 (다시 열면 showWindow가 restore)
+  if (settingsStore.get().hideTaskbar && !win.isMinimized()) {
+    win.minimize()
+    win.hide()
     return
   }
   win.blur()

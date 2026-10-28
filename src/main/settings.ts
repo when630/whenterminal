@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { join } from 'node:path'
-import { ACTIONS, ANSWER_FONTS, APP_ICONS, CODE_FONTS, QUESTION_FONTS, DEFAULT_SETTINGS, normalize, TEXT_FONTS, THEMES, type Settings } from '@shared/keymap'
+import { ACTIONS, ANSWER_FONTS, APP_ICONS, CODE_FONTS, QUESTION_FONTS, DEFAULT_SETTINGS, normalize, SKINS, TEXT_FONTS, THEMES, themeForSkin, type FontId, type Settings, type ThemeId } from '@shared/keymap'
 import type { TerminalShell } from '@shared/types'
 import { readJson, writeJson } from './json-file'
 
@@ -29,11 +29,24 @@ export class SettingsStore {
 
 function sanitize(raw: unknown): Settings {
   const o = (raw ?? {}) as Partial<Settings>
-  const theme = THEMES.some((t) => t.id === o.theme) ? o.theme! : DEFAULT_SETTINGS.theme
-  const textFont = TEXT_FONTS.includes(o.textFont!) ? o.textFont! : DEFAULT_SETTINGS.textFont
-  const questionFont = QUESTION_FONTS.includes(o.questionFont!) ? o.questionFont! : DEFAULT_SETTINGS.questionFont
-  const answerFont = ANSWER_FONTS.includes(o.answerFont!) ? o.answerFont! : DEFAULT_SETTINGS.answerFont
-  const codeFont = CODE_FONTS.includes(o.codeFont!) ? o.codeFont! : DEFAULT_SETTINGS.codeFont
+  // 스킨이 없던 예전 설정은 테마가 속한 스킨으로 (지금까지의 테마는 모두 poster). 테마는 늘 고른 스킨의 것
+  const known = THEMES.find((t) => t.id === o.theme)
+  const skin = SKINS.some((s) => s.id === o.skin) ? o.skin! : (known?.skin ?? DEFAULT_SETTINGS.skin)
+  const skinThemes: Settings['skinThemes'] = {}
+  for (const s of SKINS) {
+    const id = (o.skinThemes as Record<string, unknown> | undefined)?.[s.id]
+    if (THEMES.some((t) => t.id === id && t.skin === s.id)) skinThemes[s.id] = id as ThemeId
+  }
+  const theme = known?.skin === skin ? known.id : themeForSkin(skin, skinThemes)
+  skinThemes[skin] = theme
+  // 스킨이 없던 예전 설정: 그때의 기본 글꼴(질문 DISPLAY·답변/화면 PRETENDARD·코드 GEIST)은 '스킨 글꼴'이었으므로 SKIN으로 옮긴다
+  const legacy = o.skin === undefined
+  const font = (v: FontId | undefined, list: FontId[], oldDefault: FontId, fallback: FontId): FontId =>
+    legacy && v === oldDefault ? 'skin' : v && list.includes(v) ? v : fallback
+  const textFont = font(o.textFont, TEXT_FONTS, 'pretendard', DEFAULT_SETTINGS.textFont)
+  const questionFont = font(o.questionFont, QUESTION_FONTS, 'display', DEFAULT_SETTINGS.questionFont)
+  const answerFont = font(o.answerFont, ANSWER_FONTS, 'pretendard', DEFAULT_SETTINGS.answerFont)
+  const codeFont = font(o.codeFont, CODE_FONTS, 'geist', DEFAULT_SETTINGS.codeFont)
   const keymap: Settings['keymap'] = {}
   for (const a of ACTIONS) {
     const v = o.keymap?.[a.id]
@@ -62,5 +75,5 @@ function sanitize(raw: unknown): Settings {
   const hideTaskbar = bool(o.hideTaskbar, DEFAULT_SETTINGS.hideTaskbar)
   const promptSuggestions = bool(o.promptSuggestions, DEFAULT_SETTINGS.promptSuggestions)
   const budgetWhenHot = bool(o.budgetWhenHot, DEFAULT_SETTINGS.budgetWhenHot)
-  return { theme, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, hideTaskbar, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
+  return { skin, theme, skinThemes, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, hideTaskbar, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
 }

@@ -185,6 +185,8 @@ export function EffortPicker({ choice, info, onPick }: EffortProps): React.JSX.E
         onClick={() => setOpen((o) => !o)}
       >
         <span className="meta-k">EFFORT</span>
+        {/* 단계 막대 (기본은 숨김, 스킨이 글자 앞 아이콘으로 쓴다). 칠할 칸 수는 data-effort로 CSS가 정한다 */}
+        <span className="effort-bars" data-effort={none ? '' : (choice ?? info?.saved ?? '')} aria-hidden="true"><i /><i /><i /><i /><i /></span>
         <span className="meta-v effort-v">{none ? '–' : shown}</span>
         <span className="model-caret" aria-hidden="true">▾</span>
       </button>

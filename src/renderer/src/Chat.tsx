@@ -708,6 +708,17 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               CHANGES
             </button>
           )}
+          {/* 상태 패널을 숨기는 스킨(zen)에서만 보인다: 패널에서만 열던 도구 목록·아티팩트로 가는 길 */}
+          {!!state.task?.tools && (
+            <button type="button" className={`tb-btn tb-nopanel ${tool?.kind === 'tools' ? 'on' : ''}`} onClick={() => (tool?.kind === 'tools' ? setTool(null) : openTool({ kind: 'tools', since: state.task?.startedAt }))} title="이번 작업에서 부른 도구를 모두 봐요">
+              TOOLS {state.task.tools}
+            </button>
+          )}
+          {artifacts.map((a, i) => (
+            <button key={a.url} type="button" className={`tb-btn tb-nopanel ${tool?.kind === 'artifact' && tool.url === a.url ? 'on' : ''}`} onClick={() => (tool?.kind === 'artifact' && tool.url === a.url ? setTool(null) : openTool({ kind: 'artifact', url: a.url, title: a.title }))} title={a.title || a.url}>
+              {artifacts.length > 1 ? `ARTIFACT ${i + 1}` : 'ARTIFACT'}
+            </button>
+          ))}
           <div className={`ctx ${hot ? 'hot' : ''}`} title={state.context ? `${state.context.tokens.toLocaleString()} / ${state.context.max.toLocaleString()} 토큰${autoAt ? ` · ${autoAt}%에서 자동으로 컴팩트해요` : ''}` : '첫 응답 뒤에 보여요'}>
             <span className="ctx-label">CONTEXT</span>
             <b><Roll text={ctxPercent !== undefined ? `${ctxPercent}%` : '–'} className="num" /></b>
@@ -1257,8 +1268,9 @@ function TaskStatus({ task, status, now, onTools }: { task: TaskInfo; status: st
   const stage = Math.min(task.stage, STAGES.length - 1)
   const word = status === 'queued' ? 'QUEUED' : waiting ? 'APPROVE' : STAGES[stage]
   const ms = task.durationMs ?? (task.finishedAt ?? now) - task.startedAt
+  // 스킨이 STATUS 상자 하나로 묶을 수 있게 감싼다 (기본은 display: contents라 배치가 그대로)
   return (
-    <>
+    <section className="sp-task" aria-label="작업 상태">
       <div className="sp-head">
         <span className="sp-k">STAGE</span>
         <span className="sp-word"><Roll text={word} /></span>
@@ -1290,7 +1302,7 @@ function TaskStatus({ task, status, now, onTools }: { task: TaskInfo; status: st
           {(f, leaving) => <li title={f} className={leaving ? 'leaving' : ''}>{f.split(/[\\/]/).pop()}</li>}
         </PresenceList>
       </Presence>
-    </>
+    </section>
   )
 }
 
@@ -1624,6 +1636,7 @@ export function PermissionBox({ req, leaving, onRespond, onEditPrompt }: { req: 
   return (
     <div className={cls} role="alert">
       <div className="permission-head">
+        <span className="permission-kind" aria-hidden="true">NEEDS YOU · {req.toolName.toUpperCase()}</span>
         <span className="q" aria-hidden="true">?</span>
         <div>
           <div className="permission-title">{req.title ?? `${req.toolName}, 실행할까요?`}</div>
@@ -1633,7 +1646,7 @@ export function PermissionBox({ req, leaving, onRespond, onEditPrompt }: { req: 
       </div>
       <pre>{JSON.stringify(req.input, null, 2)}</pre>
       <div className="permission-actions">
-        <button type="button" onClick={() => onRespond('allow')}>ALLOW</button>
+        <button type="button" className="primary" onClick={() => onRespond('allow')}>ALLOW</button>
         {!req.suppressAlwaysAllow && (
           <button type="button" onClick={() => onRespond('always')} title={req.always ? ALWAYS_SCOPE_TIP[req.always.scope] : undefined}>
             ALWAYS ALLOW
@@ -1693,6 +1706,7 @@ function ElicitationBox({ cls, req, onRespond }: { cls: string; req: PermissionR
   return (
     <div className={`${cls} elicit`} role="alert">
       <div className="permission-head">
+        <span className="permission-kind" aria-hidden="true">NEEDS YOU · MCP INPUT</span>
         <span className="q" aria-hidden="true">?</span>
         <div>
           <div className="permission-title">{info.title ?? (url ? '브라우저에서 인증해 주세요' : '서버가 입력을 기다려요')}</div>
@@ -1756,7 +1770,7 @@ function ElicitationBox({ cls, req, onRespond }: { cls: string; req: PermissionR
         </div>
       )}
       <div className="permission-actions">
-        <button type="button" onClick={() => answer('accept')} disabled={missing}>{url ? 'DONE' : 'SUBMIT'}</button>
+        <button type="button" className="primary" onClick={() => answer('accept')} disabled={missing}>{url ? 'DONE' : 'SUBMIT'}</button>
         <button type="button" onClick={() => answer('decline')}>DECLINE</button>
         <button type="button" onClick={() => answer('cancel')}>CANCEL</button>
       </div>
@@ -1783,6 +1797,7 @@ function RefusalBox({ cls, req, onRespond, onEditPrompt }: { cls: string; req: P
   return (
     <div className={`${cls} refusal`} role="alert">
       <div className="permission-head">
+        <span className="permission-kind" aria-hidden="true">NEEDS YOU · REFUSAL</span>
         <span className="q" aria-hidden="true">!</span>
         <div>
           <div className="permission-title">{shortModel(r.originalModel)} 모델이 이 요청에 답하지 않았어요</div>
@@ -1793,7 +1808,7 @@ function RefusalBox({ cls, req, onRespond, onEditPrompt }: { cls: string; req: P
         </div>
       </div>
       <div className="permission-actions">
-        <button type="button" onClick={() => pick('retry_fallback')}>RETRY WITH {shortModel(r.fallbackModel)}</button>
+        <button type="button" className="primary" onClick={() => pick('retry_fallback')}>RETRY WITH {shortModel(r.fallbackModel)}</button>
         <button type="button" onClick={() => pick('edit_prompt')}>EDIT PROMPT</button>
         <button type="button" onClick={() => pick('cancelled')}>CANCEL</button>
       </div>
@@ -1860,6 +1875,7 @@ function QuestionBox({ cls, questions, agentId, onRespond }: { cls: string; ques
   return (
     <div className={`${cls} question`} role="alert" ref={boxRef} tabIndex={-1} data-keys-own="true" data-pass-esc="true" onKeyDown={onKey}>
       <div className="permission-head">
+        <span className="permission-kind" aria-hidden="true">NEEDS YOU · QUESTION</span>
         <span className="q" aria-hidden="true">?</span>
         <div>
           <div className="permission-title">{questions.length > 1 ? `물어볼 게 ${questions.length}개 있어요` : '물어볼 게 있어요'}</div>
@@ -1898,7 +1914,7 @@ function QuestionBox({ cls, questions, agentId, onRespond }: { cls: string; ques
         </section>
       ))}
       <div className="permission-actions">
-        <button type="button" disabled={!done} onClick={submit}>SUBMIT</button>
+        <button type="button" className="primary" disabled={!done} onClick={submit}>SUBMIT</button>
         <button type="button" onClick={() => onRespond('deny', { message: '사용자가 답하지 않고 넘어가길 원함' })}>SKIP</button>
       </div>
       <div className="muted">숫자 키로 고르고 Enter로 보내요. 여러 질문은 Tab으로 옮겨요.</div>
@@ -1913,6 +1929,7 @@ function PlanBox({ cls, req, onRespond }: { cls: string; req: PermissionRequest;
   return (
     <div className={`${cls} plan`} role="alert">
       <div className="permission-head">
+        <span className="permission-kind" aria-hidden="true">NEEDS YOU · PLAN</span>
         <span className="q" aria-hidden="true">?</span>
         <div>
           <div className="permission-title">계획을 세웠어요. 실행할까요?</div>
@@ -1928,7 +1945,7 @@ function PlanBox({ cls, req, onRespond }: { cls: string; req: PermissionRequest;
         <div className="permission-desc">계획은 위의 답변에 있어요.</div>
       )}
       <div className="permission-actions">
-        <button type="button" onClick={() => onRespond('allow', { planMode: 'acceptEdits' })} title="실행하고, 파일 편집은 묻지 않아요">YES · AUTO EDITS</button>
+        <button type="button" className="primary" onClick={() => onRespond('allow', { planMode: 'acceptEdits' })} title="실행하고, 파일 편집은 묻지 않아요">YES · AUTO EDITS</button>
         <button type="button" onClick={() => onRespond('allow', { planMode: 'default' })} title="실행하되 편집마다 물어요">YES · ASK EACH</button>
         <button type="button" onClick={() => onRespond('deny', { message: '사용자가 계획을 더 다듬길 원함. 플랜 모드를 유지하고 무엇을 바꿀지 물어볼 것' })} title="플랜 모드에 남아 계획을 고쳐요">KEEP PLANNING</button>
       </div>

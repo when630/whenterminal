@@ -7,7 +7,7 @@ import type { ToolPanel } from './panels'
 import { Sidebar } from './Sidebar'
 import { Ticker } from './Ticker'
 import { HOME_ROW, isEscape, isInterruptCopy, matches, physicalCode, projectIndexFromKey } from './keys'
-import { ACTIONS, effectiveKeymap, THEMES, type ActionId, type Settings } from '@shared/keymap'
+import { ACTIONS, effectiveKeymap, SKINS, themeForSkin, themesOf, type ActionId, type Settings } from '@shared/keymap'
 import { applyFonts, applyTheme, KeymapContext } from './settings'
 import { SettingsScreen } from './SettingsScreen'
 import { HelpOverlay } from './HelpOverlay'
@@ -81,12 +81,12 @@ export function App(): React.JSX.Element {
   }, [projects.length, showFlash])
 
   useTooltips()
-  // 테마: 처음에는 바로, 이후 바뀔 때는 부드럽게
+  // 스킨·테마: 처음에는 그리기 전에 바로, 이후 바뀔 때는 부드럽게
   const themeApplied = useRef(false)
-  useEffect(() => {
-    applyTheme(settings.theme, themeApplied.current)
+  useLayoutEffect(() => {
+    applyTheme(settings.skin, settings.theme, themeApplied.current)
     themeApplied.current = true
-  }, [settings.theme])
+  }, [settings.skin, settings.theme])
   useLayoutEffect(() => applyFonts(settings), [settings.textFont, settings.questionFont, settings.answerFont, settings.codeFont])
   useEffect(() => {
     const offs = [
@@ -617,9 +617,15 @@ export function App(): React.JSX.Element {
       }
     })
     projects.forEach((p, i) => out.push({ id: `project:${p.id}`, group: 'PROJECT', label: p.name, note: p.path, mark: HOME_ROW[i], keys: `alt ${HOME_ROW[i]}`, run: () => openProject(i) }))
-    for (const t of THEMES) {
+    const save = (next: Settings): void => void window.api.setSettings(next).then((r) => setSettings(r.settings))
+    for (const s of SKINS) {
+      if (s.id === settings.skin) continue
+      out.push({ id: `skin:${s.id}`, group: 'SKIN', label: `Skin · ${s.name}`, note: s.note, run: () => save({ ...settings, skin: s.id, theme: themeForSkin(s.id, settings.skinThemes) }) })
+    }
+    // 테마는 지금 스킨의 것만
+    for (const t of themesOf(settings.skin)) {
       if (t.id === settings.theme) continue
-      out.push({ id: `theme:${t.id}`, group: 'THEME', label: `Theme · ${t.name}`, note: t.note, run: () => void window.api.setSettings({ ...settings, theme: t.id }).then((r) => setSettings(r.settings)) })
+      out.push({ id: `theme:${t.id}`, group: 'THEME', label: `Theme · ${t.name}`, note: t.note, run: () => save({ ...settings, theme: t.id }) })
     }
     return out
   }, [paletteOpen, view, projects, settings, km, openChat, openProject])

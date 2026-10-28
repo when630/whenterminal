@@ -16,6 +16,39 @@ test('색 테마를 바꾸면 바로 적용되고 저장된다', async ({ win, e
   expect(JSON.parse(readFileSync(join(env.userData, 'settings.json'), 'utf8')).theme).toBe('sumi')
 })
 
+test('스킨을 바꾸면 그 스킨의 테마 목록이 나오고, 돌아오면 그 스킨에서 고른 테마로 돌아간다', async ({ win, env }) => {
+  const saved = (): { skin: string; theme: string } => JSON.parse(readFileSync(join(env.userData, 'settings.json'), 'utf8'))
+  const skin = (name: string) => win.getByRole('radiogroup', { name: '스킨' }).getByRole('radio').filter({ has: win.locator('.theme-name').getByText(name, { exact: true }) })
+  const theme = (name: string) => win.getByRole('radiogroup', { name: '색 테마' }).getByRole('radio').filter({ has: win.locator('.theme-name').getByText(name, { exact: true }) })
+  await win.keyboard.press('Control+Comma')
+  await theme('SUMI').click()
+  await skin('TUI').click()
+  await expect(win.locator('html')).toHaveAttribute('data-skin', 'tui')
+  // TUI의 첫 테마가 기본값
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'tui-night')
+  await expect(theme('SUMI')).toHaveCount(0)
+  await theme('AMBER').click()
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'tui-amber')
+  expect(saved()).toMatchObject({ skin: 'tui', theme: 'tui-amber' })
+  await skin('POSTER').click()
+  await expect(win.locator('html')).not.toHaveAttribute('data-skin', /.*/)
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'sumi')
+  await skin('TUI').click()
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'tui-amber')
+})
+
+test('글꼴: 기본은 SKIN(스킨의 글꼴), 다른 스킨에서도 PRETENDARD를 고를 수 있다', async ({ win, env }) => {
+  await win.keyboard.press('Control+Comma')
+  await win.getByRole('radiogroup', { name: '스킨' }).getByRole('radio').filter({ hasText: 'TUI' }).click()
+  const answer = win.getByRole('radiogroup', { name: 'Answer font' })
+  await expect(answer.getByRole('radio', { name: 'SKIN' })).toHaveAttribute('aria-checked', 'true')
+  await answer.getByRole('radio', { name: 'PRETENDARD' }).click()
+  await expect.poll(() => win.evaluate(() => document.documentElement.style.getPropertyValue('--answer-font'))).toContain('Pretendard')
+  expect(JSON.parse(readFileSync(join(env.userData, 'settings.json'), 'utf8')).answerFont).toBe('pretendard')
+  await answer.getByRole('radio', { name: 'SKIN' }).click()
+  await expect.poll(() => win.evaluate(() => document.documentElement.style.getPropertyValue('--answer-font'))).toBe('')
+})
+
 test('단축키: 글자만은 거부, 바꾼 키는 저장·표시·동작한다', async ({ win, env }) => {
   await win.keyboard.press('Control+Comma')
   await win.locator('.set-tab', { hasText: 'SHORTCUTS' }).click()

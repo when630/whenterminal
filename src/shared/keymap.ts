@@ -132,15 +132,54 @@ export function toAccelerator(binding: string): string {
     .join('+')
 }
 
-export type ThemeId = 'poster' | 'paper' | 'sage' | 'sumi' | 'night'
+/** 스킨: 모양(선·모서리·그림자·글꼴·배치). 색은 스킨마다 따로 있는 테마가 정한다. poster는 G안 그대로(:root에 data-skin 없음) */
+export type SkinId = 'poster' | 'soft' | 'tui' | 'zen' | 'glass'
 
-export const THEMES: { id: ThemeId; name: string; note: string; colors: [string, string, string]; dark?: boolean }[] = [
-  { id: 'poster', name: 'POSTER', note: '흰 종이와 검정, 대비가 가장 강함', colors: ['#ffffff', '#0a0a0a', '#ff2a12'] },
-  { id: 'paper', name: 'PAPER', note: '누런 미색과 먹색, 눈부심이 적음', colors: ['#f4efe6', '#2e2a25', '#c4553a'] },
-  { id: 'sage', name: 'SAGE', note: '옅은 초록빛 회색, 차분함', colors: ['#e8ece4', '#273029', '#b6533c'] },
-  { id: 'sumi', name: 'SUMI', note: '따뜻한 어두운 회색, 밤에 편함', colors: ['#1f1e1c', '#d8d2c6', '#e07a5f'], dark: true },
-  { id: 'night', name: 'NIGHT', note: '푸른 어두운 회색, 차가운 톤', colors: ['#1a1e24', '#c5cdd6', '#e5806b'], dark: true },
+export const SKINS: { id: SkinId; name: string; note: string }[] = [
+  { id: 'poster', name: 'POSTER', note: '굵은 검은 선과 큰 글자, 스위스 포스터' },
+  { id: 'soft', name: 'SOFT', note: '둥근 모서리와 옅은 그림자, 얇은 선' },
+  { id: 'tui', name: 'TUI', note: '고정폭 글자와 제목이 박힌 상자, 터미널처럼' },
+  { id: 'zen', name: 'ZEN', note: '선도 패널도 없이 여백과 글만' },
+  { id: 'glass', name: 'GLASS', note: '흐린 바탕 위 반투명 유리 패널' },
 ]
+
+export type ThemeId =
+  | 'poster' | 'paper' | 'sage' | 'sumi' | 'night'
+  | 'soft-light' | 'soft-sand' | 'soft-dark'
+  | 'tui-night' | 'tui-phosphor' | 'tui-amber' | 'tui-paper'
+  | 'zen-sage' | 'zen-paper' | 'zen-ink'
+  | 'glass-day' | 'glass-night' | 'glass-dusk'
+
+/** 색 테마. 스킨마다 제 테마 목록이 있고 목록의 첫 테마가 그 스킨의 기본값. colors는 [바탕, 글자, 신호색] (설정 견본·창 바탕색) */
+export const THEMES: { id: ThemeId; skin: SkinId; name: string; note: string; colors: [string, string, string]; dark?: boolean }[] = [
+  { id: 'poster', skin: 'poster', name: 'POSTER', note: '흰 종이와 검정, 대비가 가장 강함', colors: ['#ffffff', '#0a0a0a', '#ff2a12'] },
+  { id: 'paper', skin: 'poster', name: 'PAPER', note: '누런 미색과 먹색, 눈부심이 적음', colors: ['#f4efe6', '#2e2a25', '#c4553a'] },
+  { id: 'sage', skin: 'poster', name: 'SAGE', note: '옅은 초록빛 회색, 차분함', colors: ['#e8ece4', '#273029', '#b6533c'] },
+  { id: 'sumi', skin: 'poster', name: 'SUMI', note: '따뜻한 어두운 회색, 밤에 편함', colors: ['#1f1e1c', '#d8d2c6', '#e07a5f'], dark: true },
+  { id: 'night', skin: 'poster', name: 'NIGHT', note: '푸른 어두운 회색, 차가운 톤', colors: ['#1a1e24', '#c5cdd6', '#e5806b'], dark: true },
+  { id: 'soft-light', skin: 'soft', name: 'LIGHT', note: '흰 카드와 옅은 회색 바탕', colors: ['#f4f4f6', '#1b1b1f', '#e5484d'] },
+  { id: 'soft-sand', skin: 'soft', name: 'SAND', note: '따뜻한 미색, 눈부심이 적음', colors: ['#f3efe8', '#2b2722', '#d0583a'] },
+  { id: 'soft-dark', skin: 'soft', name: 'DARK', note: '부드러운 어두운 회색', colors: ['#18181b', '#e8e8ea', '#ff6369'], dark: true },
+  { id: 'tui-night', skin: 'tui', name: 'NIGHT', note: '푸른 어두운 터미널', colors: ['#14171c', '#c9d1d9', '#ff7b72'], dark: true },
+  { id: 'tui-phosphor', skin: 'tui', name: 'PHOSPHOR', note: '검은 바탕에 초록 형광 글자', colors: ['#07120b', '#7ee69a', '#ff6a4d'], dark: true },
+  { id: 'tui-amber', skin: 'tui', name: 'AMBER', note: '검은 바탕에 호박색 글자', colors: ['#120c04', '#f5b94a', '#ff5a3c'], dark: true },
+  { id: 'tui-paper', skin: 'tui', name: 'PAPER', note: '밝은 종이 터미널', colors: ['#f5f2ea', '#222222', '#c4361c'] },
+  { id: 'zen-sage', skin: 'zen', name: 'SAGE', note: '옅은 초록빛 회색, 차분함', colors: ['#e8ece4', '#273029', '#b6533c'] },
+  { id: 'zen-paper', skin: 'zen', name: 'PAPER', note: '미색 종이', colors: ['#f7f4ee', '#2e2a25', '#c4553a'] },
+  { id: 'zen-ink', skin: 'zen', name: 'INK', note: '먹빛 어두운 바탕', colors: ['#191a1c', '#d6d3cc', '#e07a5f'], dark: true },
+  { id: 'glass-day', skin: 'glass', name: 'DAY', note: '밝은 바탕에 흰 유리', colors: ['#eef0f4', '#111318', '#ff3b30'] },
+  { id: 'glass-night', skin: 'glass', name: 'NIGHT', note: '어두운 바탕에 짙은 유리', colors: ['#0f1218', '#e6eaf0', '#ff6b5e'], dark: true },
+  { id: 'glass-dusk', skin: 'glass', name: 'DUSK', note: '보랏빛 저녁 바탕', colors: ['#1b1626', '#ece6f5', '#ff7a6b'], dark: true },
+]
+
+/** 스킨의 테마 목록 */
+export const themesOf = (skin: SkinId): typeof THEMES => THEMES.filter((t) => t.skin === skin)
+
+/** 스킨을 고를 때 쓸 테마: 그 스킨에서 마지막으로 고른 테마, 없으면 스킨의 첫 테마 */
+export function themeForSkin(skin: SkinId, remembered: Partial<Record<SkinId, ThemeId>>): ThemeId {
+  const r = remembered[skin]
+  return r && THEMES.some((t) => t.id === r && t.skin === skin) ? r : themesOf(skin)[0].id
+}
 
 export interface NotifySettings {
   /** 확인 요청이 오면 */
@@ -167,24 +206,33 @@ export const APP_ICONS: { id: AppIconId; name: string; note: string }[] = [
   { id: 'slots', name: 'SLOTS', note: 'A~L 프로젝트 자리' },
 ]
 
-export type FontId = 'display' | 'pretendard' | 'geist' | 'cascadia' | 'd2coding'
+/** skin: 지금 스킨이 정한 글꼴 (기본값). 나머지는 스킨과 상관없이 그 글꼴로 */
+export type FontId = 'skin' | 'display' | 'pretendard' | 'geist' | 'cascadia' | 'd2coding'
 
 /** 글꼴 (설정 FONT). css는 --font·--mono·--answer-font·--question-font에 넣는 목록. 한글이 없는 글꼴은 뒤의 글꼴로 넘어간다 */
 export const FONTS: Record<FontId, { name: string; css: string }> = {
+  skin: { name: 'SKIN', css: '' },
   display: { name: 'DISPLAY', css: "'WT Display', 'Black Han Sans', 'Pretendard Variable', sans-serif" },
   pretendard: { name: 'PRETENDARD', css: "'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" },
   geist: { name: 'GEIST MONO', css: "'Geist Mono', 'SF Mono', 'Cascadia Code', 'D2Coding', Consolas, monospace" },
   cascadia: { name: 'CASCADIA CODE NF', css: "'Cascadia Code NF', 'D2Coding', Consolas, 'Pretendard Variable', monospace" },
   d2coding: { name: 'D2CODING NF', css: "'D2Coding NF', D2Coding, Consolas, monospace" },
 }
-/** 칸마다 고를 수 있는 글꼴. 질문은 큰 글자(DISPLAY: Archivo + Black Han Sans)가 기본, 터미널은 고정폭만 */
-export const TEXT_FONTS: FontId[] = ['pretendard', 'cascadia', 'd2coding']
-export const QUESTION_FONTS: FontId[] = ['display', 'pretendard', 'cascadia', 'd2coding']
-export const ANSWER_FONTS: FontId[] = ['pretendard', 'cascadia', 'd2coding']
-export const CODE_FONTS: FontId[] = ['geist', 'cascadia', 'd2coding']
+/**
+ * 칸마다 고를 수 있는 글꼴. 기본은 SKIN(스킨이 정한 글꼴: poster는 질문 DISPLAY·답변·화면 PRETENDARD·코드 GEIST MONO).
+ * 다른 것을 고르면 스킨과 상관없이 그 글꼴. 터미널은 고정폭만
+ */
+export const TEXT_FONTS: FontId[] = ['skin', 'pretendard', 'cascadia', 'd2coding']
+export const QUESTION_FONTS: FontId[] = ['skin', 'display', 'pretendard', 'cascadia', 'd2coding']
+export const ANSWER_FONTS: FontId[] = ['skin', 'pretendard', 'cascadia', 'd2coding']
+export const CODE_FONTS: FontId[] = ['skin', 'geist', 'cascadia', 'd2coding']
 
 export interface Settings {
+  /** 모양. theme은 늘 이 스킨의 테마다 (sanitize가 맞춘다) */
+  skin: SkinId
   theme: ThemeId
+  /** 스킨마다 마지막으로 고른 테마 (스킨을 바꿨다 돌아오면 그 테마로) */
+  skinThemes: Partial<Record<SkinId, ThemeId>>
   /** 메뉴·입력창 같은 화면 글꼴 */
   textFont: FontId
   /** 대화의 내 질문 글꼴 */
@@ -220,7 +268,7 @@ export interface Settings {
   keymap: Partial<Keymap>
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'poster', textFont: 'pretendard', questionFont: 'display', answerFont: 'pretendard', codeFont: 'geist', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, hideTaskbar: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
+export const DEFAULT_SETTINGS: Settings = { skin: 'poster', theme: 'poster', skinThemes: {},textFont: 'skin', questionFont: 'skin', answerFont: 'skin', codeFont: 'skin', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, hideTaskbar: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
 
 export function effectiveKeymap(settings: Settings): Keymap {
   return { ...DEFAULT_KEYMAP, ...settings.keymap }

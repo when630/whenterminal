@@ -697,3 +697,35 @@
 /* 버튼 글자도 다른 칸처럼 소문자로 (BACK TO CHAT·REFRESH·홈 카드의 ALLOW 등). 브랜치 이름이 들어가는 .btn-pri(CHECKOUT 이름)는 그대로 */
 :root[data-skin='zen'] .btn { text-transform: lowercase; }
 :root[data-skin='zen'] .cf .btn-pri, :root[data-skin='zen'] .permission-actions button { text-transform: lowercase; }
+
+/* ── 강조색: 선을 빼는 대신 강조할 것에만 색을 둔다 ──
+   --zen-accent는 실행 중·지금 고른 것·링크·코드처럼 눈이 가야 하는 곳에. 빨강(신호색)은 지금처럼 승인 대기·오류에만 */
+:root[data-theme='zen-sage'] { --zen-accent: #2c6a52; --zen-accent-bg: rgba(44, 106, 82, 0.1); }
+:root[data-theme='zen-paper'] { --zen-accent: #2c5a85; --zen-accent-bg: rgba(44, 90, 133, 0.09); }
+:root[data-theme='zen-ink'] { --zen-accent: #8cc4b0; --zen-accent-bg: rgba(140, 196, 176, 0.12); }
+/* 실행 중: 배지·점·진행 막대·홈 숫자 */
+:root[data-skin='zen'] .badge-running { color: var(--zen-accent); }
+:root[data-skin='zen'] .badge-running::before { background: var(--zen-accent); }
+:root[data-skin='zen'] .dot-running { color: var(--zen-accent); }
+:root[data-skin='zen'] .band-bar i, :root[data-skin='zen'] .task.selected .band-bar i { background: var(--zen-accent); }
+:root[data-skin='zen'] .nav.on .minibar { background: var(--zen-accent); }
+:root[data-skin='zen'] .hh-run .big { color: var(--zen-accent); }
+:root[data-skin='zen'] .ctx-bar i { background: var(--zen-accent); }
+/* 지금 고른 것: 프로젝트 글자·탭·바꾼 모드 */
+:root[data-skin='zen'] .nav.on .nav-key, :root[data-skin='zen'] .nav.on .nav-name { color: var(--zen-accent); }
+:root[data-skin='zen'] .tab.active .tab-t, :root[data-skin='zen'] .tab.active .tab-n { color: var(--zen-accent); }
+:root[data-skin='zen'] .mode-acceptEdits, :root[data-skin='zen'] .mode-auto, :root[data-skin='zen'] .mode-plan { color: var(--zen-accent); }
+/* 링크·주 버튼 */
+:root[data-skin='zen'] .md a { color: var(--zen-accent); text-decoration-color: color-mix(in srgb, var(--zen-accent) 45%, transparent); }
+:root[data-skin='zen'] .md a:hover { color: var(--zen-accent); text-decoration-color: currentColor; }
+:root[data-skin='zen'] .btn-pri, :root[data-skin='zen'] .permission-actions button.primary { color: var(--zen-accent); text-decoration-color: var(--zen-accent); }
+/* 코드: 회색 대신 본문 색 + 강조색 줄, 인라인 코드는 강조색 글자 */
+:root[data-skin='zen'] .md pre { color: var(--ink); box-shadow: inset 2px 0 0 var(--zen-accent); }
+:root[data-skin='zen'] .md :not(pre) > code { background: var(--zen-accent-bg); color: var(--zen-accent); }
+/* diff: 줄 표시만 하던 것을 옅은 색 면까지 */
+:root[data-skin='zen'] .diff .add, :root[data-skin='zen'] .wt-diff .add { background: var(--diff-add-bg); color: var(--diff-add-fg); }
+:root[data-skin='zen'] .diff .del, :root[data-skin='zen'] .wt-diff .del { background: var(--diff-del-bg); color: var(--diff-del-fg); }
+:root[data-skin='zen'] .tool-st.run { color: var(--zen-accent); }
+/* 패널 대신 머리 줄에 보이는 하위 에이전트 수: 돌고 있으니 강조색 + 맥동 점 */
+:root[data-skin='zen'] .tb-nopanel.tb-live { color: var(--zen-accent); text-decoration-color: color-mix(in srgb, var(--zen-accent) 45%, transparent); }
+:root[data-skin='zen'] .tb-nopanel.tb-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--zen-accent); animation: blink-soft var(--pulse) var(--ease-io) infinite; }

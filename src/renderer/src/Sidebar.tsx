@@ -301,10 +301,18 @@ function Usage({ usage, onRefresh }: { usage: UsageInfo | null; onRefresh: () =>
   )
 }
 
+/** 사용량 줄에 올리면: 창 이름과 초기화 시각 (zen처럼 초기화 줄을 숨기는 스킨에서도 알 수 있게) */
+function usageTip(w: UsageWindow): string {
+  const parts = [w.label]
+  if (w.status === 'rejected') parts.push('한도에 도달했어요')
+  if (w.resetsAt) parts.push(formatReset(w.resetsAt))
+  return parts.join(' · ')
+}
+
 function UsageRow({ w, big }: { w: UsageWindow; big: boolean }): React.JSX.Element {
   const hot = limitLevel(w) > 0
   return (
-    <div className={`uw ${big ? 'uw-big' : ''} ${hot ? 'hot' : ''}`} title={w.status === 'rejected' ? `${w.label} · 한도에 도달했어요` : w.label}>
+    <div className={`uw ${big ? 'uw-big' : ''} ${hot ? 'hot' : ''}`} title={usageTip(w)}>
       <div className="uw-top">
         <span className="uw-label">{w.label}</span>
         <b>{w.percent !== null ? `${w.percent}%` : '–'}</b>

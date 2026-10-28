@@ -708,6 +708,30 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               CHANGES
             </button>
           )}
+          {/* 상태 패널을 숨기는 스킨(zen)에서만 보인다: 패널의 AGENTS·BACKGROUND 개수. 누르면 세부 화면을 차례로 열고 마지막 다음은 닫는다 */}
+          {([
+            ['AGENTS', 'agent', agents.map((a): DetailTarget => ({ kind: 'agent', toolUseId: a.toolUseId })), '돌고 있는 하위 에이전트를 차례로 봐요'],
+            ['BG', 'task', background.map((b): DetailTarget => ({ kind: 'task', taskId: b.id })), '백그라운드 작업을 차례로 봐요'],
+          ] as const).map(([label, kind, list, tip]) =>
+            list.length > 0 ? (
+              <button
+                key={kind}
+                type="button"
+                className={`tb-btn tb-nopanel ${kind === 'agent' ? 'tb-live' : ''} ${detail?.kind === kind ? 'on' : ''}`}
+                onClick={() => {
+                  setShowChanges(false)
+                  setTool(null)
+                  setDetail((cur) => {
+                    const at = cur ? list.findIndex((t) => sameTarget(t, cur)) : -1
+                    return list[at + 1] ?? null
+                  })
+                }}
+                title={tip}
+              >
+                {label} {list.length}
+              </button>
+            ) : null,
+          )}
           {/* 상태 패널을 숨기는 스킨(zen)에서만 보인다: 패널에서만 열던 도구 목록·아티팩트로 가는 길 */}
           {!!state.task?.tools && (
             <button type="button" className={`tb-btn tb-nopanel ${tool?.kind === 'tools' ? 'on' : ''}`} onClick={() => (tool?.kind === 'tools' ? setTool(null) : openTool({ kind: 'tools', since: state.task?.startedAt }))} title="이번 작업에서 부른 도구를 모두 봐요">

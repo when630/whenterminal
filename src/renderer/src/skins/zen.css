@@ -729,3 +729,9 @@
 /* 패널 대신 머리 줄에 보이는 하위 에이전트 수: 돌고 있으니 강조색 + 맥동 점 */
 :root[data-skin='zen'] .tb-nopanel.tb-live { color: var(--zen-accent); text-decoration-color: color-mix(in srgb, var(--zen-accent) 45%, transparent); }
 :root[data-skin='zen'] .tb-nopanel.tb-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--zen-accent); animation: blink-soft var(--pulse) var(--ease-io) infinite; }
+/* UPDATE: 레일이 좁아 한 줄이면 잘린다. 버전은 툴팁으로 빼고 두 줄(update / get·42%·restart)로 */
+:root[data-skin='zen'] .nav-update { flex-direction: column; gap: 1px; }
+:root[data-skin='zen'] .nav-update .nav-update-v { display: none; }
+:root[data-skin='zen'] .nav-update .nav-name { font-size: 11.5px; text-align: center; }
+:root[data-skin='zen'] .nav-update .nav-update-side { display: block; font: 400 10.5px/1.2 var(--font); letter-spacing: 0; text-transform: lowercase; color: var(--zen-accent); }
+:root[data-skin='zen'] .nav-update.ready .nav-update-side { font-weight: 600; }

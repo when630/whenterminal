@@ -1466,3 +1466,5 @@ button.pn-row:hover:not(:disabled) .pn-sub, button.pn-row:hover:not(:disabled) .
 .effort-bars { display: none; }
 /* 사용량은 어디를 눌러도 새로 고친다 */
 .usage { cursor: pointer; }
+/* 모델 줄 아래의 돌고 있는 것 줄 (상태 패널을 숨기는 스킨만, 기본은 숨김) */
+.tb-running { display: none; }

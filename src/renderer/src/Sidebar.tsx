@@ -265,8 +265,9 @@ function UpdateRow({ update }: { update: UpdateState }): React.JSX.Element | nul
         ? '새 버전을 받고 있어요'
         : '릴리즈 페이지에서 새 버전을 받아요'
   return (
-    <button type="button" className={`nav nav-update ${status} ${shown.leaving ? 'leaving' : ''}`} disabled={status === 'downloading'} onClick={() => window.api.applyUpdate()} title={title}>
-      <span className="nav-name">UPDATE v{latest}</span>
+    <button type="button" className={`nav nav-update ${status} ${shown.leaving ? 'leaving' : ''}`} disabled={status === 'downloading'} onClick={() => window.api.applyUpdate()} title={`v${latest} · ${title}`}>
+      {/* 버전은 따로 떼어 둔다: 좁은 레일(zen)은 버전을 숨기고 두 줄(UPDATE / 할 일)로 보인다 */}
+      <span className="nav-name">UPDATE<span className="nav-update-v"> v{latest}</span></span>
       <span key={status} className="nav-update-side swap">{side}</span>
     </button>
   )

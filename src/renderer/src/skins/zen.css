@@ -694,3 +694,6 @@
 :root[data-skin='zen'] .wt-diff, :root[data-skin='zen'] .td-cmd, :root[data-skin='zen'] .td-log, :root[data-skin='zen'] .hook-out, :root[data-skin='zen'] .crash pre, :root[data-skin='zen'] .pn-foot code, :root[data-skin='zen'] .pn-rules code { background: var(--zen-code); color: var(--ink); }
 :root[data-skin='zen'] .wt-diff .hunk { color: var(--gray); }
 :root[data-skin='zen'] .td-cut { color: var(--gray); }
+/* 버튼 글자도 다른 칸처럼 소문자로 (BACK TO CHAT·REFRESH·홈 카드의 ALLOW 등). 브랜치 이름이 들어가는 .btn-pri(CHECKOUT 이름)는 그대로 */
+:root[data-skin='zen'] .btn { text-transform: lowercase; }
+:root[data-skin='zen'] .cf .btn-pri, :root[data-skin='zen'] .permission-actions button { text-transform: lowercase; }

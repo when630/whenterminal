@@ -283,11 +283,12 @@ function Usage({ usage, onRefresh }: { usage: UsageInfo | null; onRefresh: () =>
     void onRefresh().finally(() => setLoading(false))
   }
   return (
-    <div className="usage" aria-label="구독 한도">
+    // 사용량 어디를 눌러도 새로 고친다 (zen은 새로 고침 버튼이 있는 머리줄을 숨긴다). 받는 동안은 loading
+    <div className={`usage ${loading ? 'loading' : ''}`} aria-label="구독 한도" onClick={refresh}>
       <div className="usage-head">
         <span>USAGE</span>
         {usage?.plan && <span className="usage-plan">{usage.plan.toUpperCase()}</span>}
-        <button type="button" ref={spinRef} className={`usage-refresh ${spinning ? 'spin' : ''}`} onClick={refresh} aria-label="한도 새로 고침" title="새로 고침">
+        <button type="button" ref={spinRef} className={`usage-refresh ${spinning ? 'spin' : ''}`} onClick={(e) => { e.stopPropagation(); refresh() }} aria-label="한도 새로 고침" title="새로 고침">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" aria-hidden="true">
             <path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5V5h-2.5" />
           </svg>

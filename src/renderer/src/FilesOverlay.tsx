@@ -88,7 +88,7 @@ export function FilesOverlay({ projectId, conversationId, rootName, root, leavin
     let alive = true
     const t = setTimeout(
       () => {
-        const p = q ? window.api.searchFiles(projectId, conversationId, q) : window.api.listDir(projectId, conversationId, dir)
+        const p = q ? window.api.searchFiles(projectId, conversationId, q, true) : window.api.listDir(projectId, conversationId, dir)
         void p.then((items) => {
           if (!alive) return
           setList({ key: listKey, items })

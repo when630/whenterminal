@@ -420,9 +420,9 @@ function bootstrap(): void {
     const res = await dialog.showOpenDialog(win!, { title: '첨부할 파일', properties: ['openFile', 'multiSelections'] })
     return res.canceled ? [] : res.filePaths
   })
-  ipcMain.handle(IPC.searchFiles, (_e, projectId: string, conversationId: string, q: string) => {
+  ipcMain.handle(IPC.searchFiles, (_e, projectId: string, conversationId: string, q: string, all?: boolean) => {
     const project = store.get(projectId)
-    return project ? searchFiles(cwdOf(project, store.getConversation(projectId, conversationId)), q) : []
+    return project ? searchFiles(cwdOf(project, store.getConversation(projectId, conversationId)), q, all === true) : []
   })
   ipcMain.handle(IPC.listDir, (_e, projectId: string, conversationId: string, dir: string) => {
     const project = store.get(projectId)

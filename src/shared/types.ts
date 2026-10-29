@@ -897,9 +897,9 @@ export interface WhenTerminalApi {
   listCommands(projectId: string): Promise<SlashCommandInfo[]>
   /** 메시지 없이 이 대화의 컨텍스트 사용률·모델을 읽어 'context'·'model' 이벤트로 보낸다 */
   peek(projectId: string, conversationId: string): Promise<void>
-  /** 입력창의 @ 자동완성: 이 대화의 작업 폴더에서 파일 찾기 (상대 경로) */
-  searchFiles(projectId: string, conversationId: string, query: string): Promise<string[]>
-  /** 폴더 바로 아래 항목 (폴더는 끝에 /, 먼저). dir은 '' 또는 'src/' */
+  /** 이 대화의 작업 폴더에서 파일 찾기 (상대 경로). 입력창 @ 자동완성은 .gitignore를 따르고, 파일 보기는 all로 무시된 것까지 */
+  searchFiles(projectId: string, conversationId: string, query: string, all?: boolean): Promise<string[]>
+  /** 폴더 바로 아래 항목 (폴더는 끝에 /, 먼저, .gitignore로 무시된 것 포함). dir은 '' 또는 'src/' */
   listDir(projectId: string, conversationId: string, dir: string): Promise<string[]>
   viewFile(projectId: string, conversationId: string, path: string, offset?: number): Promise<FileView>
   /** 파일 보기 md의 원격 그림을 받아 data URI로 (주소 → data URI, 못 받은 것은 빠진다) */

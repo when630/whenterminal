@@ -1129,6 +1129,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 e.preventDefault()
                 return
               }
+              if (!menuOpen && pageScroll(e, scrollRef.current)) return
               // 흐리게 보이는 다음 지시 예측을 받는다
               if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && ghost) {
                 e.preventDefault()
@@ -1713,6 +1714,14 @@ function ToolInput({ name, input }: { name: string; input: unknown }): React.JSX
       </div>
     </>
   )
+}
+
+/** 입력창에서 PageUp/PageDown: 입력창 커서 대신 대화 기록을 한 화면씩(조금 겹치게) 넘긴다. 처리했으면 true */
+export function pageScroll(e: React.KeyboardEvent, el: HTMLElement | null): boolean {
+  if ((e.key !== 'PageUp' && e.key !== 'PageDown') || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || !el) return false
+  e.preventDefault()
+  el.scrollBy({ top: (e.key === 'PageUp' ? -1 : 1) * el.clientHeight * 0.85, behavior: reducedMotion() ? 'instant' : 'smooth' })
+  return true
 }
 
 export function PermissionBox({ req, leaving, onRespond, onEditPrompt }: { req: PermissionRequest; leaving: boolean; onRespond: (d: PermissionDecision, extra?: PermissionExtra) => void; onEditPrompt?: () => void }): React.JSX.Element {

@@ -60,3 +60,28 @@ test('답이 길어지면 맨 아래를 따라가고, 위로 올리면 멈추고
   await expect.poll(() => gap(win)).toBeLessThan(4)
   await expect(win.locator('.to-bottom button')).toHaveCount(0)
 })
+
+test('입력창에서 PageUp/PageDown으로 대화 기록을 한 화면씩 넘긴다', async ({ app, win }) => {
+  await win.keyboard.press('Alt+KeyA')
+  const input = win.locator('#composer-input')
+  await expect(input).toBeFocused()
+  const long = Array.from({ length: 60 }, (_, i) => `줄 ${i + 1}`).join('\n\n')
+  await emit(app, { kind: 'assistant_text', text: long })
+  await expect.poll(() => gap(win)).toBeLessThan(4)
+  const top = (): Promise<number> => win.locator('.transcript').evaluate((el) => el.scrollTop)
+  const page = await win.locator('.transcript').evaluate((el) => el.clientHeight)
+  const start = await top()
+  await win.keyboard.press('PageUp')
+  await expect.poll(top).toBeLessThan(start - page * 0.7)
+  // 위로 넘겼으니 따라가기를 놓고 LATEST가 보인다. 입력창 포커스는 그대로
+  await expect(win.locator('.to-bottom button')).toBeVisible()
+  await expect(input).toBeFocused()
+  const up = await top()
+  await win.keyboard.press('PageDown')
+  await expect.poll(top).toBeGreaterThan(up + page * 0.7)
+  // 수정 키와 함께면 가로채지 않는다
+  const before = await top()
+  await win.keyboard.press('Shift+PageUp')
+  await win.waitForTimeout(300)
+  expect(await top()).toBe(before)
+})

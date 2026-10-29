@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { needsChoice, type EffortInfo, type EffortLevel, type PermissionDecision, type PermissionExtra, type Project, type UsageInfo } from '@shared/types'
 import { emptyConversation, type ConversationMap } from './state'
-import { Item, PermissionBox, Working } from './Chat'
+import { Item, pageScroll, PermissionBox, Working } from './Chat'
 import { EffortPicker, ModelPicker } from './ModelPicker'
 import { useDraft } from './drafts'
 import { isEscape, matches, physicalCode } from './keys'
@@ -262,6 +262,7 @@ export function QuickAsk({ convs, usage, leaving, onClose, onRespond }: Props): 
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 lastTyped.current = Date.now()
+                if (pageScroll(e, scrollRef.current)) return
                 // 확인 요청을 기다리는 동안: 입력창에서 빠져나와 Y/A/N으로 답한다
                 if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && pending) {
                   e.preventDefault()

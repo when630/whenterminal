@@ -475,6 +475,13 @@
 :root[data-skin='zen'] .permission-head .q { flex: none; width: var(--zen-dot); height: var(--zen-dot); border-radius: 50%; background: var(--signal); font-size: 0; line-height: 0; color: transparent; margin-top: 9px; animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
 :root[data-skin='zen'] .permission-title { font: 400 15px/1.6 var(--font); color: var(--ink); }
 :root[data-skin='zen'] .permission-desc { font-size: 13px; font-weight: 400; color: var(--gray); opacity: 1; }
+/* 도구 입력(JSON)은 접어 두고 글자 토글로 펼친다 */
+:root[data-skin='zen'] .permission pre.folded { display: none; }
+:root[data-skin='zen'] .permission-input-toggle {
+  display: block; align-self: flex-start; margin: 0 0 0 18px; padding: 0; border: 0; background: transparent;
+  color: var(--gray); font: 400 12px/1.4 var(--font); text-transform: lowercase; cursor: pointer;
+}
+:root[data-skin='zen'] .permission-input-toggle:hover { color: var(--ink); }
 :root[data-skin='zen'] .permission pre { margin-left: 18px; padding: 0 0 0 16px; max-height: 160px; background: transparent; color: var(--gray); font-size: 12px; box-shadow: inset 1px 0 0 var(--gray-3); }
 :root[data-skin='zen'] .permission > .diff { padding-left: 18px; }
 :root[data-skin='zen'] .permission-actions { gap: 10px 28px; padding-left: 18px; }

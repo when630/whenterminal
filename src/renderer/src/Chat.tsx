@@ -279,6 +279,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const ghost = suggestions && !draft && idle && state.suggestion ? state.suggestion : null
   // AWAY에서 거절한 호출 (끝난 작업의 보고서에 모인다). 돌아와서 한 번에 승인하고 이어 간다
   const denied = idle && state.task?.finishedAt ? (state.task.denied ?? []) : []
+  /** 세그먼트 칸에 들어갈 짧은 이름 */
+  const MODE_SHORT: Record<AgentMode, string> = { default: 'ASK', acceptEdits: 'EDITS', auto: 'AUTO', plan: 'PLAN', bypassPermissions: 'BYPASS' }
   const cycleMode = (): void => {
     void window.api.setMode(project.id, conversationId, MODE_CYCLE[(MODE_CYCLE.indexOf(mode) + 1) % MODE_CYCLE.length])
   }
@@ -865,6 +867,14 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               <span className="meta-k">MODE</span>
               <span className="meta-v">{MODE_LABEL[mode]}</span>
             </button>
+            {/* 모드를 한 줄에 모두 보이고 바로 고르는 세그먼트 (soft 스킨만, 나머지는 위의 누르면 다음 모드 버튼) */}
+            <div className="mode-seg" role="radiogroup" aria-label="권한 모드">
+              {MODE_CYCLE.map((m) => (
+                <button key={m} type="button" role="radio" aria-checked={m === mode} className={`mode-${m} ${m === mode ? 'on' : ''}`} onClick={() => m !== mode && void window.api.setMode(project.id, conversationId, m)}>
+                  {MODE_SHORT[m]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         {(agents.length > 0 || background.length > 0) && (
@@ -1479,7 +1489,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
             <span className="hook-k">HOOK</span>
             <span className="hook-ev">{item.event}</span>
             <span className="hook-name" title={item.name}>{item.name}</span>
-            <span className={`tool-st ${item.running ? 'run' : ''}`}>{st}</span>
+            <span className={`tool-st ${item.running ? 'run' : ''}`} data-state={item.running ? 'run' : item.outcome === 'error' ? 'error' : item.outcome === 'cancelled' ? 'stopped' : 'done'}>{st}</span>
           </summary>
           {item.output ? <pre className="hook-out">{item.output}</pre> : <div className="hook-out muted">출력이 없어요</div>}
         </details>
@@ -1487,6 +1497,8 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
     }
     case 'tool': {
       const status = item.stopped ? 'STOPPED' : item.result === undefined ? (item.elapsedS !== undefined ? `RUNNING ${item.elapsedS}s` : 'RUNNING') : item.isError ? 'ERROR' : 'DONE'
+      // 스킨이 글자 대신 기호로 보일 수 있게 (soft는 DONE을 초록 체크로)
+      const state = item.stopped ? 'stopped' : item.result === undefined ? 'run' : item.isError ? 'error' : 'done'
       // 하위 에이전트: 그 안에서 한 일을 펼쳐 볼 수 있게 한다
       const sub = isAgentTool(item.name) ? subs?.[item.toolUseId] : undefined
       const subTools = progress?.[item.toolUseId]?.tools ?? sub?.filter((i) => i.type === 'tool').length ?? 0
@@ -1499,7 +1511,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
               {relPath(summarizeInput(item.input), root)}
               {sub && <span className="tool-sub"> · {subTools} TOOLS</span>}
             </span>
-            <span className={`tool-st ${isRunningTool(item) ? 'run' : ''}`}>{status}</span>
+            <span className={`tool-st ${isRunningTool(item) ? 'run' : ''}`} data-state={state}>{status}</span>
           </summary>
           <div className="tool-body">
             {opened && (
@@ -1621,7 +1633,7 @@ function ToolGroup({ summary, tools, enter, children }: { summary: string; tools
         <span className="tgroup-n"><Roll text={String(tools.length)} className="num" /></span>
         <span className="tgroup-k">TOOLS</span>
         <span className="tgroup-s" title={summary}>{summary}</span>
-        <span className={`tool-st ${running ? 'run' : ''}`}>{running ? 'RUNNING' : errors ? `ERROR ${errors}` : 'DONE'}</span>
+        <span className={`tool-st ${running ? 'run' : ''}`} data-state={running ? 'run' : errors ? 'error' : 'done'}>{running ? 'RUNNING' : errors ? `ERROR ${errors}` : 'DONE'}</span>
       </summary>
       <div className="tgroup-body">{children}</div>
     </details>
@@ -1705,6 +1717,8 @@ function ToolInput({ name, input }: { name: string; input: unknown }): React.JSX
 
 export function PermissionBox({ req, leaving, onRespond, onEditPrompt }: { req: PermissionRequest; leaving: boolean; onRespond: (d: PermissionDecision, extra?: PermissionExtra) => void; onEditPrompt?: () => void }): React.JSX.Element {
   const cls = `permission ${leaving ? 'leaving' : ''}`
+  // 도구 입력(JSON)을 접어 두는 스킨(zen)에서 펼쳐 보기. 다른 스킨은 늘 보이고 토글이 숨는다
+  const [showInput, setShowInput] = useState(false)
   // 모델이 묻는 질문: 선택지를 고르거나 직접 적어 답한다
   if (req.toolName === 'AskUserQuestion' && Array.isArray(req.input.questions)) {
     return <QuestionBox cls={cls} questions={req.input.questions as AskQuestion[]} agentId={req.agentId} onRespond={onRespond} />
@@ -1726,7 +1740,10 @@ export function PermissionBox({ req, leaving, onRespond, onEditPrompt }: { req: 
           {req.agentId && <div className="permission-desc">하위 에이전트의 요청이에요</div>}
         </div>
       </div>
-      <pre>{JSON.stringify(req.input, null, 2)}</pre>
+      <button type="button" className="permission-input-toggle" aria-expanded={showInput} onClick={() => setShowInput((v) => !v)}>
+        {showInput ? 'HIDE INPUT' : 'SHOW INPUT'}
+      </button>
+      <pre className={showInput ? undefined : 'folded'}>{JSON.stringify(req.input, null, 2)}</pre>
       <div className="permission-actions">
         <button type="button" className="primary" onClick={() => onRespond('allow')}>ALLOW</button>
         {!req.suppressAlwaysAllow && (

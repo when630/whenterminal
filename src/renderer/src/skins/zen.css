@@ -712,7 +712,8 @@
 :root[data-skin='zen'] .search-hit.on .pal-note, :root[data-skin='zen'] .search-hit.on .pal-recent, :root[data-skin='zen'] .search-hit.on .pal-group { color: var(--gray); opacity: 1; }
 :root[data-skin='zen'] .quick-head { border-bottom: 1px solid var(--line); }
 :root[data-skin='zen'] .quick-head .kr { font: 300 20px/1 var(--font); color: var(--gray); }
-:root[data-skin='zen'] .quick-meta { border-left: 0; }
+:root[data-skin='zen'] .quick-meta { border-left: 0; align-items: center; gap: 14px; }
+:root[data-skin='zen'] .quick-meta > .btn { margin-left: 0; }
 :root[data-skin='zen'] .quick-sheet .transcript { padding: 24px 32px; }
 :root[data-skin='zen'] .quick-sheet .composer { padding: 6px 32px 22px; }
 :root[data-skin='zen'] .quick-sheet .slash { left: 32px; right: 32px; }

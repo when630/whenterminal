@@ -92,3 +92,25 @@ test('질문 창: 포커스가 창 밖으로 빠져도 Esc로 닫힌다', async 
   await win.keyboard.press('Escape')
   await expect(win.locator('.overlay.quick')).toHaveCount(0)
 })
+
+test('질문 창 머리줄: 모든 스킨에서 MODEL·EFFORT·CONTEXT·버튼이 세로 가운데로 맞고 서로 붙지 않는다 (이슈 #68)', async ({ app, win }) => {
+  const ids = await quickIds(win)
+  await emit(app, ids, { kind: 'context', context: { percent: 12, tokens: 24000, max: 200000 } })
+  for (const [skin, theme] of [['poster', 'poster'], ['soft', 'soft-light'], ['tui', 'tui-night'], ['zen', 'zen-paper'], ['glass', 'glass-night']]) {
+    await win.evaluate(async ([skin, theme]) => {
+      const w = window as unknown as { api: { initialSettings: object; setSettings: (s: object) => Promise<unknown> } }
+      await w.api.setSettings({ ...w.api.initialSettings, skin, theme })
+    }, [skin, theme])
+    await win.keyboard.press('Control+Shift+k')
+    await expect(win.locator('.overlay.quick .quick-ctx')).toBeVisible()
+    await win.waitForTimeout(400)
+    const items = await win.locator('.quick-meta').evaluate((m) =>
+      [...m.children].map((c) => { const b = c.getBoundingClientRect(); return { mid: b.top + b.height / 2, left: b.left, right: b.right } }))
+    expect(items.length, skin).toBe(5)
+    for (const it of items) expect(Math.abs(it.mid - items[0].mid), `${skin} 세로 가운데`).toBeLessThan(2)
+    // 테두리로 칸을 나누는 poster·tui는 맞붙어도 되고, 나머지는 띄운다
+    if (skin !== 'poster' && skin !== 'tui') for (let i = 1; i < 3; i++) expect(items[i].left - items[i - 1].right, `${skin} ${i}번째 칸 앞 간격`).toBeGreaterThanOrEqual(4)
+    await win.keyboard.press('Escape')
+    await expect(win.locator('.overlay.quick')).toBeHidden()
+  }
+})

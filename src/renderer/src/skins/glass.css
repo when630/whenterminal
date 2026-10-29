@@ -716,6 +716,9 @@
 :root[data-skin='glass'] .pal-recent, :root[data-skin='glass'] .pal-group { font: 600 10px/1 var(--font); letter-spacing: 0.06em; }
 :root[data-skin='glass'] .search-hit.on .pal-note, :root[data-skin='glass'] .search-hit.on .pal-recent, :root[data-skin='glass'] .search-hit.on .pal-group { color: var(--gray); opacity: 1; }
 :root[data-skin='glass'] .quick-meta { border-left: 1px solid var(--line); }
+/* 질문 창 머리줄: 칸이 알약이라 늘이지 않고 가운데에, 알약 사이를 띄운다 */
+:root[data-skin='glass'] .quick-meta { align-items: center; gap: 6px; padding-left: 10px; }
+:root[data-skin='glass'] .quick-meta > .btn { margin-left: 2px; }
 :root[data-skin='glass'] .overlay .composer { margin: 10px; }
 :root[data-skin='glass'] .files-crumbs .crumb { border-radius: 6px; }
 :root[data-skin='glass'] .files-crumbs .crumb:hover { background: var(--sel-bg); color: var(--ink); }

@@ -45,7 +45,7 @@ const GROUPS: Group[] = [
     id: 'chat',
     title: 'CHAT',
     note: '대화창. 입력 중에도 Ctrl 조합은 동작해요',
-    actions: ['sendAfter', 'git', 'newConversation', 'nextConversation', 'prevConversation', 'renameConversation', 'closeConversation', 'closeProject', 'clear', 'compact', 'rewind', 'cycleMode', 'cycleEffort', 'panelNext', 'panelPrev', 'panelBack', 'stopTask'],
+    actions: ['sendAfter', 'git', 'newConversation', 'nextConversation', 'prevConversation', 'renameConversation', 'closeConversation', 'closeProject', 'clear', 'compact', 'rewind', 'scrollBottom', 'cycleMode', 'cycleEffort', 'panelNext', 'panelPrev', 'panelBack', 'stopTask'],
   },
   {
     id: 'input',

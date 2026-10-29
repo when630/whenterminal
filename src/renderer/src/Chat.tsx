@@ -72,6 +72,8 @@ export interface PanelControl {
   cycleEffort: () => void
   /** 되감기 화면 (/rewind) */
   rewind: () => void
+  /** 대화 기록 맨 아래로 (세부 화면이 떠 있으면 대화 기록으로 돌아가서) */
+  scrollBottom: () => void
   /** 파일 찾기·읽기 (/files) 열고 닫기 */
   files: () => void
   /** git 화면 (/git) 열고 닫기 */
@@ -159,9 +161,9 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     lastTop.current = el.scrollTop
   }
   const toBottom = (): void => {
+    setStick(true)
     const el = scrollRef.current
     if (!el) return
-    setStick(true)
     el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'instant' : 'smooth' })
   }
   const lastItem = state.items[state.items.length - 1]
@@ -527,6 +529,12 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       setTool(null)
     },
     rewind: () => openTool({ kind: 'rewind' }),
+    scrollBottom: () => {
+      setDetail(null)
+      setTool(null)
+      setShowChanges(false)
+      toBottom()
+    },
     git: () => (tool?.kind === 'git' ? setTool(null) : openTool({ kind: 'git' })),
     command: (name) => submit(`/${name}`, true),
     files: () => {

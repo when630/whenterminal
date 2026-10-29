@@ -760,6 +760,7 @@ export class AgentSession {
           suppressAlwaysAllow,
           always: suppressAlwaysAllow ? undefined : always,
           agentId: options.agentID,
+          toolUseId: options.toolUseID,
         })
       })
     },

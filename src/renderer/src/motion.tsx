@@ -1,4 +1,5 @@
 import { createElement, Fragment, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from 'react'
+import { isMorphing } from './morph'
 
 // 화면 움직임 도구 모음. 효과(빛·입자)는 쓰지 않고, 요소가 자리를 옮기고 모양을 바꾸는 움직임만 다룬다.
 
@@ -143,6 +144,8 @@ export function usePresence<T>(value: T | null | undefined, ms = 240): { item: T
   const current = value ?? null
   const kept = useRef<T | null>(current)
   if (current !== null) kept.current = current
+  // 모핑의 새 화면을 그리는 중이면 붙잡지 않고 바로 뺀다. 나가는 모습은 모핑이 맡는다
+  else if (isMorphing()) kept.current = null
   // 값이 사라지고 ms가 지나면 true: 붙잡아 둔 값을 놓는다. 값이 다시 생기면 false로
   const [released, setReleased] = useState(false)
   useEffect(() => {

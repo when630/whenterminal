@@ -593,6 +593,27 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; animation: screen-in 0.38s var(--ease-out) both; }
 .stage > .screen { flex: 1; height: auto; }
 @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
+/* 모핑으로 들어온 화면(App stageQuiet)은 등장 움직임 없이. 모핑이 이어 준다 */
+.stage.quiet { animation: none; }
+
+/* 모핑 (morph.ts, View Transitions): 이름 붙은 한 쌍(morph-card·detail·ask·tab)이 자리·크기를 잇는다.
+   평소에는 문서 전체를 찍지 않아 나머지는 바로 바뀌고 도는 동안에도 누를 수 있다.
+   화면이 통째로 바뀌는 card·detail만 문서도 찍어(data-morph) 주변이 겹쳐 사라지고 나타난다 */
+:root { view-transition-name: none; }
+:root[data-morph='card'], :root[data-morph='detail'] { view-transition-name: root; }
+::view-transition { pointer-events: none; }
+/* 처음에 튀지 않고 끝에서 길게 가라앉는 곡선 */
+::view-transition-group(*) { animation-duration: 440ms; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+::view-transition-group(morph-tab) { animation-duration: 260ms; }
+/* 두 모습은 틀 폭에 맞춰 함께 커지고 작아진다(비율 유지). 틀 밖으로 넘친 아래쪽은 자른다 */
+::view-transition-image-pair(*) { overflow: clip; }
+/* 다만 제 크기보다 키우지는 않는다: 작은 줄을 큰 틀에 맞춰 늘리면 흐릿한 큰 글자가 된다. 작은 쪽은 제 크기로 왼쪽 위에서 사라지거나 나타난다 */
+::view-transition-old(*), ::view-transition-new(*) { max-width: max-content; }
+/* 앞뒤 모습은 같은 시간·곡선으로 맞물려 바뀐다(합이 늘 1). 어긋나면 바뀌지 않는 곳(사이드바 등)까지 순간 흐려진다 */
+::view-transition-old(*) { animation: morph-out 280ms var(--ease-io) both; }
+::view-transition-new(*) { animation: morph-in 280ms var(--ease-io) both; }
+@keyframes morph-out { to { opacity: 0; } }
+@keyframes morph-in { from { opacity: 0; } }
 
 /* 사라지는 요소 (usePresence의 leaving) */
 /* 등장 애니메이션(wipe·up…)을 덮어야 해서 !important. 다르게 나가려면 그 규칙도 !important로 */

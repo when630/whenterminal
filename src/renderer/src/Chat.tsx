@@ -22,7 +22,7 @@ import { WorktreePanel } from './WorktreePanel'
 import { EffortPicker, ModelPicker } from './ModelPicker'
 import { useDraft } from './drafts'
 import { formatReset, limitAllowed, worstLimit } from '@shared/usage'
-import { isMorphing, morph } from './morph'
+import { afterMorph, isMorphing, morph } from './morph'
 import { FileMenu, mentionText, rankCommands, SlashMenu, useSlashCommands, type Mention } from './SlashMenu'
 
 interface Props {
@@ -116,7 +116,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     // 기록 줄의 등장(enter) 대신 이 움직임으로
     el.getAnimations().forEach((a) => a.cancel())
     // 모핑과 같은 곡선으로, 살짝 작게 출발해 제 크기로 앉는다
-    el.animate([{ transform: `translate(${from.x - box.left}px, ${from.y - box.top}px) scale(0.96)`, opacity: 0.3, transformOrigin: 'left top' }, { transform: 'none', opacity: 1, transformOrigin: 'left top' }], { duration: 440, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' })
+    el.animate([{ transform: `translate(${from.x - box.left}px, ${from.y - box.top}px) scale(0.96)`, opacity: 0.3, transformOrigin: 'left top' }, { transform: 'none', opacity: 1, transformOrigin: 'left top' }], { duration: 240, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' })
   }, [state.items])
   const pending = state.permissions[0]
   const permission = usePresence(pending)
@@ -460,18 +460,34 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const panelHeld = usePresence(panel)
   const panelShown = panelHeld.item?.id === conversationId ? panelHeld : { item: null, leaving: false }
   const transcriptMounted = !panelShown.item
+  // 아직 화면에 그리지 않은 세부 내용 바뀜: 맡긴 수(n)·마지막 값(v). 맡긴 것이 다 실행된 뒤 처음 그릴 때 푼다(active).
+  // 실행했어도 다시 그리기 전에는 detail이 옛 값이라, 그사이 온 키는 v를 기준으로 판단해야 한다
+  const detailPending = useRef<{ n: number; v: DetailTarget | null; active: boolean }>({ n: 0, v: null, active: false })
+  if (detailPending.current.n === 0) detailPending.current.active = false
   /**
    * 세부 내용을 바꾼다. 대화 기록에서 처음 펼치면 상태 패널의 그 줄이 커져 세부 화면이 되고,
    * 닫으면(대화 기록으로) 세부 화면이 그 줄로 줄어든다. 세부 화면끼리 넘길 때는 그대로 바꾼다
    */
-  const changeDetail = (next: DetailTarget | null, apply: () => void): void => {
+  const changeDetail = (next: DetailTarget | null, apply: () => void, plain = false): void => {
+    // 아직 그리지 않은 바뀜(모핑은 다음 프레임에 그린다)을 기억해 둔다. 키를 빠르게 이어 누르면 다음 키는 이걸 기준으로 (detailNow)
+    const p = detailPending.current
+    p.n++
+    p.v = next
+    p.active = true
+    const run = (): void => {
+      apply()
+      p.n--
+    }
     const slot = (): Element | null => document.querySelector('.chat-body > .panel-slot')
-    if (next && !panelShown.item) morph('detail', detailRow(next), apply, slot)
+    if (plain) afterMorph(run)
+    else if (next && !panelShown.item) morph('detail', detailRow(next), run, slot, true)
     else if (!next && panelShown.item?.detail && !panelShown.leaving) {
       const was = panelShown.item.detail
-      morph('detail', slot(), apply, () => detailRow(was))
-    } else apply()
+      morph('detail', slot(), run, () => detailRow(was))
+    } else afterMorph(run)
   }
+  /** 지금 보이는 세부 내용, 아직 그리지 않은 바뀜이 있으면 그 결과 */
+  const detailNow = (): DetailTarget | null => (detailPending.current.active ? detailPending.current.v : detail)
   const hadPanel = useRef(!transcriptMounted)
   useLayoutEffect(() => {
     const was = hadPanel.current
@@ -550,9 +566,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const shownTask = detail?.kind === 'task' ? background.find((b) => b.id === detail.taskId) : undefined
   panelRef.current = {
     step: (dir) => {
-      if (targets.length === 0 && !detail) return
+      const cur = detailNow()
+      if (targets.length === 0 && !cur) return
       // -1은 대화 기록. 끝난 작업을 보고 있었으면 대화 기록에서 출발한 것으로 친다
-      const at = detail ? targets.findIndex((t) => sameTarget(t, detail)) : -1
+      const at = cur ? targets.findIndex((t) => sameTarget(t, cur)) : -1
       const n = targets.length + 1
       const next = targets[((at + 1 + dir + n) % n) - 1] ?? null
       const changing = showChanges || !!tool
@@ -561,16 +578,14 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
         setTool(null)
         setDetail(next)
       }
-      if (changing) apply()
-      else changeDetail(next, apply)
+      changeDetail(next, apply, changing)
     },
     back: () => {
       const apply = (): void => {
         setDetail(null)
         setTool(null)
       }
-      if (tool) apply()
-      else changeDetail(null, apply)
+      changeDetail(null, apply, !!tool)
     },
     rewind: () => openTool({ kind: 'rewind' }),
     scrollBottom: () => {
@@ -1070,14 +1085,14 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             root={root}
             selected={detail}
             onOpen={(t) => {
-              const next = detail && sameTarget(detail, t) ? null : t
+              const cur = detailNow()
+              const next = cur && sameTarget(cur, t) ? null : t
               const apply = (): void => {
                 setShowChanges(false)
                 setTool(null)
                 setDetail(next)
               }
-              if (showChanges || tool) apply()
-              else changeDetail(next, apply)
+              changeDetail(next, apply, showChanges || !!tool)
             }}
             onTools={() => (tool?.kind === 'tools' ? setTool(null) : openTool({ kind: 'tools', since: state.task?.startedAt }))}
             artifactOpen={tool?.kind === 'artifact' ? tool.url : null}

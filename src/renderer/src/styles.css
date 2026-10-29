@@ -596,22 +596,32 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 /* 모핑으로 들어온 화면(App stageQuiet)은 등장 움직임 없이. 모핑이 이어 준다 */
 .stage.quiet { animation: none; }
 
-/* 모핑 (morph.ts, View Transitions): 이름 붙은 한 쌍(morph-card·detail·ask·tab)이 자리·크기를 잇는다.
+/* 모핑 (morph.ts, View Transitions): 이름 붙은 한 쌍(morph-card·detail·ask)이 자리·크기를 잇는다.
    평소에는 문서 전체를 찍지 않아 나머지는 바로 바뀌고 도는 동안에도 누를 수 있다.
-   화면이 통째로 바뀌는 card·detail만 문서도 찍어(data-morph) 주변이 겹쳐 사라지고 나타난다 */
+   넓게 바뀌는 것(card, 세부 화면 열기 — morph의 wide)과 움직임 줄이기(fade)만 문서도 찍어(data-morph) 주변이 겹쳐 바뀐다.
+   세부 화면 닫기는 찍지 않는다: 옛 화면 전체에 세부 화면 자리의 흰 바탕이 남아 돌아온 대화 기록을 덮는다 */
 :root { view-transition-name: none; }
-:root[data-morph='card'], :root[data-morph='detail'] { view-transition-name: root; }
+:root[data-morph='wide'], :root[data-morph='fade'] { view-transition-name: root; }
 ::view-transition { pointer-events: none; }
-/* 처음에 튀지 않고 끝에서 길게 가라앉는 곡선 */
-::view-transition-group(*) { animation-duration: 440ms; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
-::view-transition-group(morph-tab) { animation-duration: 260ms; }
-/* 두 모습은 틀 폭에 맞춰 함께 커지고 작아진다(비율 유지). 틀 밖으로 넘친 아래쪽은 자른다 */
+/* 데스크톱·키보드 앱이라 짧게: 화면 전체 320ms, 줄·승인창 240ms. 처음에 빠르고 끝에서 가라앉는 곡선 */
+::view-transition-group(*) { animation-duration: 240ms; animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+::view-transition-group(morph-card) { animation-duration: 320ms; }
+/* 두 모습은 틀 폭에 맞춰 함께 줄었다 커진다(비율 유지). 다만 제 크기보다 키우지 않는다(작은 줄을 늘리면 흐릿한 큰 글자). 넘친 아래쪽은 자른다 */
 ::view-transition-image-pair(*) { overflow: clip; }
-/* 다만 제 크기보다 키우지는 않는다: 작은 줄을 큰 틀에 맞춰 늘리면 흐릿한 큰 글자가 된다. 작은 쪽은 제 크기로 왼쪽 위에서 사라지거나 나타난다 */
 ::view-transition-old(*), ::view-transition-new(*) { max-width: max-content; }
-/* 앞뒤 모습은 같은 시간·곡선으로 맞물려 바뀐다(합이 늘 1). 어긋나면 바뀌지 않는 곳(사이드바 등)까지 순간 흐려진다 */
-::view-transition-old(*) { animation: morph-out 280ms var(--ease-io) both; }
-::view-transition-new(*) { animation: morph-in 280ms var(--ease-io) both; }
+/* 모습 교차: 보통 합성으로 새 모습이 위에서 차오르고 옛 모습은 바로 사라지기 시작한다. 그 아래에는 늘 새 화면이 깔려 있어
+   (wide는 아래 화면 전체 교차, 나머지는 실제 화면) 둘이 함께 옅어져도 빈 바탕이 아니라 도착할 화면이 보인다.
+   옛 모습을 늦게 지우면 줄어드는 큰 화면이 그 위를 흰 막처럼 덮는다 */
+::view-transition-old(*), ::view-transition-new(*) { mix-blend-mode: normal; }
+/* 바탕이 투명하게 찍힌 화면(대화창 등)은 아래 옛 모습이 비쳐 보이므로 새 모습 뒤에 종이를 깐다 */
+::view-transition-new(morph-card), ::view-transition-new(morph-detail), ::view-transition-new(morph-ask) { background: var(--paper); }
+::view-transition-new(*) { animation: morph-in 160ms ease-out both; }
+::view-transition-old(*) { animation: morph-out 120ms ease-out both; }
+/* 화면 전체 교차: 새 화면을 아래에 바로 깔고 옛 화면이 그 위에서 사라진다. 바뀌지 않는 곳은 위아래가 같아 흐려지지 않고,
+   이어지는 요소가 비켜난 자리(옛 화면에서 빠진 구멍)에는 새 화면이 바로 보인다 (둘 다 반투명하면 그 자리가 하얗게 번쩍인다) */
+::view-transition-new(root) { animation: none; }
+::view-transition-old(root) { z-index: 1; animation: morph-out 200ms var(--ease-io) both; }
+:root[data-morph='fade']::view-transition-old(root) { animation-duration: 120ms; }
 @keyframes morph-out { to { opacity: 0; } }
 @keyframes morph-in { from { opacity: 0; } }
 

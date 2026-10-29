@@ -21,7 +21,7 @@ import { forgetTerminals, newTerminal, showTerminal, stepTerminal } from './term
 import { pruneDrafts } from './drafts'
 import { useTooltips } from './tooltip'
 import { requestRefocus } from './focus'
-import { isMorphing, morph } from './morph'
+import { afterMorph, isMorphing, morph } from './morph'
 
 export type View = { screen: 'home' } | { screen: 'chat'; projectId: string; conversationId: string } | { screen: 'settings'; back: View }
 
@@ -220,7 +220,7 @@ export function App(): React.JSX.Element {
     }
     // 홈에서 열면 그 대화의 카드(펼친 보고서)가 커지며 대화창이 된다
     if (viewRef.current.screen === 'home') morph('card', homeCardOf(conversationId, openReportId === conversationId), open, () => document.querySelector('.stage > .screen'))
-    else open()
+    else afterMorph(open)
   }, [projects, openReportId])
 
   const openChatRef = useRef(openChat)
@@ -247,7 +247,7 @@ export function App(): React.JSX.Element {
     const toolUseId = convsRef.current[conversationId]?.permissions.find((p) => p.requestId === requestId)?.toolUseId
     if (v.screen === 'chat' && v.conversationId === conversationId) {
       morph('ask', document.querySelector('.stage .transcript > .permission:not(.leaving)'), resolve, () => (toolUseId ? document.querySelector(`.stage .transcript [data-tool-id="${CSS.escape(toolUseId)}"]`) : null))
-    } else resolve()
+    } else afterMorph(resolve)
   }, [])
 
   const openReport = useCallback((id: string) => {
@@ -360,14 +360,10 @@ export function App(): React.JSX.Element {
     if (view.screen === 'chat') {
       const id = view.conversationId
       morph('card', document.querySelector('.stage > .screen'), go, () => homeCardOf(id))
-    } else go()
+    } else afterMorph(go)
   }
-  /** 탭을 옮기면 고른 탭 표시가 새 탭으로 미끄러진다 */
-  const selectConversation = (projectId: string, conversationId: string): void => {
-    const go = (): void => setView({ screen: 'chat', projectId, conversationId })
-    if (view.screen === 'chat' && view.conversationId !== conversationId) morph('tab', document.querySelector('.tabs .tab.active'), go, () => document.querySelector('.tabs .tab.active'))
-    else go()
-  }
+  // 탭 이동은 하루에 수없이 하는 키 동작이라 모핑하지 않는다 (탭 색만 --t-fast로 바뀐다)
+  const selectConversation = (projectId: string, conversationId: string): void => afterMorph(() => setView({ screen: 'chat', projectId, conversationId }))
   // 설정은 어느 화면에서든 열고, 닫으면 원래 화면으로 돌아간다
   const openSettings = (): void => setView((v) => (v.screen === 'settings' ? v : { screen: 'settings', back: v }))
   const closeSettings = (): void => setView((v) => (v.screen === 'settings' ? v.back : v))

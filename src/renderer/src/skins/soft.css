@@ -88,7 +88,7 @@
 /* ── 라벨 글자: 대문자 마크업을 Title Case로. ::first-letter는 블록(또는 플렉스·그리드 항목)에서만 먹는다 ── */
 :root[data-skin='soft'] :is(
   .side-label > span, :is(.nav-home, .nav-away, .nav-help, .nav-settings, .nav-update) .nav-name, .usage-head > span:first-child, .uw-label, .usage-plan,
-  .ctx-label, .tb-btn, .effort-v, .meta-mode .meta-v, .meta-k, [class*='badge-'],
+  .ctx-label, .tb-btn, .effort-v, .meta-mode .meta-v, .meta-k, [class*='badge-'], .mode-seg button,
   .tool-st, .tool-sub, .tsum-k, .tgroup-k, .hook-k, .thinking-k, .memory-k, .divider-k, .md-pre .copy-btn, .tool-run, .tool-copy, .tool-more,
   .permission-actions button, .msg-acts button,
   .sp-k, .sp-word .roll > span, .sp-meter em, .sp-stats dt, .sp-bg-row b, .sp-bg-x, .to-bottom button,
@@ -98,7 +98,7 @@
 ) { text-transform: lowercase; letter-spacing: 0; }
 :root[data-skin='soft'] :is(
   .side-label > span, :is(.nav-home, .nav-away, .nav-help, .nav-settings, .nav-update) .nav-name, .usage-head > span:first-child, .uw-label, .usage-plan,
-  .ctx-label, .tb-btn, .effort-v, .meta-mode .meta-v, .meta-k, [class*='badge-'],
+  .ctx-label, .tb-btn, .effort-v, .meta-mode .meta-v, .meta-k, [class*='badge-'], .mode-seg button,
   .tool-st, .tool-sub, .tsum-k, .tgroup-k, .hook-k, .thinking-k, .memory-k, .divider-k, .md-pre .copy-btn, .tool-run, .tool-copy, .tool-more,
   .permission-actions button, .msg-acts button,
   .sp-k, .sp-word .roll > span, .sp-meter em, .sp-stats dt, .sp-bg-row b, .sp-bg-x, .to-bottom button,
@@ -527,6 +527,16 @@
 :root[data-skin='soft'] .meta-mode { gap: 4px; padding: 2px 2px 2px 9px; border-radius: 8px; background: var(--fill); box-shadow: none; }
 :root[data-skin='soft'] .meta-mode .meta-v { display: block; height: 24px; padding: 0 10px; border-radius: 6px; background: var(--thumb); color: var(--ink); font: 500 12.5px/24px var(--font); box-shadow: 0 1px 2px color-mix(in srgb, #000 14%, transparent), var(--ring); transition: background var(--t-med) var(--ease-io), color var(--t-med) var(--ease-io); }
 :root[data-skin='soft'] .meta-mode:hover { background: var(--fill-2); }
+/* 모드: 누르면 다음 모드 버튼 대신 다섯 칸 세그먼트 (회색 줄 위 고른 칸만 흰 thumb). 바로 고른다 */
+:root[data-skin='soft'] .meta-mode { display: none; }
+:root[data-skin='soft'] .mode-seg { display: flex; flex: none; align-self: center; gap: 2px; height: 28px; padding: 2px; border-radius: 8px; background: var(--fill); }
+:root[data-skin='soft'] .mode-seg button {
+  display: block; height: 24px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--gray);
+  font: 400 12.5px/24px var(--font); white-space: nowrap;
+  transition: background var(--t-med) var(--ease-io), color var(--t-med) var(--ease-io), box-shadow var(--t-med) var(--ease-io);
+}
+:root[data-skin='soft'] .mode-seg button:hover:not(.on) { color: var(--ink); }
+:root[data-skin='soft'] .mode-seg button.on { background: var(--thumb); color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px color-mix(in srgb, #000 14%, transparent), var(--ring); }
 :root[data-skin='soft'] .mode-acceptEdits .meta-v { color: var(--accent-ink); }
 :root[data-skin='soft'] .mode-auto .meta-v { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 :root[data-skin='soft'] .mode-plan .meta-v { color: var(--signal-ink); }
@@ -610,6 +620,12 @@
 :root[data-skin='soft'] .tool-arg { font: 400 12px/1.3 var(--mono); color: var(--gray); }
 :root[data-skin='soft'] .tool-st { font: 400 12px/1 var(--font); letter-spacing: 0; color: var(--gray-2); }
 :root[data-skin='soft'] .tool-st.run { color: var(--accent-ink); font-weight: 500; }
+/* 끝난 도구는 Done 글자 대신 초록 체크 (글자는 남겨 두고 크기만 0: 읽기 프로그램은 그대로 읽는다) */
+:root[data-skin='soft'] .tool-st[data-state='done'] {
+  display: inline-block; flex: none; width: 15px; height: 15px; font-size: 0; color: transparent; background: var(--ok);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / 15px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / 15px no-repeat;
+}
 :root[data-skin='soft'] .tool.error :is(.tool-st, .tool-name), :root[data-skin='soft'] .tgroup.error .tool-st, :root[data-skin='soft'] .hook.error > summary .tool-st { color: var(--signal-ink); }
 :root[data-skin='soft'] .tool[open] > summary { background-color: transparent; color: var(--ink); }
 /* 펼친 본문: 흰 면 안쪽 칸 */

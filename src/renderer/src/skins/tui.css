@@ -740,3 +740,7 @@
 :root[data-skin='tui'] .effort-bars[data-effort='xhigh'] > i:nth-child(-n+4),
 :root[data-skin='tui'] .effort-bars[data-effort='max'] > i { background: currentColor; }
 :root[data-skin='tui'] .effort-bars[data-effort=''] { display: none; }
+
+/* 맨 아래로 버튼 */
+:root[data-skin='tui'] .to-bottom button { padding: 4px 10px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font: 700 12px/1.2 var(--mono); box-shadow: none; }
+:root[data-skin='tui'] .to-bottom button:hover { background: var(--sel-bg); color: var(--sel-fg); border-color: var(--sel-bg); }

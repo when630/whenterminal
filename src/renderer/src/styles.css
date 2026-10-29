@@ -811,6 +811,11 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .transcript { position: relative; flex: 1; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 24px; }
 /* 기록 항목은 줄어들지 않는다: overflow가 있는 항목(명령 출력 pre)은 flex 기본값이면 기록이 길어질 때 한 줄로 찌그러진다 */
 .transcript > * { width: 100%; flex: none; }
+/* 위로 올려 읽는 중이면 기록 칸 아래쪽에 떠 있는 맨 아래로 버튼. 높이 0인 sticky 줄이라 기록 길이를 바꾸지 않는다 */
+.transcript > .to-bottom { position: sticky; bottom: 0; z-index: 3; height: 0; display: flex; justify-content: center; pointer-events: none; }
+.to-bottom button { position: absolute; bottom: 18px; padding: 8px 14px; border: var(--rule); background: var(--ink); color: var(--paper); font: 700 11.5px/1 var(--font); letter-spacing: 0.08em; box-shadow: 0 8px 20px var(--shadow); pointer-events: auto; animation: up var(--t-med) var(--ease-out) both; }
+.to-bottom button:hover { background: var(--paper); color: var(--ink); }
+.to-bottom.leaving button { animation: sheet-out var(--t-fast) var(--ease-out) forwards; }
 .placeholder { margin: auto; padding: 24px; text-align: center; font: var(--kr-w) 26px/1.3 var(--kr); color: var(--gray-2); animation: fade-in var(--t-slow) var(--ease-out) both; }
 /* 첫 메시지가 들어오면 자리를 비켜 주고 제자리에서 사라진다 */
 .placeholder.leaving { position: absolute; inset: 0; margin: 0; display: flex; flex-direction: column; justify-content: center; }

@@ -34,6 +34,68 @@
   color-scheme: dark;
 }
 
+:root[data-theme='zen-stone'] {
+  --paper: #eeeff0; --ink: #1f2326; --signal: #b8432c; --signal-ink: #9a3622; --on-signal: #f7f8f9;
+  --wash: #e7e8ea; --wash-2: #dcdee1; --gray: #666b70; --gray-2: #9a9fa5; --gray-3: #d0d3d7;
+  --sel-bg: #e2e4e7; --sel-fg: #1f2326; --code-bg: #22262a; --code-fg: #e6e8eb;
+  --line: rgba(31, 35, 38, 0.12); --shadow: rgba(20, 28, 36, 0.1);
+  --syn-keyword: #5a4a92; --syn-string: #3c6a48; --syn-number: #93602a; --syn-comment: #858a90; --syn-type: #2b5d82; --syn-fn: #1f2326; --syn-attr: #6d5636;
+  --diff-add-fg: #2e5c39; --diff-add-bg: rgba(80, 150, 100, 0.14); --diff-add-ink: #3c6a48;
+  --diff-del-fg: #8a3624; --diff-del-bg: rgba(184, 67, 44, 0.12); --diff-del-ink: #9a3622;
+  color-scheme: light;
+}
+:root[data-theme='zen-snow'] {
+  --paper: #fbfbfa; --ink: #111111; --signal: #d0402a; --signal-ink: #b03420; --on-signal: #ffffff;
+  --wash: #f3f3f2; --wash-2: #e9e9e7; --gray: #6b6b68; --gray-2: #a3a3a0; --gray-3: #e0e0dd;
+  --sel-bg: #efefed; --sel-fg: #111111; --code-bg: #1c1c1b; --code-fg: #eeeeec;
+  --line: rgba(17, 17, 17, 0.1); --shadow: rgba(0, 0, 0, 0.08);
+  --syn-keyword: #6a3a96; --syn-string: #3d6a22; --syn-number: #9a5212; --syn-comment: #8e8e8a; --syn-type: #225f92; --syn-fn: #111111; --syn-attr: #7a4f22;
+  --diff-add-fg: #2f5c18; --diff-add-bg: rgba(100, 170, 70, 0.14); --diff-add-ink: #3d6a22;
+  --diff-del-fg: #94301c; --diff-del-bg: rgba(208, 64, 42, 0.1); --diff-del-ink: #b03420;
+  color-scheme: light;
+}
+:root[data-theme='zen-kraft'] {
+  --paper: #e9e0d0; --ink: #2b241b; --signal: #b1442c; --signal-ink: #933823; --on-signal: #f6f0e6;
+  --wash: #e1d7c5; --wash-2: #d6cbb7; --gray: #685c4c; --gray-2: #a0937f; --gray-3: #cbbfa9;
+  --sel-bg: #dcd2c0; --sel-fg: #2b241b; --code-bg: #2a241c; --code-fg: #efe7d9;
+  --line: rgba(43, 36, 27, 0.14); --shadow: rgba(50, 36, 18, 0.12);
+  --syn-keyword: #66408a; --syn-string: #4c6626; --syn-number: #93520f; --syn-comment: #857865; --syn-type: #2f5a7c; --syn-fn: #2b241b; --syn-attr: #78501f;
+  --diff-add-fg: #3d5520; --diff-add-bg: rgba(110, 150, 70, 0.16); --diff-add-ink: #4c6626;
+  --diff-del-fg: #83321e; --diff-del-bg: rgba(177, 68, 44, 0.13); --diff-del-ink: #933823;
+  color-scheme: light;
+}
+:root[data-theme='zen-night'] {
+  --paper: #15181c; --ink: #cdd3da; --signal: #e8806a; --signal-ink: #f19c89; --on-signal: #15181c;
+  --wash: #1c2025; --wash-2: #23282e; --gray: #8a929c; --gray-2: #5d646d; --gray-3: #2e343b;
+  --sel-bg: #20252b; --sel-fg: #e2e7ec; --code-bg: #0f1114; --code-fg: #cdd3da;
+  --line: rgba(205, 211, 218, 0.12); --shadow: rgba(0, 0, 0, 0.5);
+  --syn-keyword: #b9a2ea; --syn-string: #9fcf9a; --syn-number: #e8b878; --syn-comment: #6b737d; --syn-type: #86b8e8; --syn-fn: #e2e7ec; --syn-attr: #d6b48e;
+  --diff-add-fg: #9fcf9a; --diff-add-bg: rgba(120, 180, 120, 0.14); --diff-add-ink: #9fcf9a;
+  --diff-del-fg: #f2a491; --diff-del-bg: rgba(232, 128, 106, 0.16); --diff-del-ink: #f2a491;
+  color-scheme: dark;
+}
+:root[data-theme='zen-moss'] {
+  --paper: #171c18; --ink: #d3dccf; --signal: #e07f62; --signal-ink: #eb9c84; --on-signal: #171c18;
+  --wash: #1e241f; --wash-2: #252c26; --gray: #8b9886; --gray-2: #5e695a; --gray-3: #2f3830;
+  --sel-bg: #222923; --sel-fg: #e4ebe0; --code-bg: #111512; --code-fg: #d3dccf;
+  --line: rgba(211, 220, 207, 0.12); --shadow: rgba(0, 0, 0, 0.5);
+  --syn-keyword: #c3a6e0; --syn-string: #a9d08c; --syn-number: #e6b673; --syn-comment: #6c7868; --syn-type: #8dbfdc; --syn-fn: #e4ebe0; --syn-attr: #d4b48a;
+  --diff-add-fg: #a9d08c; --diff-add-bg: rgba(130, 180, 100, 0.15); --diff-add-ink: #a9d08c;
+  --diff-del-fg: #f0a38a; --diff-del-bg: rgba(224, 127, 98, 0.16); --diff-del-ink: #f0a38a;
+  color-scheme: dark;
+}
+/* DIM: 순검정·흰 글자를 피하고 대비를 낮춘(본문 8.8:1) 따뜻한 검정. 글자는 세피아, 신호색도 한 톤 눌렀다 */
+:root[data-theme='zen-dim'] {
+  --paper: #1f1d1a; --ink: #c4bba9; --signal: #d98b6c; --signal-ink: #e09a7c; --on-signal: #1f1d1a;
+  --wash: #25231f; --wash-2: #2c2924; --gray: #8c8476; --gray-2: #625c53; --gray-3: #36322c;
+  --sel-bg: #2a2723; --sel-fg: #d3cab8; --code-bg: #181714; --code-fg: #c4bba9;
+  --line: rgba(196, 187, 169, 0.12); --shadow: rgba(0, 0, 0, 0.45);
+  --syn-keyword: #b49ac8; --syn-string: #a3b483; --syn-number: #d3a46a; --syn-comment: #6f685d; --syn-type: #8eaabf; --syn-fn: #d3cab8; --syn-attr: #c6a582;
+  --diff-add-fg: #a3b483; --diff-add-bg: rgba(140, 160, 100, 0.13); --diff-add-ink: #a3b483;
+  --diff-del-fg: #e09a7c; --diff-del-bg: rgba(217, 139, 108, 0.14); --diff-del-ink: #e09a7c;
+  color-scheme: dark;
+}
+
 /* ── 모양 토큰: 선은 머리카락 하나, 큰 글자도 Pretendard ── */
 :root[data-skin='zen'] {
   --rule: 1px solid var(--line);

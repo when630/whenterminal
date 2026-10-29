@@ -196,7 +196,7 @@
     - 이어지는 쌍: 보통 합성(mix-blend-mode normal)으로 새 모습 160ms가 위에서 차오르고 옛 모습 120ms가 바로 사라진다. 새 모습 뒤에는 `--paper`(투명하게 찍힌 화면 아래로 옛 모습이 비치지 않게). 틀 폭에 맞춰 줄기만 하고 키우지 않는다(`max-width: max-content`). plus-lighter로 시간을 어긋나게 겹치면 합이 1보다 작아 뒤가 비쳐 깜빡인다
     - 새로 그려진 화면의 등장 움직임(승인창 wipe·기록 줄 enter 등)은 `finish()`로 끝 모습에(card는 `.stage`, detail은 `.chat-body`). 모핑과 두 번 움직이면 깜빡여 보인다. 새 화면을 그리는 동안(`isMorphing`) `usePresence`는 나가는 요소를 붙잡지 않고, 모핑으로 들어온 `.stage`는 `quiet`
     - 키 연타: 앞 모핑이 도는 중에 또 부르면 움직이지 않고 바로 바꾼다. 모핑 없이 바꾸는 경로도 `afterMorph`로 앞 update 뒤에 줄 선다(아니면 늦게 온 앞 update가 덮는다). 토글 키(Ctrl+J)는 아직 그리지 않은 바뀜(`detailPending`, 다시 그릴 때 푼다)을 기준으로 판단한다
-    - 스크롤 영역에 가려 일부만 보이는 요소는 잇지 않는다(`inView`). 움직임 줄이기면 자리를 잇지 않고 화면 전체를 120ms에 바꾼다(`fade`). 탭 이동처럼 하루에 수없이 하는 키 동작은 모핑하지 않는다. 보낸 글 → 말풍선은 IPC를 거쳐 오므로 Chat `sentFrom`의 FLIP(`el.animate`, 240ms)
+    - glass 스킨은 모핑하지 않고 바로 바꾼다: 유리 판(backdrop-filter)은 찍힌 모습에 뒤 배경이 없어 도는 동안 밝게 보이다 끝나는 순간 툭 어두워진다. 스크롤 영역에 가려 일부만 보이는 요소는 잇지 않는다(`inView`). 움직임 줄이기면 자리를 잇지 않고 화면 전체를 120ms에 바꾼다(`fade`). 탭 이동처럼 하루에 수없이 하는 키 동작은 모핑하지 않는다. 보낸 글 → 말풍선은 IPC를 거쳐 오므로 Chat `sentFrom`의 FLIP(`el.animate`, 240ms)
     - 확인은 out/ 앱을 임시 데이터로 띄워 CDP `Page.startScreencast`로 실제 속도 프레임을 받아 영역 밝기를 잰다. 깜빡임은 밝기가 한 방향이 아니라 튀었다 돌아오는 것으로 보인다
   - 글자가 통째로 바뀌는 칸은 `key`를 바꿔 `.swap`(흐려졌다 나타남), 숫자는 `<Roll className="num">`(굴러감)·`<Odo>`(한 자리). 펼치는 `details`는 `::details-content` 높이 전환을 같이 둔다
   - 반복 애니메이션은 transform·opacity만 움직인다 (배경 위치 등 다시 그리기 유발 금지). 전광판은 rAF로 일정 속도

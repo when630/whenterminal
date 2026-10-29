@@ -148,7 +148,7 @@ export type ThemeId =
   | 'poster' | 'paper' | 'sage' | 'sumi' | 'night'
   | 'soft-light' | 'soft-sand' | 'soft-dark'
   | 'tui-night' | 'tui-phosphor' | 'tui-amber' | 'tui-paper'
-  | 'zen-sage' | 'zen-paper' | 'zen-ink'
+  | 'zen-sage' | 'zen-paper' | 'zen-ink' | 'zen-stone' | 'zen-snow' | 'zen-kraft' | 'zen-night' | 'zen-moss' | 'zen-dim'
   | 'glass-day' | 'glass-night' | 'glass-dusk'
 
 /** 색 테마. 스킨마다 제 테마 목록이 있고 목록의 첫 테마가 그 스킨의 기본값. colors는 [바탕, 글자, 신호색] (설정 견본·창 바탕색) */
@@ -168,6 +168,12 @@ export const THEMES: { id: ThemeId; skin: SkinId; name: string; note: string; co
   { id: 'zen-sage', skin: 'zen', name: 'SAGE', note: '옅은 초록빛 회색, 차분함', colors: ['#e8ece4', '#273029', '#b6533c'] },
   { id: 'zen-paper', skin: 'zen', name: 'PAPER', note: '미색 종이', colors: ['#f7f4ee', '#2e2a25', '#c4553a'] },
   { id: 'zen-ink', skin: 'zen', name: 'INK', note: '먹빛 어두운 바탕', colors: ['#191a1c', '#d6d3cc', '#e07a5f'], dark: true },
+  { id: 'zen-stone', skin: 'zen', name: 'STONE', note: '차가운 회색, 미색이 누렇게 느껴질 때', colors: ['#eeeff0', '#1f2326', '#b8432c'] },
+  { id: 'zen-snow', skin: 'zen', name: 'SNOW', note: '거의 흰 바탕, 대비가 가장 커요', colors: ['#fbfbfa', '#111111', '#d0402a'] },
+  { id: 'zen-kraft', skin: 'zen', name: 'KRAFT', note: '짙은 베이지, 종이 질감', colors: ['#e9e0d0', '#2b241b', '#b1442c'] },
+  { id: 'zen-night', skin: 'zen', name: 'NIGHT', note: '푸른 먹색, 밤에 오래 볼 때', colors: ['#15181c', '#cdd3da', '#e8806a'], dark: true },
+  { id: 'zen-moss', skin: 'zen', name: 'MOSS', note: '짙은 초록, SAGE의 어두운 짝', colors: ['#171c18', '#d3dccf', '#e07f62'], dark: true },
+  { id: 'zen-dim', skin: 'zen', name: 'DIM', note: '대비를 낮춘 따뜻한 검정, 오래 봐도 눈이 편해요', colors: ['#1f1d1a', '#c4bba9', '#d98b6c'], dark: true },
   { id: 'glass-day', skin: 'glass', name: 'DAY', note: '밝은 바탕에 흰 유리', colors: ['#eef0f4', '#111318', '#ff3b30'] },
   { id: 'glass-night', skin: 'glass', name: 'NIGHT', note: '어두운 바탕에 짙은 유리', colors: ['#0f1218', '#e6eaf0', '#ff6b5e'], dark: true },
   { id: 'glass-dusk', skin: 'glass', name: 'DUSK', note: '보랏빛 저녁 바탕', colors: ['#1b1626', '#ece6f5', '#ff7a6b'], dark: true },

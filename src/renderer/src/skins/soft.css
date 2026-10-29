@@ -811,6 +811,9 @@
 :root[data-skin='soft'] .quick-head { border-bottom: 1px solid var(--hair); }
 :root[data-skin='soft'] .quick-head .kr { font: 600 15px/1 var(--font); }
 :root[data-skin='soft'] .quick-meta { border-left: 1px solid var(--hair); }
+/* 질문 창 머리줄: 칸이 알약이라 늘이지 않고 가운데에, 알약 사이를 띄운다 (대화창 머리줄 .tb-meta와 같게) */
+:root[data-skin='soft'] .quick-meta { align-items: center; gap: 6px; padding-left: 10px; }
+:root[data-skin='soft'] .quick-meta > .btn { margin-left: 2px; }
 :root[data-skin='soft'] .quick-ctx.hot .meta-v { color: var(--signal-ink); }
 :root[data-skin='soft'] .quick-sheet .composer, :root[data-skin='soft'] .quick-sheet .chat-body.open + .composer { margin: 4px 12px 12px; }
 :root[data-skin='soft'] .files-crumbs { border-bottom: 1px solid var(--hair); }

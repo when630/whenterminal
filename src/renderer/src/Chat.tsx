@@ -763,8 +763,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               {artifacts.length > 1 ? `ARTIFACT ${i + 1}` : 'ARTIFACT'}
             </button>
           ))}
-          <div className={`ctx ${hot ? 'hot' : ''}`} title={state.context ? `${state.context.tokens.toLocaleString()} / ${state.context.max.toLocaleString()} 토큰${autoAt ? ` · ${autoAt}%에서 자동으로 컴팩트해요` : ''}` : '첫 응답 뒤에 보여요'}>
+          <div className={`ctx ${hot ? 'hot' : ''}`} style={{ '--pct': Math.min(100, ctxPercent ?? 0) } as React.CSSProperties} title={state.context ? `${state.context.tokens.toLocaleString()} / ${state.context.max.toLocaleString()} 토큰${autoAt ? ` · ${autoAt}%에서 자동으로 컴팩트해요` : ''}` : '첫 응답 뒤에 보여요'}>
             <span className="ctx-label">CONTEXT</span>
+            {/* 원형 게이지 (soft 스킨만, 나머지는 막대). 채운 정도는 --pct */}
+            <span className="ctx-ring" aria-hidden="true" />
             <b><Roll text={ctxPercent !== undefined ? `${ctxPercent}%` : '–'} className="num" /></b>
             <span className="ctx-bar" aria-hidden="true">
               <i style={{ width: `${Math.min(100, ctxPercent ?? 0)}%` }} />
@@ -1144,6 +1146,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
         </div>
         {/* 첨부는 입력칸 오른쪽 끝 (끌어다 놓기·이미지 붙여넣기도 된다) */}
         <AttachButton onClick={attach.pick} />
+        {/* 보내기 (soft 스킨만, 나머지는 Enter로만). Enter와 같은 submit */}
+        <button type="button" className="send-btn" aria-label="보내기" title="보내기" disabled={!draft.trim()} onClick={() => submit()}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+        </button>
       </div>
 
       <TerminalDrawer

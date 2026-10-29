@@ -670,6 +670,8 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .ctx-label { font: 600 10.5px/1 var(--disp); letter-spacing: 0.12em; }
 .ctx b { font: var(--disp-w) 26px/0.9 var(--disp); letter-spacing: -0.03em; }
 .ctx-bar { position: relative; height: 6px; background: var(--wash-2); }
+/* 스킨만 쓰는 마크업: 원형 컨텍스트 게이지와 입력창 보내기 버튼 (soft) */
+.ctx-ring, .send-btn { display: none; }
 .ctx-bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); transition: width var(--t-slow) var(--ease-out); }
 .ctx-bar em { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--signal); }
 .ctx.hot { background: var(--signal); color: var(--on-signal); }

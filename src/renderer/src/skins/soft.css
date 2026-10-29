@@ -451,6 +451,17 @@
 :root[data-skin='soft'] .ctx-label { display: none; }
 :root[data-skin='soft'] .ctx b { order: 2; font: 500 12px/1 var(--font); letter-spacing: 0; font-variant-numeric: tabular-nums; }
 :root[data-skin='soft'] .ctx b .roll { min-width: 2.6em; height: 1.1em; }
+/* 컨텍스트는 원형 게이지(.ctx-ring, 채운 정도 --pct). 막대는 숨긴다. --pct를 등록해 값이 바뀌면 부드럽게 찬다 */
+@property --pct { syntax: '<number>'; inherits: true; initial-value: 0; }
+:root[data-skin='soft'] .ctx { transition: --pct var(--t-slow) var(--ease-out), background var(--t-fast) var(--ease-out); }
+:root[data-skin='soft'] .ctx .ctx-bar { display: none; }
+:root[data-skin='soft'] .ctx-ring {
+  display: block; order: 1; flex: none; width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(var(--ink) calc(var(--pct) * 1%), var(--wash-2) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+}
+:root[data-skin='soft'] .ctx.hot .ctx-ring { background: conic-gradient(var(--signal-ink) calc(var(--pct) * 1%), color-mix(in srgb, var(--signal) 22%, transparent) 0); }
 :root[data-skin='soft'] .ctx-bar { order: 1; width: 36px; height: 5px; border-radius: 3px; background: var(--wash-2); overflow: visible; }
 :root[data-skin='soft'] .ctx-bar i { border-radius: 3px; background: var(--ink); }
 :root[data-skin='soft'] .ctx-bar em { top: -2px; bottom: -2px; width: 2px; border-radius: 1px; background: var(--gray-2); }
@@ -685,6 +696,14 @@
 :root[data-skin='soft'] .composer textarea::placeholder { color: var(--gray-2); }
 :root[data-skin='soft'] .attach { align-self: flex-end; width: 32px; height: 32px; margin-top: 0; padding: 8px; border: 0; border-radius: 16px; background: transparent; color: var(--gray); }
 :root[data-skin='soft'] .attach:hover { background: var(--sunk); color: var(--ink); }
+/* 보내기: 강조색 원형 버튼, 쓴 글이 없으면 흐린 회색 */
+:root[data-skin='soft'] .send-btn {
+  display: flex; align-self: flex-end; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 16px; background: var(--accent); color: var(--on-accent);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+:root[data-skin='soft'] .send-btn:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 86%, #000); }
+:root[data-skin='soft'] .send-btn:disabled { background: var(--fill); color: var(--gray-2); }
 :root[data-skin='soft'] .composer-bars { bottom: calc(100% + 6px); gap: 4px; }
 :root[data-skin='soft'] .limit-warn { padding: 7px 12px; border-top: 0; border-radius: 10px; background: var(--card); color: var(--ink); box-shadow: var(--float); font-weight: 400; }
 :root[data-skin='soft'] .limit-warn:not(.composer-bars > .limit-warn) { bottom: calc(100% + 6px); }

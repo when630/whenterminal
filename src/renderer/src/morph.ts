@@ -14,7 +14,7 @@ import { isWindowShown } from './window-shown'
  * - 움직임 줄이기면 자리·크기는 잇지 않고 화면 전체를 짧게 겹쳐 바꾼다(무엇이 바뀌었는지만 보이게)
  * - 스크롤 영역에 가려 일부만 보이는 요소는 잇지 않는다(그 영역 밖으로 비어져 나와 보이므로)
  *
- * update는 한 프레임 뒤(옛 화면을 찍은 다음)에 불린다. 모핑할 수 없으면(지원 안 함·창이 숨음·from 없음) 바로 부른다
+ * update는 한 프레임 뒤(옛 화면을 찍은 다음)에 불린다. 모핑할 수 없으면(지원 안 함·창이 숨음·glass 스킨·from 없음) 바로 부른다
  */
 export type MorphKind = 'card' | 'detail' | 'ask'
 
@@ -62,7 +62,9 @@ export function morph(kind: MorphKind, from: Element | null | undefined, update:
     return
   }
   const reduced = reducedMotion()
-  if (!document.startViewTransition || !isWindowShown() || (!reduced && !(from?.isConnected && inView(from)))) {
+  // glass 스킨은 하지 않는다: 유리 판(backdrop-filter)은 찍힌 모습에 뒤 배경이 없어 실제보다 밝게 보이다가 끝나는 순간 툭 어두워진다
+  const glass = document.documentElement.dataset.skin === 'glass'
+  if (!document.startViewTransition || !isWindowShown() || glass || (!reduced && !(from?.isConnected && inView(from)))) {
     update()
     return
   }

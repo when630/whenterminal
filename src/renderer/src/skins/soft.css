@@ -745,3 +745,7 @@
 :root[data-skin='soft'] .stage-word .roll { width: 7.5em; }
 /* 키를 받는 칸(git·목록)은 머리줄 표시로 충분하니 포커스 링을 두지 않는다 */
 :root[data-skin='soft'] :is(.git-col, .git-diff, [role='listbox']):focus-visible { outline: none; }
+
+/* 맨 아래로 버튼 */
+:root[data-skin='soft'] .to-bottom button { border: 0; border-radius: 999px; font: 600 12px/1 var(--font); letter-spacing: 0.04em; }
+:root[data-skin='soft'] .to-bottom button:hover { background: color-mix(in srgb, var(--ink) 82%, var(--paper)); color: var(--paper); }

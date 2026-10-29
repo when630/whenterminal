@@ -143,16 +143,39 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
 
   // 맨 아래를 보고 있을 때만 따라 내려간다. 위로 올려 읽는 중이면 끌고 내려가지 않는다
   const stick = useRef(true)
+  // 따라가기를 놓았으면 맨 아래로 버튼을 보인다
+  const [scrolledUp, setScrolledUp] = useState(false)
+  const setStick = (on: boolean): void => {
+    stick.current = on
+    setScrolledUp(!on)
+  }
+  const lastTop = useRef(0)
   const onScroll = (): void => {
     const el = scrollRef.current
-    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    if (!el) return
+    // 바닥이면 다시 따라가고, 위로 올렸을 때만 놓는다. 따라 내려가는 부드러운 스크롤 도중(아직 바닥이 아님)에 놓치지 않게
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) setStick(true)
+    else if (el.scrollTop < lastTop.current - 1) setStick(false)
+    lastTop.current = el.scrollTop
+  }
+  const toBottom = (): void => {
+    const el = scrollRef.current
+    if (!el) return
+    setStick(true)
+    el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'instant' : 'smooth' })
   }
   const lastItem = state.items[state.items.length - 1]
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-    stick.current = true
+    setStick(true)
   }, [conversationId])
+  // 내가 메시지를 보내면 위로 올려 읽던 중이어도 다시 따라간다
+  const itemCount = useRef(state.items.length)
+  useEffect(() => {
+    if (state.items.length > itemCount.current && lastItem?.type === 'user') setStick(true)
+    itemCount.current = state.items.length
+  }, [state.items.length]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const el = scrollRef.current
     if (!el || !stick.current) return
@@ -180,7 +203,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     const idx = hits[Math.min(jump.ordinal, hits.length - 1)]
     setDetail(null)
     setShowChanges(false)
-    stick.current = false
+    setStick(false)
     // 맨 아래로 따라가는 스크롤이 끝난 뒤에 옮긴다
     setTimeout(() => {
       // 요약 묶음 안으로 접힌 도구일 수 있어 순번 대신 data-idx로 찾고, 묶음을 펼친다
@@ -434,7 +457,20 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       if (stick.current) el.scrollTop = el.scrollHeight
     })
     ro.observe(el)
-    return () => ro.disconnect()
+    // 기록 줄이 자라도(답이 길어짐·펼침·그림 로드) 따라간다. 새로 들어온 줄도 지켜본다
+    for (const c of el.children) ro.observe(c)
+    const mo = new MutationObserver((records) => {
+      for (const r of records) {
+        for (const n of r.addedNodes) if (n instanceof Element) ro.observe(n)
+        // 빠진 줄은 놓아준다 (지켜보는 동안은 문서에서 빠져도 붙잡혀 있다)
+        for (const n of r.removedNodes) if (n instanceof Element) ro.unobserve(n)
+      }
+    })
+    mo.observe(el, { childList: true })
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+    }
   }, [transcriptMounted])
   useEffect(() => {
     setShowChanges(false)
@@ -456,7 +492,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     setTool(null)
     setDetail(null)
     setShowChanges(false)
-    stick.current = false
+    setStick(false)
     setTimeout(() => {
       const el = scrollRef.current?.querySelector<HTMLDetailsElement>(`[data-tool-id="${toolUseId}"]`)
       if (!el) return
@@ -950,6 +986,9 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               }}
             />
           )}
+          <Presence show={scrolledUp && state.items.length > 0} scope={conversationId} as="div" className="to-bottom">
+            <button type="button" onClick={toBottom} title="맨 아래로 내려가요">↓ LATEST</button>
+          </Presence>
         </main>
       )}
         {(state.task || background.length > 0 || artifacts.length > 0) && (

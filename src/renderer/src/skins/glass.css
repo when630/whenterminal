@@ -773,3 +773,7 @@
 :root[data-skin='glass'] .status-panel.waiting .sp-act { font-family: var(--font); font-weight: 600; letter-spacing: 0.04em; }
 /* 상태 판의 작업 묶음(.sp-task, display: contents) 안 줄도 판의 다른 줄과 같은 폭·여백 */
 :root[data-skin='glass'] .status-panel > .sp-task > * { width: 260px; padding: 0 18px; box-sizing: border-box; }
+
+/* 맨 아래로 버튼 */
+:root[data-skin='glass'] .to-bottom button { border: 1px solid var(--glass-stroke); border-radius: 999px; background: var(--glass-2); color: var(--ink); font: 600 12px/1 var(--font); letter-spacing: 0.04em; backdrop-filter: blur(16px); }
+:root[data-skin='glass'] .to-bottom button:hover { background: var(--ink); color: var(--paper); }

@@ -208,13 +208,14 @@ export const APP_ICONS: { id: AppIconId; name: string; note: string }[] = [
 ]
 
 /** skin: 지금 스킨이 정한 글꼴 (기본값). 나머지는 스킨과 상관없이 그 글꼴로 */
-export type FontId = 'skin' | 'display' | 'pretendard' | 'geist' | 'cascadia' | 'd2coding'
+export type FontId = 'skin' | 'display' | 'pretendard' | 'serif' | 'geist' | 'cascadia' | 'd2coding'
 
 /** 글꼴 (설정 FONT). css는 --font·--mono·--answer-font·--question-font에 넣는 목록. 한글이 없는 글꼴은 뒤의 글꼴로 넘어간다 */
 export const FONTS: Record<FontId, { name: string; css: string }> = {
   skin: { name: 'SKIN', css: '' },
   display: { name: 'DISPLAY', css: "'WT Display', 'Black Han Sans', 'Pretendard Variable', sans-serif" },
   pretendard: { name: 'PRETENDARD', css: "'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" },
+  serif: { name: 'SERIF', css: "'Noto Serif KR', 'AppleMyungjo', Batang, serif" },
   geist: { name: 'GEIST MONO', css: "'Geist Mono', 'SF Mono', 'Cascadia Code', 'D2Coding', Consolas, monospace" },
   cascadia: { name: 'CASCADIA CODE NF', css: "'Cascadia Code NF', 'D2Coding', Consolas, 'Pretendard Variable', monospace" },
   d2coding: { name: 'D2CODING NF', css: "'D2Coding NF', D2Coding, Consolas, monospace" },
@@ -224,8 +225,8 @@ export const FONTS: Record<FontId, { name: string; css: string }> = {
  * 다른 것을 고르면 스킨과 상관없이 그 글꼴. 터미널은 고정폭만
  */
 export const TEXT_FONTS: FontId[] = ['skin', 'pretendard', 'cascadia', 'd2coding']
-export const QUESTION_FONTS: FontId[] = ['skin', 'display', 'pretendard', 'cascadia', 'd2coding']
-export const ANSWER_FONTS: FontId[] = ['skin', 'pretendard', 'cascadia', 'd2coding']
+export const QUESTION_FONTS: FontId[] = ['skin', 'display', 'pretendard', 'serif', 'cascadia', 'd2coding']
+export const ANSWER_FONTS: FontId[] = ['skin', 'pretendard', 'serif', 'cascadia', 'd2coding']
 export const CODE_FONTS: FontId[] = ['skin', 'geist', 'cascadia', 'd2coding']
 
 export interface Settings {
@@ -254,6 +255,8 @@ export interface Settings {
   openAtLogin: boolean
   /** Windows: 작업 표시줄에 앱 버튼을 두지 않는다 (트레이·전역 호출 키로만 연다). 최소화하면 트레이로 숨긴다 */
   hideTaskbar: boolean
+  /** glass 스킨: 창 바탕을 Windows 아크릴로 (창 뒤 화면이 흐리게 비친다). Windows 11 22H2 이상에서만, 아니면 앱이 칠한 바탕 */
+  acrylic: boolean
   /** 대화창 아래 터미널의 셸 */
   terminalShell: TerminalShell
   /**
@@ -269,7 +272,7 @@ export interface Settings {
   keymap: Partial<Keymap>
 }
 
-export const DEFAULT_SETTINGS: Settings = { skin: 'poster', theme: 'poster', skinThemes: {},textFont: 'skin', questionFont: 'skin', answerFont: 'skin', codeFont: 'skin', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, hideTaskbar: false, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
+export const DEFAULT_SETTINGS: Settings = { skin: 'poster', theme: 'poster', skinThemes: {},textFont: 'skin', questionFont: 'skin', answerFont: 'skin', codeFont: 'skin', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, hideTaskbar: false, acrylic: true, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
 
 export function effectiveKeymap(settings: Settings): Keymap {
   return { ...DEFAULT_KEYMAP, ...settings.keymap }

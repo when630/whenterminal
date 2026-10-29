@@ -95,6 +95,15 @@
     var(--wall);
   font-feature-settings: 'ss01' on;
 }
+/* 창 바탕이 아크릴이면(data-backdrop, 메인 applyBackdrop) 바탕을 칠하지 않는다: 판 사이로 창 뒤 화면이 흐리게 비친다.
+   판에는 색을 조금 더 얹어 글이 읽히게 하고, 판 자체의 흐림은 끈다(뒤가 이미 흐리고, 투명 바탕을 흐리면 GPU만 쓴다) */
+:root[data-skin='glass'][data-backdrop='acrylic'], :root[data-skin='glass'][data-backdrop='acrylic'] body { background: transparent; }
+:root[data-theme='glass-day'][data-backdrop='acrylic'] { --glass: rgba(255, 255, 255, 0.68); --glass-2: rgba(255, 255, 255, 0.74); }
+:root[data-theme='glass-night'][data-backdrop='acrylic'] { --glass: rgba(18, 22, 30, 0.56); }
+:root[data-theme='glass-dusk'][data-backdrop='acrylic'] { --glass: rgba(36, 28, 54, 0.56); }
+:root[data-skin='glass'][data-backdrop='acrylic'] :is(.side, .hh-cell, .ask, .col, .topbar, .transcript, .panel-slot, .status-panel, .composer, .settings-body) {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
 :root[data-skin='glass'] ::selection { background: color-mix(in srgb, var(--ink) 22%, transparent); color: inherit; }
 :where(:root[data-skin='glass']) :focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 70%, transparent); outline-offset: 2px; border-radius: 6px; }
 :root[data-skin='glass'] kbd { padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--wash-2); font-weight: 500; }

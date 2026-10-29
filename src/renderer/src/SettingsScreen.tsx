@@ -267,6 +267,26 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
               )
             })}
           </div>
+          {settings.skin === 'glass' && window.api.appInfo.acrylic && (
+            <div className="krow">
+              <span className="krow-label">
+                See-through window
+                <span className="krow-note">창 뒤 화면이 흐리게 비쳐요. 끄면 앱이 칠한 바탕으로 보여요</span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.acrylic}
+                aria-label="창 뒤 비치기"
+                className={`switch ${settings.acrylic ? 'on' : ''}`}
+                onClick={() => void save({ ...settings, acrylic: !settings.acrylic })}
+              >
+                <i />
+                <span>{settings.acrylic ? 'ON' : 'OFF'}</span>
+              </button>
+              <span className="krow-side" />
+            </div>
+          )}
         </section>
 
         <section className="set-sec" aria-labelledby="set-font">

@@ -1,36 +1,36 @@
-/* zen 스킨: 선도 상자도 거의 없이 여백과 글만.
-   Pretendard 한 글꼴, 본문 16px·줄간 1.75, 대화 기록은 가운데 한 기둥(700px), 버튼은 밑줄 글자, 상태는 회색 한 줄.
-   신호색은 작은 점·글자로만(승인 대기·오류). 사이드바는 글자 레일, 오른쪽 상태 패널은 숨긴다(세부 내용은 Ctrl+J로 대화 기록 자리에). */
+/* zen 스킨: 상자·면·패널 선을 거의 없애고 글자 크기·회색 농도·여백으로만 위계를 준다.
+   색은 사람이 봐야 할 것(승인 대기·오류)에 쓰는 신호색 점 하나뿐. 나머지는 먹색과 회색 두세 단계.
+   사이드바는 72px 글자 레일, 머리는 한 줄 + 글자 탭, 대화 기록은 가운데 한 단, 오른쪽 상태 패널은 숨긴다(세부 내용은 머리 버튼·Ctrl+J로 대화 기록 자리에). */
 
 /* ── 색 테마 (zen 전용). --line은 머리카락 선, 선택(--sel-*)은 반전 대신 옅은 면 ── */
 :root[data-theme='zen-sage'] {
-  --paper: #e8ece4; --ink: #273029; --signal: #a84a34; --signal-ink: #8f3f2c; --on-signal: #f5f7f2;
-  --wash: #dfe4da; --wash-2: #d3d9cd; --gray: #545f56; --gray-2: #8b958c; --gray-3: #c2cabf;
-  --sel-bg: #d3d9cd; --sel-fg: #273029; --code-bg: #273029; --code-fg: #e3e8df;
-  --line: rgba(39, 48, 41, 0.18); --shadow: rgba(20, 40, 25, 0.12);
-  --syn-keyword: #5d4a8a; --syn-string: #3f6b3a; --syn-number: #93602a; --syn-comment: #77817a; --syn-type: #2f5d73; --syn-fn: #273029; --syn-attr: #6f5a34;
-  --diff-add-fg: #2f5d2a; --diff-add-bg: rgba(90, 150, 80, 0.16); --diff-add-ink: #3f6b3a;
-  --diff-del-fg: #8a3826; --diff-del-bg: rgba(182, 83, 60, 0.14); --diff-del-ink: #8f3f2c;
+  --paper: #eaede6; --ink: #212823; --signal: #b4492f; --signal-ink: #983b25; --on-signal: #f5f7f2;
+  --wash: #e2e6de; --wash-2: #d7dcd2; --gray: #687269; --gray-2: #9aa39a; --gray-3: #cdd3c9;
+  --sel-bg: #dde2d8; --sel-fg: #212823; --code-bg: #232a25; --code-fg: #e3e8df;
+  --line: rgba(33, 40, 35, 0.13); --shadow: rgba(20, 40, 25, 0.1);
+  --syn-keyword: #5d4a8a; --syn-string: #3f6b3a; --syn-number: #93602a; --syn-comment: #7a847c; --syn-type: #2f5d73; --syn-fn: #212823; --syn-attr: #6f5a34;
+  --diff-add-fg: #2f5d2a; --diff-add-bg: rgba(90, 150, 80, 0.14); --diff-add-ink: #3f6b3a;
+  --diff-del-fg: #8a3826; --diff-del-bg: rgba(182, 83, 60, 0.12); --diff-del-ink: #983b25;
   color-scheme: light;
 }
 :root[data-theme='zen-paper'] {
-  --paper: #f7f4ee; --ink: #2e2a25; --signal: #b04a31; --signal-ink: #943d27; --on-signal: #fbf8f2;
-  --wash: #efebe3; --wash-2: #e6e1d7; --gray: #655d53; --gray-2: #a39a8e; --gray-3: #d6cfc3;
-  --sel-bg: #e6e1d7; --sel-fg: #2e2a25; --code-bg: #2e2a25; --code-fg: #ece6da;
-  --line: rgba(46, 42, 37, 0.16); --shadow: rgba(60, 40, 20, 0.12);
-  --syn-keyword: #6b3f8f; --syn-string: #4f6b2a; --syn-number: #9a5a1c; --syn-comment: #8a8175; --syn-type: #2f5f86; --syn-fn: #2e2a25; --syn-attr: #7d5530;
-  --diff-add-fg: #3f5a20; --diff-add-bg: rgba(120, 160, 80, 0.18); --diff-add-ink: #4f6b2a;
-  --diff-del-fg: #8c3a25; --diff-del-bg: rgba(196, 85, 58, 0.14); --diff-del-ink: #943d27;
+  --paper: #f7f6f2; --ink: #222220; --signal: #c24a32; --signal-ink: #a63e29; --on-signal: #fbfaf7;
+  --wash: #efeee9; --wash-2: #e6e4dd; --gray: #77776f; --gray-2: #a8a79f; --gray-3: #dddbd3;
+  --sel-bg: #ebe9e3; --sel-fg: #222220; --code-bg: #262624; --code-fg: #ecebe6;
+  --line: rgba(34, 34, 32, 0.12); --shadow: rgba(40, 36, 28, 0.1);
+  --syn-keyword: #6b3f8f; --syn-string: #4f6b2a; --syn-number: #9a5a1c; --syn-comment: #8c8b83; --syn-type: #2f5f86; --syn-fn: #222220; --syn-attr: #7d5530;
+  --diff-add-fg: #3f5a20; --diff-add-bg: rgba(120, 160, 80, 0.16); --diff-add-ink: #4f6b2a;
+  --diff-del-fg: #8c3a25; --diff-del-bg: rgba(194, 74, 50, 0.12); --diff-del-ink: #a63e29;
   color-scheme: light;
 }
 :root[data-theme='zen-ink'] {
-  --paper: #191a1c; --ink: #d6d3cc; --signal: #e07a5f; --signal-ink: #eb9a82; --on-signal: #191a1c;
-  --wash: #212225; --wash-2: #2a2b2f; --gray: #9a958c; --gray-2: #6f6b65; --gray-3: #3a3a3d;
-  --sel-bg: #2a2b2f; --sel-fg: #e8e5de; --code-bg: #141517; --code-fg: #d6d3cc;
-  --line: rgba(214, 211, 204, 0.16); --shadow: rgba(0, 0, 0, 0.5);
-  --syn-keyword: #c9a0e8; --syn-string: #a8c98a; --syn-number: #e6b673; --syn-comment: #7a756c; --syn-type: #8fbce6; --syn-fn: #ebe6dc; --syn-attr: #d9b38c;
-  --diff-add-fg: #a8c98a; --diff-add-bg: rgba(130, 170, 100, 0.16); --diff-add-ink: #a8c98a;
-  --diff-del-fg: #f0a08a; --diff-del-bg: rgba(224, 122, 95, 0.18); --diff-del-ink: #f0a08a;
+  --paper: #1a1a19; --ink: #dddad2; --signal: #e07a5f; --signal-ink: #ec9a83; --on-signal: #1a1a19;
+  --wash: #222221; --wash-2: #2a2a28; --gray: #8f8b83; --gray-2: #64615c; --gray-3: #353431;
+  --sel-bg: #262624; --sel-fg: #ebe8e0; --code-bg: #141413; --code-fg: #dddad2;
+  --line: rgba(221, 218, 210, 0.13); --shadow: rgba(0, 0, 0, 0.5);
+  --syn-keyword: #c9a0e8; --syn-string: #a8c98a; --syn-number: #e6b673; --syn-comment: #7a766e; --syn-type: #8fbce6; --syn-fn: #ebe8e0; --syn-attr: #d9b38c;
+  --diff-add-fg: #a8c98a; --diff-add-bg: rgba(130, 170, 100, 0.14); --diff-add-ink: #a8c98a;
+  --diff-del-fg: #f0a08a; --diff-del-bg: rgba(224, 122, 95, 0.16); --diff-del-ink: #f0a08a;
   color-scheme: dark;
 }
 
@@ -42,12 +42,16 @@
   --kr-w: 500;
   --disp: 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --kr: var(--disp);
-  --question-weight: 500;
-  /* 대화 기록 한 기둥의 좌우 여백 */
+  /* 질문은 명조, 굵기 대신 크기로 */
+  --question-font: 'Noto Serif KR', 'AppleMyungjo', Batang, serif;
+  --question-weight: 400;
   /* --code-bg는 터미널(xterm 기본 ANSI 색이 어두운 바탕을 전제)이 쓰므로 어둡게 두고, 기록·세부 화면의 코드 면은 이 옅은 면 */
   --zen-code: var(--wash);
+  /* 대화 기록 한 단의 폭과 좌우 여백 */
   --zen-col: 820px;
   --zen-pad: max(32px, calc((100% - var(--zen-col)) / 2));
+  /* 신호색 점 크기 */
+  --zen-dot: 6px;
 }
 
 /* ── 바탕 ── */
@@ -72,79 +76,91 @@
 :root[data-skin='zen'] .sm { padding: 2px 2px; font-size: 13px; }
 :root[data-skin='zen'] .link { font-weight: 500; }
 
-/* 전광판: 흐르지 않는 회색 한 줄 (JS가 거는 transform을 덮는다) */
-:root[data-skin='zen'] .ticker { padding: 10px 32px 0; background: transparent; color: var(--gray); font: 400 12px/1.4 var(--font); letter-spacing: 0.01em; }
-:root[data-skin='zen'] .ticker-run { transform: none !important; }
-:root[data-skin='zen'] .ticker b { color: var(--signal-ink); font-weight: 500; }
+/* 전광판: 없다. 다른 프로젝트의 상태는 사이드바 글자 앞 점이 알린다 */
+:root[data-skin='zen'] .ticker { display: none; }
 
-/* ── 사이드바: 글자 레일 (프로젝트 글자 + 상태 점) ── */
-:root[data-skin='zen'] .side { width: 64px; align-items: stretch; padding: 14px 0 18px; border-right: 0; overflow-x: hidden; }
+/* ── 사이드바: 72px 글자 레일. 프로젝트는 소문자 글자 하나, 글자 앞 작은 점이 상태 ── */
+:root[data-skin='zen'] .side { width: 72px; align-items: stretch; padding: 30px 0 30px; border-right: 0; overflow-x: hidden; }
 :root[data-skin='zen'] .side::-webkit-scrollbar { width: 0; }
 :root[data-skin='zen'] .side > * { order: 3; }
 :root[data-skin='zen'] .side > .brand, :root[data-skin='zen'] .side > .nav-home { order: 0; }
 :root[data-skin='zen'] .side > .side-project { order: 1; }
 :root[data-skin='zen'] .side > .side-label { order: 2; }
-:root[data-skin='zen'] .brand { align-items: center; min-height: 34px; padding: 6px 0 10px; border-bottom: 0; }
-:root[data-skin='zen'] .brand-mark { font: 500 12px/1 var(--font); letter-spacing: 0.02em; color: var(--gray); }
-:root[data-skin='zen'] .brand-mark b { color: inherit; font-weight: 500; }
+/* 아래 묶음: 사용량 숫자 → update → away → help → settings */
+:root[data-skin='zen'] .side > .side-spacer { order: 3; }
+:root[data-skin='zen'] .side > .usage { order: 4; }
+:root[data-skin='zen'] .side > .nav-update { order: 5; }
+:root[data-skin='zen'] .side > .nav-away { order: 6; }
+:root[data-skin='zen'] .side > .nav-help { order: 7; }
+:root[data-skin='zen'] .side > .nav-settings { order: 8; }
+:root[data-skin='zen'] .brand { align-items: center; min-height: 0; padding: 0 0 22px; border-bottom: 0; }
+:root[data-skin='zen'] .brand-mark { font: 500 13px/1 var(--mono); letter-spacing: 0.04em; color: var(--ink); text-transform: lowercase; }
+:root[data-skin='zen'] .brand-mark b { display: none; }
 :root[data-skin='zen'] .brand-name { display: none; }
-:root[data-skin='zen'] .nav { position: relative; justify-content: center; gap: 0; padding: 8px 0; border: 0; background: transparent; color: var(--gray); }
+:root[data-skin='zen'] .nav { position: relative; justify-content: center; gap: 0; padding: 7px 0; border: 0; background: transparent; color: var(--gray); transition: color var(--t-fast) var(--ease-out); }
 :root[data-skin='zen'] .nav:hover { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .nav.on { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .side-row > .nav { padding: 8px 0; }
 :root[data-skin='zen'] .side-row > .nav .nav-name { display: none; }
-:root[data-skin='zen'] .nav-key { width: auto; font: 400 15px/1.2 var(--font); letter-spacing: 0; text-align: center; }
+:root[data-skin='zen'] .nav-key { width: auto; font: 400 15px/1.2 var(--font); letter-spacing: 0; text-align: center; text-transform: lowercase; }
 :root[data-skin='zen'] .nav.on .nav-key { font-weight: 600; }
 /* HOME·AWAY·HELP·SETTINGS·UPDATE: 작은 소문자 글자 */
-:root[data-skin='zen'] .nav .nav-name { flex: none; font: 400 11.5px/1.3 var(--font); letter-spacing: 0.02em; text-transform: lowercase; text-align: center; }
-:root[data-skin='zen'] .nav.on .nav-name { font-weight: 600; }
-:root[data-skin='zen'] .nav-settings, :root[data-skin='zen'] .nav-help, :root[data-skin='zen'] .nav-away, :root[data-skin='zen'] .nav-update { border-top: 0; padding: 5px 0; }
+:root[data-skin='zen'] .nav .nav-name { flex: none; font: 400 12px/1.3 var(--font); letter-spacing: 0; text-transform: lowercase; text-align: center; }
+:root[data-skin='zen'] .nav.on .nav-name { font-weight: 500; }
+:root[data-skin='zen'] .nav-home { margin-bottom: 14px; }
+:root[data-skin='zen'] .nav-settings, :root[data-skin='zen'] .nav-help, :root[data-skin='zen'] .nav-away, :root[data-skin='zen'] .nav-update { border-top: 0; padding: 6px 0; }
 :root[data-skin='zen'] .nav-away-side, :root[data-skin='zen'] .nav-update-side { display: none; }
 :root[data-skin='zen'] .nav-away.on { background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .nav-away.on .nav-name { font-weight: 600; }
+:root[data-skin='zen'] .nav-away.on .nav-name { font-weight: 500; }
 :root[data-skin='zen'] .nav-away.on .nav-name::after { content: ' on'; }
 :root[data-skin='zen'] .nav-update { background: transparent; }
-:root[data-skin='zen'] .nav-update .nav-name { white-space: normal; font: 400 10.5px/1.3 var(--font); }
 :root[data-skin='zen'] .nav-update.ready { background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .nav-update.ready .nav-name { font-weight: 600; }
+:root[data-skin='zen'] .nav-update.ready .nav-name { font-weight: 500; }
 /* + 프로젝트 추가: 프로젝트 글자 아래 */
-:root[data-skin='zen'] .side-label { justify-content: center; padding: 4px 0; border-bottom: 0; }
+:root[data-skin='zen'] .side-label { justify-content: center; padding: 6px 0; border-bottom: 0; }
 :root[data-skin='zen'] .side-label > span { display: none; }
-:root[data-skin='zen'] .side-add { font-size: 0; color: var(--gray); }
-:root[data-skin='zen'] .side-add::before { content: '+'; font: 300 18px/1 var(--font); }
+:root[data-skin='zen'] .side-add { font-size: 0; color: var(--gray-2); }
+:root[data-skin='zen'] .side-add::before { content: '+'; font: 300 16px/1 var(--font); }
 :root[data-skin='zen'] .side-add:hover { color: var(--ink); }
 :root[data-skin='zen'] .side-row { position: relative; border-bottom: 0; }
-:root[data-skin='zen'] .side-project.drop-before::before, :root[data-skin='zen'] .side-project.drop-after::after { left: 14px; right: 14px; height: 1px; background: var(--ink); }
+:root[data-skin='zen'] .side-project.drop-before::before, :root[data-skin='zen'] .side-project.drop-after::after { left: 18px; right: 18px; height: 1px; background: var(--ink); }
 :root[data-skin='zen'] .threads-wrap { display: none; }
-/* 프로젝트 닫기: 왼쪽에 작은 ×, 한 번 누르면 줄 전체가 확인 글자로 */
-:root[data-skin='zen'] .side-x { position: absolute; left: 2px; top: 50%; width: 14px; height: 18px; margin-top: -9px; background: transparent; color: var(--gray); font: 300 13px/1 var(--font); }
+/* 프로젝트 닫기: 글자 오른쪽의 작은 ×(올렸을 때만), 한 번 누르면 줄 전체가 확인 글자로 */
+:root[data-skin='zen'] .side-x { position: absolute; right: 6px; top: 50%; width: 14px; height: 18px; margin-top: -9px; background: transparent; color: var(--gray); font: 300 13px/1 var(--font); }
 :root[data-skin='zen'] .side-row:has(> .nav.on) .side-x { background: transparent; color: var(--gray); }
 :root[data-skin='zen'] .side-x:hover { background: transparent !important; color: var(--signal-ink) !important; }
 :root[data-skin='zen'] .side-project.armed .side-x { left: 0; right: 0; width: auto; height: 100%; top: 0; margin: 0; background: var(--paper); color: var(--signal-ink); font: 500 10.5px/1 var(--font); }
-/* 상태 점: 둥근 점. 실행 중은 먹빛 숨쉬기, 승인 대기는 신호색 숨쉬기, 오류는 신호색, 끝남은 채운 회색, 쉬는 중은 빈 원 */
-:root[data-skin='zen'] .dot { width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 50%; }
-:root[data-skin='zen'] .dot-done { background: currentColor; opacity: 0.7; }
-:root[data-skin='zen'] .side .nav-marks { position: absolute; top: 10px; left: calc(50% + 8px); display: flex; flex-direction: column-reverse; align-items: center; gap: 3px; pointer-events: none; }
-:root[data-skin='zen'] .side .nav-marks > * { pointer-events: auto; }
-:root[data-skin='zen'] .minibar { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); animation: blink-soft var(--pulse) var(--ease-io) infinite; }
-:root[data-skin='zen'] .minibar i { display: none; }
-:root[data-skin='zen'] .minibar.wait { background: var(--signal); animation-duration: var(--pulse-urgent); }
-:root[data-skin='zen'] .nav.on .minibar { background: var(--ink); }
-:root[data-skin='zen'] .nav.on .minibar.wait { background: var(--signal); }
-/* 읽지 않은 보고서 수: 글자 오른쪽 아래의 작은 회색 숫자 */
-:root[data-skin='zen'] .pill { position: absolute; top: auto; bottom: 4px; left: calc(50% + 8px); min-width: 0; padding: 0; background: transparent; color: var(--gray); font: 500 10px/11px var(--font); text-align: left; --odo-h: 11px; }
-:root[data-skin='zen'] .nav-marks .pill { position: static; text-align: center; }
-:root[data-skin='zen'] .nav-home .pill { left: auto; right: 6px; top: 2px; bottom: auto; }
+/* 상태 점: 글자 왼쪽의 작은 점 하나. 실행 중은 먹색, 확인 필요·오류는 신호색, 끝남은 옅은 회색, 쉬는 중은 없음.
+   묶음(.nav-marks)은 기본 display: contents 그대로 두고 점·숫자를 따로 놓는다 */
+:root[data-skin='zen'] .dot { width: var(--zen-dot); height: var(--zen-dot); border: 1px solid currentColor; border-radius: 50%; }
+:root[data-skin='zen'] .dot-done { background: currentColor; opacity: 0.55; }
+:root[data-skin='zen'] .side-row .minibar, :root[data-skin='zen'] .side-row .dot { position: absolute; left: calc(50% - 15px); top: 50%; width: 4px; height: 4px; margin-top: -2px; border: 0; border-radius: 50%; }
+:root[data-skin='zen'] .side-row .minibar { background: var(--ink); animation: blink-soft var(--pulse) var(--ease-io) infinite; }
+:root[data-skin='zen'] .side-row .minibar i { display: none; }
+:root[data-skin='zen'] .side-row .minibar.wait { left: calc(50% - 16px); width: 6px; height: 6px; margin-top: -3px; background: var(--signal); animation-duration: var(--pulse-urgent); }
+:root[data-skin='zen'] .side-row .dot-idle, :root[data-skin='zen'] .side-row .dot-stopped { opacity: 0; }
+:root[data-skin='zen'] .side-row .dot-queued { box-shadow: inset 0 0 0 1px var(--gray); opacity: 1; }
+:root[data-skin='zen'] .side-row .dot-done { background: var(--gray-2); opacity: 1; }
+:root[data-skin='zen'] .side-row .dot-running { background: var(--ink); }
+:root[data-skin='zen'] .side-row .dot-background { background: transparent; box-shadow: inset 0 0 0 1px var(--gray); }
+:root[data-skin='zen'] .side-row .dot-waiting_approval, :root[data-skin='zen'] .side-row .dot-error { left: calc(50% - 16px); width: 6px; height: 6px; margin-top: -3px; background: var(--signal); }
+/* 읽지 않은 보고서 수: 글자 오른쪽 위의 작은 회색 숫자 */
+:root[data-skin='zen'] .pill { position: absolute; top: 3px; left: calc(50% + 8px); min-width: 0; padding: 0; background: transparent; color: var(--gray); font: 400 10px/11px var(--font); text-align: left; --odo-h: 11px; }
+:root[data-skin='zen'] .nav-home .pill { left: auto; right: 8px; top: 2px; }
 /* 짧은 안내: 레일 밖으로 띄운다 */
-:root[data-skin='zen'] .side-flash { position: fixed; z-index: 60; left: 72px; top: 64px; width: 280px; padding: 12px 16px; border: 0; border-radius: 6px; background: var(--paper); color: var(--ink); font: 400 13px/1.55 var(--font); box-shadow: 0 12px 40px var(--shadow); }
+:root[data-skin='zen'] .side-flash { position: fixed; z-index: 60; left: 80px; top: 64px; width: 280px; padding: 12px 16px; border: 0; border-radius: 6px; background: var(--paper); color: var(--ink); font: 400 13px/1.55 var(--font); box-shadow: 0 12px 40px var(--shadow), 0 0 0 1px var(--line); }
 /* 구독 한도: 숫자만 작게 */
-:root[data-skin='zen'] .usage { align-items: center; gap: 2px; padding: 12px 0 0; border-top: 0; }
+:root[data-skin='zen'] .usage { align-items: center; gap: 2px; padding: 0 0 8px; border-top: 0; }
 :root[data-skin='zen'] .usage-head, :root[data-skin='zen'] .uw-label, :root[data-skin='zen'] .uw .meter, :root[data-skin='zen'] .uw-reset, :root[data-skin='zen'] .usage-foot { display: none; }
 :root[data-skin='zen'] .uw-top { justify-content: center; }
-:root[data-skin='zen'] .uw b, :root[data-skin='zen'] .uw.uw-big b { font: 400 11px/1.4 var(--font); letter-spacing: 0; color: var(--gray); }
+:root[data-skin='zen'] .uw b, :root[data-skin='zen'] .uw.uw-big b { font: 400 12px/1.4 var(--font); letter-spacing: 0; color: var(--gray); font-variant-numeric: tabular-nums; }
+/* 사용량은 큰 칸(5시간) 하나만, 다른 칸은 경고일 때만 */
+:root[data-skin='zen'] .uw:not(.uw-big):not(.hot) { display: none; }
 :root[data-skin='zen'] .uw.hot b { color: var(--signal-ink); font-weight: 600; }
 
 /* ── 홈 ── */
+/* 프로젝트 글자는 사이드바처럼 소문자 */
+:root[data-skin='zen'] .idle-key, :root[data-skin='zen'] .band-key, :root[data-skin='zen'] .rep-key, :root[data-skin='zen'] .proj kbd, :root[data-skin='zen'] .search-key { text-transform: lowercase; }
 :root[data-skin='zen'] .home-head { display: flex; align-items: flex-end; gap: 56px; padding: 40px 56px 12px; border-bottom: 0; }
 :root[data-skin='zen'] .hh-cell { padding: 0; gap: 6px; }
 :root[data-skin='zen'] .hh-cell + .hh-cell { border-left: 0; }
@@ -158,7 +174,7 @@
 :root[data-skin='zen'] .ask { margin: 18px 56px 4px; border-bottom: 0; }
 :root[data-skin='zen'] .ask:focus-within { background: transparent; }
 :root[data-skin='zen'] .ask-empty { padding: 14px 0; font: 400 17px/1.5 var(--font); }
-:root[data-skin='zen'] .ask-row { gap: 12px; padding: 10px 0 8px; border-bottom: 1px solid var(--line); transition: border-color var(--t-fast) var(--ease-out); }
+:root[data-skin='zen'] .ask-row { gap: 12px; padding: 10px 0 8px; border-bottom: 1px solid var(--gray-3); transition: border-color var(--t-fast) var(--ease-out); }
 :root[data-skin='zen'] .ask:focus-within .ask-row { border-bottom-color: var(--ink); }
 :root[data-skin='zen'] .ask-prompt { display: none; }
 :root[data-skin='zen'] .ask-row input { font: 400 18px/1.5 var(--font); }
@@ -196,14 +212,14 @@
 :root[data-skin='zen'] .band-title { font-size: 16px; font-weight: 500; line-height: 1.5; }
 :root[data-skin='zen'] .act { font-size: 12.5px; color: var(--gray); }
 :root[data-skin='zen'] .stage-word { font: 400 13px/1 var(--font); letter-spacing: 0.02em; color: var(--gray); text-transform: lowercase; }
-:root[data-skin='zen'] .task.waiting .act { color: var(--signal-ink); }
+:root[data-skin='zen'] .task.waiting .act { color: var(--ink); }
 /* ? 대신 신호색 점 하나 (홈 띠·승인창 머리) */
-:root[data-skin='zen'] .q { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); font-size: 0; line-height: 0; color: transparent; animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
+:root[data-skin='zen'] .q { width: var(--zen-dot); height: var(--zen-dot); border-radius: 50%; background: var(--signal); font-size: 0; line-height: 0; color: transparent; animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
 :root[data-skin='zen'] .band-bar { height: 1px; margin: 0 14px 10px; background: var(--line); }
 :root[data-skin='zen'] .band-bar i { background: var(--ink); }
 :root[data-skin='zen'] .band-bar i::after { display: none; }
 :root[data-skin='zen'] .task.selected .band-bar i { background: var(--ink); }
-:root[data-skin='zen'] .task.waiting .band-bar i { background: var(--signal); }
+:root[data-skin='zen'] .task.waiting .band-bar i { background: var(--ink); }
 :root[data-skin='zen'] .task.bg .band-bar i { background: var(--gray-2); }
 :root[data-skin='zen'] .cf-in { gap: 8px 22px; padding: 0 14px 14px 46px; }
 :root[data-skin='zen'] .cf-cmd { color: var(--gray); }
@@ -265,189 +281,214 @@
 :root[data-skin='zen'] .model-limit { padding: 0; background: transparent; color: var(--gray); font: 400 11px/1 var(--font); }
 :root[data-skin='zen'] .model-limit.full { background: transparent; color: var(--signal-ink); font-weight: 600; }
 
-/* ── 대화창 머리: 회색 두 줄 요약 ── */
-:root[data-skin='zen'] .topbar { align-items: center; padding: 14px 32px 0; border-bottom: 0; color: var(--gray); font-size: 13px; }
-:root[data-skin='zen'] .tb-proj { align-items: baseline; gap: 10px; padding: 0; }
-:root[data-skin='zen'] .tb-key { font: 600 14px/1.4 var(--font); letter-spacing: 0; color: var(--ink); }
-:root[data-skin='zen'] .tb-name { flex-direction: row; align-items: baseline; gap: 12px; padding: 0; }
-:root[data-skin='zen'] .tb-name b { font: 500 13.5px/1.4 var(--font); letter-spacing: 0; text-transform: none; color: var(--ink); }
-:root[data-skin='zen'] .tb-name span { font: 400 12.5px/1.4 var(--font); color: var(--gray); }
-:root[data-skin='zen'] .tb-wt .tb-branch, :root[data-skin='zen'] .tb-branch i { color: var(--gray); font-weight: 500; }
-:root[data-skin='zen'] .tb-path { font-family: var(--mono); font-size: 11.5px; opacity: 0.85; }
-:root[data-skin='zen'] .wt-tag { padding: 0; border: 0; font: 400 11.5px/1 var(--font); letter-spacing: 0.02em; color: var(--gray); text-transform: lowercase; }
-:root[data-skin='zen'] .tb-right { align-items: center; }
-:root[data-skin='zen'] .badge { padding: 0 10px; border-left: 0; background: transparent; color: var(--gray); font: 400 13px/1.4 var(--font); text-transform: lowercase; }
-:root[data-skin='zen'] .badge-running { color: var(--ink); }
-:root[data-skin='zen'] .badge-running::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); animation: blink-soft var(--pulse) var(--ease-io) infinite; }
-:root[data-skin='zen'] .badge-waiting_approval, :root[data-skin='zen'] .badge-error { background: transparent; color: var(--signal-ink); font-weight: 500; }
-:root[data-skin='zen'] .badge-waiting_approval::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--signal); animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
-:root[data-skin='zen'] .badge-error::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--signal); }
-:root[data-skin='zen'] .badge-done { background: transparent; color: var(--gray); }
-:root[data-skin='zen'] .badge.other { background: transparent; color: var(--signal-ink); font: 500 12.5px/1.4 var(--font); }
-:root[data-skin='zen'] .badge.goal { background: transparent; box-shadow: none; font: 500 12.5px/1.4 var(--font); letter-spacing: 0; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
-:root[data-skin='zen'] .badge.tag { font: 400 12.5px/1.4 var(--mono); text-transform: none; }
-:root[data-skin='zen'] .ctx { flex-direction: row; align-items: center; gap: 6px; min-width: 0; padding: 0 10px; border-left: 0; }
-:root[data-skin='zen'] .ctx-label { font: 400 13px/1 var(--font); letter-spacing: 0; color: var(--gray); text-transform: lowercase; }
-:root[data-skin='zen'] .ctx b { font: 400 13px/1 var(--font); letter-spacing: 0; color: var(--ink); }
-:root[data-skin='zen'] .ctx b .roll.num { width: 2.4em; }
-:root[data-skin='zen'] .ctx-bar { width: 36px; height: 2px; background: var(--line); }
-:root[data-skin='zen'] .ctx-bar i { background: var(--gray); }
-:root[data-skin='zen'] .ctx-bar em { top: -2px; bottom: -2px; width: 1px; background: var(--gray-2); }
-:root[data-skin='zen'] .ctx.hot { background: transparent; color: var(--signal-ink); }
-:root[data-skin='zen'] .ctx.hot .ctx-label, :root[data-skin='zen'] .ctx.hot b { color: var(--signal-ink); }
-:root[data-skin='zen'] .ctx.hot .ctx-bar { background: var(--line); }
-:root[data-skin='zen'] .ctx.hot .ctx-bar i, :root[data-skin='zen'] .ctx.hot .ctx-bar em { background: var(--signal); }
-:root[data-skin='zen'] .tb-btn { padding: 0 10px; border-left: 0; background: transparent; color: var(--gray); font: 400 13px/1.4 var(--font); text-transform: lowercase; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 5px; }
-:root[data-skin='zen'] .tb-btn:hover:not(:disabled) { background: transparent; color: var(--ink); text-decoration-color: currentColor; }
-:root[data-skin='zen'] .tb-btn:disabled { color: var(--gray-2); text-decoration: none; }
-:root[data-skin='zen'] .tb-btn.armed { background: transparent; color: var(--signal-ink); text-decoration-color: currentColor; }
-:root[data-skin='zen'] .tb-btn.on { background: transparent; color: var(--ink); font-weight: 600; text-decoration-color: currentColor; }
-:root[data-skin='zen'] .ctx-pct { color: var(--gray); }
-:root[data-skin='zen'] .ctx-pct.hot { color: var(--signal-ink); }
-/* 둘째 줄: 하위 대화 탭 | 모델 · effort · 모드 */
-:root[data-skin='zen'] .tb-row2 { align-items: center; margin-top: 4px; border-top: 0; }
-:root[data-skin='zen'] .tb-row2 .tabs { min-height: 32px; }
-:root[data-skin='zen'] .tab { gap: 8px; padding: 0 14px 0 0; border-right: 0; background: transparent; color: var(--gray); font-size: 13px; font-weight: 400; }
-:root[data-skin='zen'] .tab:hover { background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .tab .tab-n { font: 400 11.5px/1 var(--mono); letter-spacing: 0; color: var(--gray); }
-:root[data-skin='zen'] .tab.active, :root[data-skin='zen'] .tab-wrap.active { background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .tab.active .tab-t { font-weight: 600; }
-:root[data-skin='zen'] .tab-wrap { border-right: 0; margin-right: 10px; }
-:root[data-skin='zen'] .tab-wrap .tab { padding-right: 4px; }
-:root[data-skin='zen'] .tab-x { width: 20px; color: var(--gray); font: 300 14px/1 var(--font); }
-:root[data-skin='zen'] .tab-x:hover { background: transparent; color: var(--signal-ink); }
-:root[data-skin='zen'] .tab-wrap.armed .tab-x { width: auto; padding: 0 4px; background: transparent; color: var(--signal-ink); font: 500 12px/1 var(--font); }
-:root[data-skin='zen'] .tab.add { padding: 0 6px; font: 300 18px/1 var(--font); color: var(--gray); }
-:root[data-skin='zen'] .tab-edit { outline: 0; border-bottom: 1px solid currentColor; padding: 2px 0; }
-:root[data-skin='zen'] .tb-meta { border-left: 0; }
-:root[data-skin='zen'] .meta, :root[data-skin='zen'] .meta + .meta, :root[data-skin='zen'] .model-pick + .model-pick > .meta, :root[data-skin='zen'] .model-pick + .meta { gap: 6px; padding: 0 0 0 14px; border-left: 0; background: transparent; color: var(--gray); }
+/* ── 대화창 머리: 한 줄(프로젝트·경로 | 모델·effort·모드·컨텍스트) + 글자 탭 줄 ──
+   둘째 줄 묶음(.tb-row2)과 오른쪽 묶음(.tb-right)을 display: contents로 풀어 order로 다시 놓는다.
+   1줄: 프로젝트 이름·경로 … 모델 effort 모드 컨텍스트 / 2줄: 탭 … git·tools·compact·clear·상태 / 3줄: 돌고 있는 agents·bg */
+:root[data-skin='zen'] .topbar { align-items: baseline; padding: 28px 48px 0 24px; border-bottom: 0; color: var(--gray); font-size: 13px; }
+:root[data-skin='zen'] .tb-row2, :root[data-skin='zen'] .tb-right { display: contents; }
+:root[data-skin='zen'] .topbar::after { content: ''; order: 4; flex: 1 0 100%; height: 14px; }
+:root[data-skin='zen'] .tb-proj { order: 1; flex: 1 1 auto; align-items: baseline; gap: 16px; padding: 0 24px 0 0; }
+:root[data-skin='zen'] .tb-key { display: none; }
+:root[data-skin='zen'] .tb-name { flex-direction: row; align-items: baseline; gap: 16px; padding: 0; }
+:root[data-skin='zen'] .tb-name b { flex: none; font: 500 13.5px/1.4 var(--font); letter-spacing: 0; text-transform: none; color: var(--ink); }
+:root[data-skin='zen'] .tb-name span { font: 400 13px/1.4 var(--font); color: var(--gray); }
+:root[data-skin='zen'] .tb-wt { gap: 6px; min-width: 0; }
+:root[data-skin='zen'] .tb-wt .tb-branch, :root[data-skin='zen'] .tb-branch i { color: var(--gray); font-weight: 400; }
+:root[data-skin='zen'] .tb-path { min-width: 0; font: 400 13px/1.4 var(--font); }
+:root[data-skin='zen'] .wt-tag { padding: 0; border: 0; font: 400 12px/1 var(--font); letter-spacing: 0; color: var(--gray-2); text-transform: lowercase; }
+/* 1줄 오른쪽: 모델 · effort · 모드 · 컨텍스트 (회색 소문자 글자) */
+:root[data-skin='zen'] .tb-meta { order: 2; align-self: baseline; gap: 18px; border-left: 0; }
+:root[data-skin='zen'] .meta, :root[data-skin='zen'] .meta + .meta, :root[data-skin='zen'] .model-pick + .model-pick > .meta, :root[data-skin='zen'] .model-pick + .meta { gap: 6px; padding: 0; border-left: 0; background: transparent; color: var(--gray); transition: color var(--t-fast) var(--ease-out); }
 :root[data-skin='zen'] .meta-k { display: none; }
-:root[data-skin='zen'] .meta-v, :root[data-skin='zen'] .model-v, :root[data-skin='zen'] .effort-v { font: 400 13px/1.4 var(--font); letter-spacing: 0; }
-:root[data-skin='zen'] .meta-v { text-transform: lowercase; }
-:root[data-skin='zen'] .model-v { text-transform: none; }
+:root[data-skin='zen'] .meta-v, :root[data-skin='zen'] .model-v, :root[data-skin='zen'] .effort-v { font: 400 13px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; }
 :root[data-skin='zen'] .model-pick > .meta:hover, :root[data-skin='zen'] .meta-mode:hover { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .model-pick > .meta.open { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .model-pick > .meta:disabled:hover { background: transparent; }
-:root[data-skin='zen'] .model-caret { font-size: 8px; }
-:root[data-skin='zen'] .mode-default, :root[data-skin='zen'] .mode-acceptEdits, :root[data-skin='zen'] .mode-acceptEdits:hover, :root[data-skin='zen'] .mode-auto, :root[data-skin='zen'] .mode-auto:hover, :root[data-skin='zen'] .mode-plan, :root[data-skin='zen'] .mode-plan:hover { background: transparent; box-shadow: none; color: var(--ink); }
-:root[data-skin='zen'] .mode-default { color: var(--gray); }
-:root[data-skin='zen'] .mode-plan .meta-v { font-weight: 600; }
+:root[data-skin='zen'] .model-caret { display: none; }
+:root[data-skin='zen'] .mode-default, :root[data-skin='zen'] .mode-acceptEdits, :root[data-skin='zen'] .mode-acceptEdits:hover, :root[data-skin='zen'] .mode-auto, :root[data-skin='zen'] .mode-auto:hover, :root[data-skin='zen'] .mode-plan, :root[data-skin='zen'] .mode-plan:hover { background: transparent; box-shadow: none; color: var(--gray); }
+/* 기본이 아닌 모드는 먹색 글자로 (색을 더하지 않는다) */
+:root[data-skin='zen'] .mode-acceptEdits, :root[data-skin='zen'] .mode-auto, :root[data-skin='zen'] .mode-plan { color: var(--ink); }
 /* 바이패스는 묻지 않고 모두 허용하므로 신호색 글자 */
 :root[data-skin='zen'] .mode-bypassPermissions, :root[data-skin='zen'] .mode-bypassPermissions:hover { background: transparent; box-shadow: none; color: var(--signal-ink); }
-:root[data-skin='zen'] .mode-bypassPermissions .meta-v { font-weight: 600; }
+:root[data-skin='zen'] .mode-bypassPermissions .meta-v { font-weight: 500; }
+:root[data-skin='zen'] .tb-right > .ctx { order: 3; align-self: baseline; flex-direction: row; align-items: baseline; gap: 8px; min-width: 0; margin-left: 18px; padding: 0; border-left: 0; }
+:root[data-skin='zen'] .ctx-label { display: none; }
+:root[data-skin='zen'] .ctx b { order: 2; font: 400 13px/1.4 var(--font); letter-spacing: 0; color: var(--gray); }
+:root[data-skin='zen'] .ctx b .roll.num { min-width: 2.2em; }
+:root[data-skin='zen'] .ctx-bar { order: 1; align-self: center; width: 40px; height: 1px; background: var(--gray-3); }
+:root[data-skin='zen'] .ctx-bar i { background: var(--ink); }
+:root[data-skin='zen'] .ctx-bar em { top: -2px; bottom: -2px; width: 1px; background: var(--gray-2); }
+:root[data-skin='zen'] .ctx.hot { background: transparent; color: var(--signal-ink); }
+:root[data-skin='zen'] .ctx.hot b { color: var(--signal-ink); }
+:root[data-skin='zen'] .ctx.hot .ctx-bar { background: var(--gray-3); }
+:root[data-skin='zen'] .ctx.hot .ctx-bar i, :root[data-skin='zen'] .ctx.hot .ctx-bar em { background: var(--signal); }
+/* 2줄: 글자 탭. 고른 탭만 먹색 + 1px 밑줄 */
+/* 줄 바꿈(::after)이 꽉 채운 줄에 끼지 않게 기준 폭을 0이 아닌 1px로 */
+:root[data-skin='zen'] .tb-row2 .tabs { order: 5; flex: 1 1 1px; min-height: 0; gap: 22px; align-items: baseline; }
+:root[data-skin='zen'] .tab { align-items: baseline; gap: 6px; padding: 0 0 6px; border-right: 0; background: transparent; color: var(--gray); font-size: 13px; font-weight: 400; }
+:root[data-skin='zen'] .tab:hover { background: transparent; color: var(--ink); }
+:root[data-skin='zen'] .tab .tab-n { display: none; }
+:root[data-skin='zen'] .tab.active, :root[data-skin='zen'] .tab-wrap.active { background: transparent; color: var(--ink); }
+:root[data-skin='zen'] .tab.active { box-shadow: inset 0 -1px 0 var(--ink); }
+:root[data-skin='zen'] .tab-wrap { gap: 2px; border-right: 0; margin-right: 0; }
+:root[data-skin='zen'] .tab-wrap .tab { padding-right: 0; }
+/* 탭 안 상태 점: 돌고 있거나 사람이 봐야 할 때만 */
+:root[data-skin='zen'] .tab .dot { width: 4px; height: 4px; border: 0; align-self: center; margin-top: -6px; }
+:root[data-skin='zen'] .tab .dot-idle, :root[data-skin='zen'] .tab .dot-done, :root[data-skin='zen'] .tab .dot-stopped { display: none; }
+:root[data-skin='zen'] .tab .dot-running { background: var(--ink); }
+:root[data-skin='zen'] .tab .dot-queued, :root[data-skin='zen'] .tab .dot-background { box-shadow: inset 0 0 0 1px var(--gray); }
+:root[data-skin='zen'] .tab .dot-waiting_approval, :root[data-skin='zen'] .tab .dot-error { width: 6px; height: 6px; background: var(--signal); }
+:root[data-skin='zen'] .tab-x { width: 16px; padding-bottom: 6px; color: var(--gray); font: 300 13px/1 var(--font); }
+:root[data-skin='zen'] .tab-wrap.active .tab-x { opacity: 0; }
+:root[data-skin='zen'] .tab-wrap:hover .tab-x, :root[data-skin='zen'] .tab-x:focus-visible { opacity: 0.7; }
+:root[data-skin='zen'] .tab-x:hover { background: transparent; color: var(--signal-ink); }
+:root[data-skin='zen'] .tab-wrap.armed .tab-x { width: auto; padding: 0 0 6px 6px; opacity: 1; background: transparent; color: var(--signal-ink); font: 500 12px/1 var(--font); text-transform: lowercase; }
+:root[data-skin='zen'] .tab.add { padding: 0 0 6px; font: 300 15px/1 var(--font); color: var(--gray); }
+:root[data-skin='zen'] .tab-edit { outline: 0; border-bottom: 1px solid currentColor; padding: 2px 0; }
+/* 2줄 오른쪽: 작업 버튼과 상태. 밑줄 없는 회색 글자, 올리면 먹색 */
+:root[data-skin='zen'] .tb-right > * { order: 6; align-self: baseline; }
+:root[data-skin='zen'] .badge { align-items: baseline; padding: 0 0 0 18px; border-left: 0; background: transparent; color: var(--gray); font: 400 12.5px/1.4 var(--font); text-transform: lowercase; }
+:root[data-skin='zen'] .badge-idle, :root[data-skin='zen'] .badge-done, :root[data-skin='zen'] .badge-stopped { background: transparent; color: var(--gray-2); }
+:root[data-skin='zen'] .badge-running { color: var(--ink); }
+:root[data-skin='zen'] .badge-running::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); align-self: center; animation: blink-soft var(--pulse) var(--ease-io) infinite; }
+:root[data-skin='zen'] .badge-waiting_approval, :root[data-skin='zen'] .badge-error { background: transparent; color: var(--ink); }
+:root[data-skin='zen'] .badge-waiting_approval::before, :root[data-skin='zen'] .badge-error::before { content: ''; width: var(--zen-dot); height: var(--zen-dot); border-radius: 50%; background: var(--signal); align-self: center; }
+:root[data-skin='zen'] .badge-waiting_approval::before { animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
+:root[data-skin='zen'] .badge.other { background: transparent; color: var(--ink); font: 400 12.5px/1.4 var(--font); }
+:root[data-skin='zen'] .badge.other::before { content: ''; width: var(--zen-dot); height: var(--zen-dot); border-radius: 50%; background: var(--signal); align-self: center; }
+:root[data-skin='zen'] .badge.goal { background: transparent; box-shadow: none; font: 400 12.5px/1.4 var(--font); letter-spacing: 0; color: var(--ink); }
+:root[data-skin='zen'] .badge.tag { font: 400 12.5px/1.4 var(--mono); text-transform: none; }
+:root[data-skin='zen'] .tb-btn { align-items: baseline; padding: 0 0 0 18px; border-left: 0; background: transparent; color: var(--gray); font: 400 12.5px/1.4 var(--font); text-transform: lowercase; text-decoration: none; }
+:root[data-skin='zen'] .tb-btn:hover:not(:disabled) { background: transparent; color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+:root[data-skin='zen'] .tb-btn:disabled { color: var(--gray-3); text-decoration: none; }
+:root[data-skin='zen'] .tb-btn.armed { background: transparent; color: var(--signal-ink); }
+:root[data-skin='zen'] .tb-btn.on { background: transparent; color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+:root[data-skin='zen'] .ctx-pct { color: var(--gray); }
+:root[data-skin='zen'] .ctx-pct.hot { color: var(--signal-ink); }
 
-/* ── 대화 본문: 오른쪽 상태 패널은 숨기고 대화 기록은 가운데 한 기둥 ── */
+/* ── 대화 본문: 오른쪽 상태 패널은 숨기고 대화 기록은 가운데 한 단 ── */
 :root[data-skin='zen'] .chat-body, :root[data-skin='zen'] .chat-body.open { grid-template-columns: minmax(0, 1fr); transition: none; }
 :root[data-skin='zen'] .status-panel { display: none; }
-:root[data-skin='zen'] .transcript { padding: 44px var(--zen-pad) 32px; }
-:root[data-skin='zen'] .transcript > .hit { box-shadow: none; background: var(--wash); }
+:root[data-skin='zen'] .transcript { padding: 64px var(--zen-pad) 40px; }
+:root[data-skin='zen'] .transcript > .hit { box-shadow: inset 1px 0 0 var(--ink); background: transparent; }
 :root[data-skin='zen'] .placeholder { font: 300 22px/1.5 var(--font); color: var(--gray); }
 :root[data-skin='zen'] .placeholder .mono { font-size: 12px; color: var(--gray-2); }
-/* 내 메시지: 크게, 라벨 없이 */
-:root[data-skin='zen'] .msg.user { margin-top: 18px; padding: 10px 0 8px; border: 0; font: var(--question-weight) 22px/1.5 var(--question-font); letter-spacing: -0.01em; }
+/* 내 메시지: 크게, 라벨 없이. 크기와 여백만으로 답과 나눈다 */
+:root[data-skin='zen'] .msg.user { margin-top: 44px; padding: 0 0 22px; border: 0; font: var(--question-weight) 26px/1.5 var(--question-font); letter-spacing: -0.01em; }
 :root[data-skin='zen'] .msg.user:first-child { margin-top: 0; }
 :root[data-skin='zen'] .msg.user::before { display: none; }
-:root[data-skin='zen'] .msg.user::after { top: -8px; left: 0; font: 400 11.5px/1 var(--font); letter-spacing: 0.02em; color: var(--gray); text-transform: lowercase; }
-:root[data-skin='zen'] .msg-acts { top: 12px; right: 0; gap: 14px; }
-:root[data-skin='zen'] .msg-acts button { padding: 0; border: 0; background: transparent; color: var(--gray); font: 400 12px/1 var(--font); letter-spacing: 0; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; }
-:root[data-skin='zen'] .msg-acts button:hover { background: transparent; color: var(--ink); border-color: transparent; text-decoration-color: currentColor; }
-:root[data-skin='zen'] .msg-wait { font: 400 11.5px/1 var(--font); letter-spacing: 0.02em; text-transform: lowercase; }
-:root[data-skin='zen'] .msg.assistant { padding: 8px 0; font-size: 16px; line-height: 1.75; }
-:root[data-skin='zen'] .msg.assistant.streaming .md > :last-child::after { width: 2px; height: 18px; margin-left: 3px; background: var(--ink); }
+:root[data-skin='zen'] .msg.user::after { top: -18px; left: 0; font: 400 12px/1 var(--font); letter-spacing: 0; color: var(--gray); text-transform: lowercase; }
+:root[data-skin='zen'] .msg.user.pending { color: var(--gray); }
+:root[data-skin='zen'] .msg-acts { top: 4px; right: 0; gap: 16px; }
+:root[data-skin='zen'] .msg-acts button { padding: 0; border: 0; background: var(--paper); color: var(--gray); font: 400 12px/1 var(--font); letter-spacing: 0; text-transform: lowercase; }
+:root[data-skin='zen'] .msg-acts button:hover { background: var(--paper); color: var(--ink); border-color: transparent; text-decoration: underline; text-underline-offset: 4px; }
+:root[data-skin='zen'] .msg-wait { font: 400 12px/1 var(--font); letter-spacing: 0; text-transform: lowercase; }
+:root[data-skin='zen'] .msg.assistant { padding: 10px 0; font-size: 16px; line-height: 1.85; }
+:root[data-skin='zen'] .msg.assistant.streaming .md > :last-child::after { width: 1px; height: 18px; margin-left: 3px; background: var(--ink); }
 :root[data-skin='zen'] .msg.notice { padding: 4px 0; color: var(--gray); }
 :root[data-skin='zen'] .msg.notice.error { margin: 6px 0; padding: 4px 0; background: transparent; color: var(--signal-ink); box-shadow: none; font-family: var(--font); font-size: 14px; }
 :root[data-skin='zen'] .msg.notice.warn { margin: 6px 0; padding: 4px 0; background: transparent; color: var(--ink); box-shadow: none; font-weight: 500; font-family: var(--font); font-size: 14px; }
-:root[data-skin='zen'] pre.msg.notice.output { margin: 6px 0; padding: 6px 0 6px 20px; background: transparent; color: var(--ink); }
-:root[data-skin='zen'] pre.msg.notice.output.error { box-shadow: inset 2px 0 0 var(--signal); }
-:root[data-skin='zen'] .msg.compacting { padding: 10px 0; font: 400 14px/1.5 var(--font); color: var(--gray); }
-/* 마크다운 */
-:root[data-skin='zen'] .md p { margin: 0 0 0.9em; }
-:root[data-skin='zen'] .md h1, :root[data-skin='zen'] .md h2, :root[data-skin='zen'] .md h3, :root[data-skin='zen'] .md h4 { font-family: var(--font); font-weight: 600; letter-spacing: -0.01em; }
+:root[data-skin='zen'] pre.msg.notice.output { margin: 6px 0; padding: 2px 0 2px 24px; background: transparent; color: var(--ink); box-shadow: inset 1px 0 0 var(--gray-3); }
+:root[data-skin='zen'] pre.msg.notice.output.error { box-shadow: inset 1px 0 0 var(--signal); }
+:root[data-skin='zen'] .msg.compacting { padding: 10px 0; font: 400 13px/1.5 var(--font); color: var(--gray); }
+/* 마크다운: 굵기 대신 크기·여백, 색은 먹색과 회색만 */
+:root[data-skin='zen'] .md p { margin: 0 0 1.1em; }
+:root[data-skin='zen'] .md h1, :root[data-skin='zen'] .md h2, :root[data-skin='zen'] .md h3, :root[data-skin='zen'] .md h4 { margin: 1.4em 0 0.5em; font-family: var(--font); font-weight: 500; letter-spacing: -0.01em; }
 :root[data-skin='zen'] .md h1 { font-size: 22px; } :root[data-skin='zen'] .md h2 { font-size: 19px; } :root[data-skin='zen'] .md h3 { font-size: 17px; } :root[data-skin='zen'] .md h4 { font-size: 16px; }
-:root[data-skin='zen'] .md li::marker { color: var(--gray); font-weight: 400; }
-:root[data-skin='zen'] .md a { text-decoration-color: var(--gray-2); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+:root[data-skin='zen'] .md li::marker { color: var(--gray-2); font-weight: 400; }
+:root[data-skin='zen'] .md a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--gray-2); text-decoration-thickness: 1px; text-underline-offset: 4px; }
 :root[data-skin='zen'] .md a:hover { color: var(--ink); text-decoration-color: currentColor; }
 :root[data-skin='zen'] .md strong { font-weight: 600; }
-:root[data-skin='zen'] .md code { padding: 1px 4px; border-radius: 3px; background: var(--wash); font-size: 0.88em; }
-:root[data-skin='zen'] .md pre { margin: 0.8em 0 1.1em; padding: 2px 0 2px 20px; background: transparent; color: var(--gray); }
-:root[data-skin='zen'] .md pre code { background: transparent; font-size: 13.5px; line-height: 1.7; }
-:root[data-skin='zen'] .md-pre .copy-btn { top: 0; right: 0; padding: 2px 0; border: 0; background: var(--paper); color: var(--gray); font: 400 11.5px/1 var(--font); letter-spacing: 0; text-decoration: underline; text-underline-offset: 4px; }
+/* 인라인 코드: 면 없이 고정폭 글자만 */
+:root[data-skin='zen'] .md code { padding: 0; border-radius: 0; background: transparent; color: var(--ink); font-size: 0.86em; }
+/* 코드 블록: 면 없이 왼쪽 1px 선 */
+:root[data-skin='zen'] .md pre { margin: 0.4em 0 1.3em; padding: 2px 0 2px 24px; background: transparent; color: var(--ink); box-shadow: inset 1px 0 0 var(--ink); }
+:root[data-skin='zen'] .md pre code { background: transparent; font-size: 13px; line-height: 1.7; }
+:root[data-skin='zen'] .md-pre .copy-btn { top: 0; right: 0; padding: 2px 0 2px 8px; border: 0; background: var(--paper); color: var(--gray); font: 400 12px/1 var(--font); letter-spacing: 0; text-transform: lowercase; }
 :root[data-skin='zen'] .md-pre .copy-btn:hover, :root[data-skin='zen'] .md-pre .copy-btn.done { background: var(--paper); color: var(--ink); }
-:root[data-skin='zen'] .md blockquote { padding: 0 0 0 18px; box-shadow: inset 2px 0 0 var(--gray-3); color: var(--gray); }
-:root[data-skin='zen'] .md hr { border-top: 1px solid var(--line); margin: 1.6em 0; }
+:root[data-skin='zen'] .md blockquote { padding: 0 0 0 24px; box-shadow: inset 1px 0 0 var(--gray-3); color: var(--gray); }
+:root[data-skin='zen'] .md hr { border-top: 1px solid var(--line); margin: 1.8em 0; }
 :root[data-skin='zen'] .md table { font-size: 14px; }
 :root[data-skin='zen'] .md th, :root[data-skin='zen'] .md td { padding: 6px 24px 6px 0; border: 0; border-bottom: 1px solid var(--line); }
-:root[data-skin='zen'] .md th { border-bottom: 1px solid var(--gray-2); font-weight: 500; color: var(--gray); }
-/* 도구 줄: 회색 한 줄, 펼치면 들여쓴 본문 */
+:root[data-skin='zen'] .md th { font-weight: 500; color: var(--gray); }
+/* 도구 줄: 회색 한 줄 `read  src/auth/session.ts`. 번호·끝남 표시 없이, 펼치면 들여쓴 본문 */
 :root[data-skin='zen'] .tool, :root[data-skin='zen'] .hook, :root[data-skin='zen'] .thinking, :root[data-skin='zen'] .tgroup, :root[data-skin='zen'] .memory { border-top: 0; }
 :root[data-skin='zen'] .tool + .msg:not(.user), :root[data-skin='zen'] .tool + .permission { border-top: 0; }
-:root[data-skin='zen'] .tool > summary, :root[data-skin='zen'] .hook > summary, :root[data-skin='zen'] .tgroup > summary { grid-template-columns: 22px 64px minmax(0, 1fr) auto; gap: 10px; padding: 3px 0; background: transparent; color: var(--gray); font-size: 13px; }
+/* 도구 묶음과 답 사이는 여백으로 나눈다 */
+:root[data-skin='zen'] :is(.tool, .tgroup, .hook, .tsum, .memory, .thinking) + .msg.assistant { margin-top: 24px; }
+:root[data-skin='zen'] .msg.user + :is(.tool, .tgroup, .hook, .tsum, .memory, .thinking) { margin-top: 4px; }
+:root[data-skin='zen'] .tool > summary, :root[data-skin='zen'] .tgroup > summary { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 20px; padding: 3px 0; background: transparent; color: var(--gray); font-size: 13px; }
+:root[data-skin='zen'] .hook > summary { grid-template-columns: 44px auto minmax(0, 1fr) auto; gap: 20px; padding: 3px 0; background: transparent; color: var(--gray); font-size: 13px; }
 :root[data-skin='zen'] .tool > summary:hover, :root[data-skin='zen'] .hook > summary:hover, :root[data-skin='zen'] .tgroup > summary:hover, :root[data-skin='zen'] .thinking > summary:hover, :root[data-skin='zen'] .memory > summary:hover, :root[data-skin='zen'] .divider.fold > summary:hover { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .tool[open] > summary { background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .tool-n, :root[data-skin='zen'] .tgroup-n { font: 400 11px/1.6 var(--mono); letter-spacing: 0; color: var(--gray); }
-:root[data-skin='zen'] .tool-name { font: 500 13px/1.4 var(--font); letter-spacing: 0; text-transform: none; }
-:root[data-skin='zen'] .tool-arg { font-size: 12px; }
-:root[data-skin='zen'] .tool-st { font: 400 12px/1.4 var(--font); letter-spacing: 0.01em; text-transform: lowercase; }
+:root[data-skin='zen'] .tool-n { display: none; }
+:root[data-skin='zen'] .tgroup-n { display: none; }
+:root[data-skin='zen'] .tool-name { font: 400 13px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; }
+:root[data-skin='zen'] .tool-arg { font: 400 12.5px/1.4 var(--mono); }
+:root[data-skin='zen'] .tool-st { font: 400 12px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; color: var(--gray-2); }
+/* 끝난 도구의 done은 덜어낸다 (실행 중·오류·stopped만 글자) */
+:root[data-skin='zen'] .tool:not(.error) > summary .tool-st:not(.run) { opacity: 0; transition: opacity var(--t-fast) var(--ease-out); }
+:root[data-skin='zen'] .tool:not(.error) > summary:hover .tool-st:not(.run) { opacity: 1; }
 :root[data-skin='zen'] .tool-st.run { color: var(--ink); }
 :root[data-skin='zen'] .tool.error .tool-st, :root[data-skin='zen'] .tool.error .tool-name, :root[data-skin='zen'] .tgroup.error .tool-st, :root[data-skin='zen'] .hook.error > summary .tool-st, :root[data-skin='zen'] .sub-tool.error .sub-name, :root[data-skin='zen'] .sub-tool.error .sub-st { color: var(--signal-ink); }
-:root[data-skin='zen'] .tool-body { padding: 4px 0 14px 32px; background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .tool-body h5 { margin: 10px 0 4px; font: 400 11.5px/1 var(--font); letter-spacing: 0.02em; color: var(--gray); text-transform: lowercase; }
-:root[data-skin='zen'] .tool.hit > summary { background: var(--wash); color: var(--ink); }
+:root[data-skin='zen'] .tool-body { padding: 6px 0 16px 64px; background: transparent; color: var(--ink); }
+:root[data-skin='zen'] .tool-body h5 { margin: 10px 0 4px; font: 400 12px/1 var(--font); letter-spacing: 0; color: var(--gray); text-transform: lowercase; }
+:root[data-skin='zen'] .tool.hit > summary { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .tool-sub { opacity: 1; color: var(--gray); }
-:root[data-skin='zen'] .diff .add, :root[data-skin='zen'] .diff .del { margin-left: -12px; padding-left: 10px; }
-:root[data-skin='zen'] .diff .add { box-shadow: inset 2px 0 0 var(--diff-add-ink); }
-:root[data-skin='zen'] .diff .del { box-shadow: inset 2px 0 0 var(--diff-del-ink); }
-:root[data-skin='zen'] .tool-run, :root[data-skin='zen'] .tool-copy, :root[data-skin='zen'] .tool-more, :root[data-skin='zen'] .lw-btn, :root[data-skin='zen'] .sp-bg-x { padding: 0; border: 0; background: transparent; color: var(--gray); font: 400 12px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; }
-:root[data-skin='zen'] .tool-run:hover, :root[data-skin='zen'] .tool-copy:hover, :root[data-skin='zen'] .tool-more:hover:not(:disabled), :root[data-skin='zen'] .lw-btn:hover:not(:disabled), :root[data-skin='zen'] .tool-copy.done { background: transparent; color: var(--ink); border-color: transparent; text-decoration-color: currentColor; }
-:root[data-skin='zen'] .tool-acts { gap: 18px; }
-:root[data-skin='zen'] .hook-k, :root[data-skin='zen'] .hook-ev, :root[data-skin='zen'] .tgroup-k, :root[data-skin='zen'] .tsum-k, :root[data-skin='zen'] .memory-k, :root[data-skin='zen'] .thinking-k { font: 400 12px/1.4 var(--font); letter-spacing: 0.01em; text-transform: lowercase; }
+:root[data-skin='zen'] .diff .add, :root[data-skin='zen'] .diff .del { margin-left: -12px; padding-left: 11px; }
+:root[data-skin='zen'] .diff .add { box-shadow: inset 1px 0 0 var(--diff-add-ink); background: var(--diff-add-bg); color: var(--diff-add-fg); }
+:root[data-skin='zen'] .diff .del { box-shadow: inset 1px 0 0 var(--diff-del-ink); background: var(--diff-del-bg); color: var(--diff-del-fg); }
+:root[data-skin='zen'] .tool-run, :root[data-skin='zen'] .tool-copy, :root[data-skin='zen'] .tool-more, :root[data-skin='zen'] .lw-btn, :root[data-skin='zen'] .sp-bg-x { padding: 0; border: 0; background: transparent; color: var(--gray); font: 400 12px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; text-decoration: none; }
+:root[data-skin='zen'] .tool-run:hover, :root[data-skin='zen'] .tool-copy:hover, :root[data-skin='zen'] .tool-more:hover:not(:disabled), :root[data-skin='zen'] .lw-btn:hover:not(:disabled), :root[data-skin='zen'] .tool-copy.done { background: transparent; color: var(--ink); border-color: transparent; text-decoration: underline; text-underline-offset: 4px; }
+:root[data-skin='zen'] .tool-acts { gap: 20px; }
+:root[data-skin='zen'] .hook-k, :root[data-skin='zen'] .hook-ev, :root[data-skin='zen'] .tgroup-k, :root[data-skin='zen'] .tsum-k, :root[data-skin='zen'] .memory-k, :root[data-skin='zen'] .thinking-k { font: 400 13px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; }
 :root[data-skin='zen'] .hook.error > summary { color: var(--ink); }
-:root[data-skin='zen'] .hook-out { margin-left: 32px; padding: 8px 12px; border-radius: 4px; }
+:root[data-skin='zen'] .hook-out { margin-left: 64px; padding: 8px 12px; border-radius: 4px; }
 :root[data-skin='zen'] .tgroup-s { font-size: 13px; font-weight: 400; }
-:root[data-skin='zen'] .tgroup-body { padding-left: 16px; box-shadow: inset 1px 0 0 var(--line); }
+:root[data-skin='zen'] .tgroup-body { padding-left: 20px; box-shadow: inset 1px 0 0 var(--line); }
 :root[data-skin='zen'] .tgroup-body > .tool:first-child { border-top: 0; }
 :root[data-skin='zen'] .tsum { padding: 3px 0; border-top: 0; font-size: 13px; font-weight: 400; color: var(--gray); }
 :root[data-skin='zen'] .memory > summary { padding: 3px 0; }
 :root[data-skin='zen'] .memory-n { font: 400 12px var(--font); }
-:root[data-skin='zen'] .memory-body { padding: 4px 0 12px 32px; }
+:root[data-skin='zen'] .memory-body { padding: 4px 0 12px 64px; }
 :root[data-skin='zen'] .thinking > summary { padding: 3px 0; }
 :root[data-skin='zen'] .thinking-first { font-size: 13px; }
-:root[data-skin='zen'] .thinking-body { padding: 4px 0 14px 32px; font-size: 14px; }
-/* 구분선: 선 없이 가운데 회색 글자 */
-:root[data-skin='zen'] .divider { margin: 14px 0; padding: 6px 0; border: 0; font: 400 12.5px/1.5 var(--font); letter-spacing: 0.01em; text-transform: none; color: var(--gray); }
+:root[data-skin='zen'] .thinking-body { padding: 4px 0 14px 64px; font-size: 14px; color: var(--gray); }
+/* 구분선: 선 없이 회색 글자 */
+:root[data-skin='zen'] .divider { margin: 18px 0; padding: 6px 0; border: 0; font: 400 12.5px/1.5 var(--font); letter-spacing: 0; text-transform: none; color: var(--gray); }
 :root[data-skin='zen'] .divider.fold { padding: 0; }
 :root[data-skin='zen'] .divider.fold > summary { padding: 6px 0; }
 :root[data-skin='zen'] .divider-first { color: var(--gray); }
 :root[data-skin='zen'] .divider-body { padding: 4px 0 14px; font-size: 15px; color: var(--ink); }
-/* 진행 줄: 작은 숨쉬는 점과 흐르는 점선 */
-:root[data-skin='zen'] .working { gap: 10px; margin-top: 8px; padding: 10px 0 14px; font: 400 13px/1.4 var(--font); color: var(--gray); }
-:root[data-skin='zen'] .working-sq { width: 6px; height: 6px; border-radius: 50%; }
-:root[data-skin='zen'] .working.queued .working-sq { box-shadow: inset 0 0 0 1px var(--ink); }
-:root[data-skin='zen'] .working-t { font: 400 12.5px/1 var(--mono); }
-:root[data-skin='zen'] .working-bar { left: 0; right: 0; bottom: 4px; height: 1px; }
-:root[data-skin='zen'] .working-bar i { background-image: repeating-linear-gradient(90deg, var(--gray-2) 0 6px, transparent 6px 19.8px); }
-:root[data-skin='zen'] .confirm { padding: 8px var(--zen-pad); background: transparent; color: var(--signal-ink); font-size: 13.5px; font-weight: 500; }
+/* 진행 줄: 회색 소문자 한 줄 + 숨쉬는 작은 점 (흐르는 줄무늬 없이) */
+:root[data-skin='zen'] .working { gap: 12px; margin-top: 28px; padding: 6px 0 10px; font: 400 12.5px/1.4 var(--font); color: var(--gray); text-transform: lowercase; }
+:root[data-skin='zen'] .working-sq { width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
+:root[data-skin='zen'] .working.queued .working-sq { background: transparent; box-shadow: inset 0 0 0 1px var(--gray); }
+:root[data-skin='zen'] .working-act { flex: 0 1 auto; }
+:root[data-skin='zen'] .working-t { font: 400 12.5px/1 var(--font); font-variant-numeric: tabular-nums; }
+:root[data-skin='zen'] .working-bar { display: none; }
+:root[data-skin='zen'] .confirm { padding: 8px var(--zen-pad); background: transparent; color: var(--signal-ink); font-size: 13px; font-weight: 400; }
 
-/* ── 승인창: 선 없이, 옅은 신호색 면 + 숨쉬는 점 + 신호색 질문 ── */
-:root[data-skin='zen'] .permission { gap: 12px; margin: 14px -24px 6px; padding: 20px 24px; border-radius: 8px; background: color-mix(in srgb, var(--signal) 8%, var(--paper)); color: var(--ink); }
-:root[data-skin='zen'] .permission-head { align-items: center; gap: 12px; }
-:root[data-skin='zen'] .permission-head .q { font-size: 0; flex: none; }
-:root[data-skin='zen'] .permission-title { font: 500 17px/1.45 var(--font); color: var(--signal-ink); }
+/* ── 승인창: 상자·면 없이 신호색 점 + 한 문장 + 글자 버튼(allow · always · deny, 주 버튼만 먹색 밑줄) ── */
+:root[data-skin='zen'] .permission { gap: 14px; margin: 36px 0 8px; padding: 0; border-radius: 0; background: transparent; color: var(--ink); }
+:root[data-skin='zen'] .permission-head { align-items: flex-start; gap: 12px; }
+:root[data-skin='zen'] .permission-head .q { flex: none; width: var(--zen-dot); height: var(--zen-dot); border-radius: 50%; background: var(--signal); font-size: 0; line-height: 0; color: transparent; margin-top: 9px; animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
+:root[data-skin='zen'] .permission-title { font: 400 15px/1.6 var(--font); color: var(--ink); }
 :root[data-skin='zen'] .permission-desc { font-size: 13px; font-weight: 400; color: var(--gray); opacity: 1; }
-:root[data-skin='zen'] .permission pre { padding: 4px 0 4px 20px; background: transparent; color: var(--ink); }
-:root[data-skin='zen'] .permission > .diff { padding-left: 20px; }
-:root[data-skin='zen'] .permission-actions { gap: 10px 24px; padding-left: 20px; }
-:root[data-skin='zen'] .permission-actions button { gap: 8px; padding: 4px 0; border: 0; background: transparent; color: var(--ink); font: 400 15px/1.4 var(--font); text-transform: lowercase; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent); text-decoration-thickness: 1px; text-underline-offset: 5px; }
-:root[data-skin='zen'] .permission-actions button.primary { font-weight: 600; text-decoration-color: var(--ink); }
-:root[data-skin='zen'] .permission-actions button:hover { background: transparent; color: var(--ink); text-decoration-color: currentColor; }
-:root[data-skin='zen'] .permission-actions .always-what { text-transform: none; font-weight: 400; color: var(--gray); opacity: 1; }
-:root[data-skin='zen'] .permission .muted { padding-left: 20px; color: var(--gray); opacity: 1; font-weight: 400; }
-:root[data-skin='zen'] .elicit-msg, :root[data-skin='zen'] .elicit-form { padding-left: 20px; font-weight: 400; }
-:root[data-skin='zen'] .elicit-url { margin-left: 20px; padding: 0; border: 0; color: var(--ink); font: 500 15px/1.4 var(--font); text-decoration: underline; text-underline-offset: 5px; }
+:root[data-skin='zen'] .permission pre { margin-left: 18px; padding: 0 0 0 16px; max-height: 160px; background: transparent; color: var(--gray); font-size: 12px; box-shadow: inset 1px 0 0 var(--gray-3); }
+:root[data-skin='zen'] .permission > .diff { padding-left: 18px; }
+:root[data-skin='zen'] .permission-actions { gap: 10px 28px; padding-left: 18px; }
+:root[data-skin='zen'] .permission-actions button { gap: 8px; padding: 0 0 3px; border: 0; background: transparent; color: var(--gray); font: 400 13.5px/1.4 var(--font); text-transform: lowercase; text-decoration: none; transition: color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out); }
+:root[data-skin='zen'] .permission-actions button.primary { color: var(--ink); font-weight: 400; box-shadow: inset 0 -1px 0 var(--ink); }
+:root[data-skin='zen'] .permission-actions button:hover { background: transparent; color: var(--ink); box-shadow: inset 0 -1px 0 currentColor; }
+:root[data-skin='zen'] .permission-actions .always-what { font: 400 12.5px/1 var(--mono); text-transform: none; color: var(--gray); opacity: 1; }
+:root[data-skin='zen'] .permission .muted { padding-left: 18px; color: var(--gray); opacity: 1; font-weight: 400; font-size: 12.5px; }
+:root[data-skin='zen'] .elicit-msg, :root[data-skin='zen'] .elicit-form { padding-left: 18px; font-weight: 400; }
+:root[data-skin='zen'] .elicit-url { margin-left: 18px; padding: 0 0 3px; border: 0; color: var(--ink); font: 400 14px/1.4 var(--font); box-shadow: inset 0 -1px 0 var(--ink); }
 :root[data-skin='zen'] .elicit-url:hover { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .elicit-field label { font: 500 13px/1.3 var(--font); }
 :root[data-skin='zen'] .elicit-field label span { font-weight: 400; color: var(--gray); opacity: 1; }
-:root[data-skin='zen'] .elicit-field input:not([type='checkbox']), :root[data-skin='zen'] .elicit-field select { padding: 6px 0; border: 0; border-bottom: 1px solid var(--gray-2); background: transparent; color: var(--ink); font: 400 14px var(--font); }
+:root[data-skin='zen'] .elicit-field input:not([type='checkbox']), :root[data-skin='zen'] .elicit-field select { padding: 6px 0; border: 0; border-bottom: 1px solid var(--gray-3); background: transparent; color: var(--ink); font: 400 14px var(--font); }
 :root[data-skin='zen'] .elicit-field input:not([type='checkbox']):focus, :root[data-skin='zen'] .elicit-field select:focus { border-bottom-color: var(--ink); }
 :root[data-skin='zen'] .elicit-field.check input { accent-color: var(--ink); }
 /* 질문(AskUserQuestion): 지금 질문만 진하게, 고른 답은 굵게 + 채운 번호 */
@@ -473,19 +514,20 @@
 :root[data-skin='zen'] .plan-body .md-wrap { padding: 0 0 12px; font-size: 15px; line-height: 1.7; }
 :root[data-skin='zen'] .plan-body .md pre, :root[data-skin='zen'] .plan-body .md code { background: transparent; }
 
-/* ── 입력창: 가운데 기둥 폭의 밑줄 하나 ── */
-:root[data-skin='zen'] .composer { gap: 10px; padding: 6px var(--zen-pad) 28px; border-top: 0; }
+/* ── 입력창: 가운데 단 폭의 밑줄 하나 ── */
+:root[data-skin='zen'] .composer { gap: 16px; padding: 6px var(--zen-pad) 36px; border-top: 0; }
 :root[data-skin='zen'] .composer:focus-within { background: transparent; }
-:root[data-skin='zen'] .composer.dropping, :root[data-skin='zen'] .ask.dropping { background: var(--wash); box-shadow: none; outline: 1px dashed var(--gray-2); outline-offset: -1px; }
-:root[data-skin='zen'] .composer.dropping::after, :root[data-skin='zen'] .ask.dropping::after { right: var(--zen-pad); background: transparent; color: var(--gray); font-weight: 500; }
+:root[data-skin='zen'] .composer.dropping, :root[data-skin='zen'] .ask.dropping { background: transparent; box-shadow: none; outline: 1px dashed var(--gray-2); outline-offset: -1px; }
+:root[data-skin='zen'] .composer.dropping::after, :root[data-skin='zen'] .ask.dropping::after { right: var(--zen-pad); background: transparent; color: var(--gray); font-weight: 400; }
 :root[data-skin='zen'] .composer-prompt { display: none; }
-:root[data-skin='zen'] .composer textarea { padding: 8px 0; font: 400 16px/1.6 var(--font); }
-:root[data-skin='zen'] .composer-body { border-bottom: 1px solid var(--line); transition: border-color var(--t-fast) var(--ease-out); }
+:root[data-skin='zen'] .composer textarea { padding: 10px 0; font: 400 16px/1.6 var(--font); }
+:root[data-skin='zen'] .composer textarea::placeholder { color: var(--gray-2); }
+:root[data-skin='zen'] .composer-body { border-bottom: 1px solid var(--gray-3); transition: border-color var(--t-fast) var(--ease-out); }
 :root[data-skin='zen'] .composer:focus-within .composer-body { border-bottom-color: var(--ink); }
-:root[data-skin='zen'] .attach { width: 30px; height: 30px; margin-top: 6px; padding: 6px; border: 0; background: transparent; color: var(--gray); }
+:root[data-skin='zen'] .attach { width: 28px; height: 28px; margin-top: 10px; padding: 6px; border: 0; background: transparent; color: var(--gray-2); }
 :root[data-skin='zen'] .attach:hover { background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .limit-warn { gap: 10px; padding: 4px var(--zen-pad); border-top: 0; background: var(--paper); color: var(--gray); font-size: 12.5px; font-weight: 400; }
-:root[data-skin='zen'] .limit-warn b { font: 500 12px/1 var(--font); letter-spacing: 0.02em; text-transform: lowercase; }
+:root[data-skin='zen'] .limit-warn b { font: 500 12px/1 var(--font); letter-spacing: 0; text-transform: lowercase; }
 :root[data-skin='zen'] .limit-warn.full { background: var(--paper); color: var(--signal-ink); }
 :root[data-skin='zen'] .limit-warn.away { background: var(--paper); color: var(--ink); }
 :root[data-skin='zen'] .limit-warn.armed em { font-weight: 600; }
@@ -629,6 +671,11 @@
 :root[data-skin='zen'] .upd-status { font: 500 13px/1 var(--font); letter-spacing: 0; text-transform: lowercase; }
 :root[data-skin='zen'] .upd-actions { gap: 18px; }
 :root[data-skin='zen'] .screen.settings .tb-right { padding-right: 0; }
+/* 설정 머리: 대화창처럼 줄을 나누지 않는다. 제목(tb-key)은 보인다 */
+:root[data-skin='zen'] .screen.settings .topbar { align-items: baseline; }
+:root[data-skin='zen'] .screen.settings .topbar::after { display: none; }
+:root[data-skin='zen'] .screen.settings .tb-key { display: inline; }
+:root[data-skin='zen'] .screen.settings .tb-right > * { order: 2; }
 
 /* ── 덮개: 도움말·검색·팔레트·파일·질문 창. 테두리 대신 그림자 ── */
 :root[data-skin='zen'] .help, :root[data-skin='zen'] .overlay { background: color-mix(in srgb, var(--paper) 78%, transparent); }
@@ -663,7 +710,7 @@
 :root[data-skin='zen'] .quick-sheet .composer { padding: 6px 32px 22px; }
 :root[data-skin='zen'] .quick-sheet .slash { left: 32px; right: 32px; }
 :root[data-skin='zen'] .quick-sheet .limit-warn { padding: 4px 32px; }
-:root[data-skin='zen'] .quick-sheet .permission { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+:root[data-skin='zen'] .quick-sheet .permission { margin: 24px 0 8px; }
 :root[data-skin='zen'] .files-crumbs { padding: 6px 22px; border-bottom: 1px solid var(--line); }
 :root[data-skin='zen'] .files-crumbs .crumb:hover { background: transparent; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 :root[data-skin='zen'] .files-list { border-right: 1px solid var(--line); }
@@ -687,8 +734,8 @@
 :root[data-skin='zen'] .tb-nopanel { display: inline-flex; }
 
 /* 머리의 도구 목록·아티팩트 버튼: 회색 한 줄 요약의 글자 링크 (tb-btn이 소문자·밑줄을 준다) */
-:root[data-skin='zen'] .tb-nopanel { align-items: center; align-self: center; }
-:root[data-skin='zen'] .tb-nopanel.on { color: var(--ink); font-weight: 600; }
+:root[data-skin='zen'] .tb-nopanel { align-items: baseline; }
+:root[data-skin='zen'] .tb-nopanel.on { color: var(--ink); }
 
 /* 옅은 코드 면 (--code-bg는 터미널용으로 어둡다) */
 :root[data-skin='zen'] .wt-diff, :root[data-skin='zen'] .td-cmd, :root[data-skin='zen'] .td-log, :root[data-skin='zen'] .hook-out, :root[data-skin='zen'] .crash pre, :root[data-skin='zen'] .pn-foot code, :root[data-skin='zen'] .pn-rules code { background: var(--zen-code); color: var(--ink); }
@@ -698,53 +745,30 @@
 :root[data-skin='zen'] .btn { text-transform: lowercase; }
 :root[data-skin='zen'] .cf .btn-pri, :root[data-skin='zen'] .permission-actions button { text-transform: lowercase; }
 
-/* ── 강조색: 선을 빼는 대신 강조할 것에만 색을 둔다 ──
-   --zen-accent는 실행 중·지금 고른 것·링크·코드처럼 눈이 가야 하는 곳에. 빨강(신호색)은 지금처럼 승인 대기·오류에만 */
-:root[data-theme='zen-sage'] { --zen-accent: #2c6a52; --zen-accent-bg: rgba(44, 106, 82, 0.1); }
-:root[data-theme='zen-paper'] { --zen-accent: #2c5a85; --zen-accent-bg: rgba(44, 90, 133, 0.09); }
-:root[data-theme='zen-ink'] { --zen-accent: #8cc4b0; --zen-accent-bg: rgba(140, 196, 176, 0.12); }
-/* 실행 중: 배지·점·진행 막대·홈 숫자 */
-:root[data-skin='zen'] .badge-running { color: var(--zen-accent); }
-:root[data-skin='zen'] .badge-running::before { background: var(--zen-accent); }
-:root[data-skin='zen'] .dot-running { color: var(--zen-accent); }
-:root[data-skin='zen'] .band-bar i, :root[data-skin='zen'] .task.selected .band-bar i { background: var(--zen-accent); }
-:root[data-skin='zen'] .nav.on .minibar { background: var(--zen-accent); }
-:root[data-skin='zen'] .hh-run .big { color: var(--zen-accent); }
-:root[data-skin='zen'] .ctx-bar i { background: var(--zen-accent); }
-/* 지금 고른 것: 프로젝트 글자·탭·바꾼 모드 */
-:root[data-skin='zen'] .nav.on .nav-key, :root[data-skin='zen'] .nav.on .nav-name { color: var(--zen-accent); }
-:root[data-skin='zen'] .tab.active .tab-t, :root[data-skin='zen'] .tab.active .tab-n { color: var(--zen-accent); }
-:root[data-skin='zen'] .mode-acceptEdits, :root[data-skin='zen'] .mode-auto, :root[data-skin='zen'] .mode-plan { color: var(--zen-accent); }
-/* 링크·주 버튼 */
-:root[data-skin='zen'] .md a { color: var(--zen-accent); text-decoration-color: color-mix(in srgb, var(--zen-accent) 45%, transparent); }
-:root[data-skin='zen'] .md a:hover { color: var(--zen-accent); text-decoration-color: currentColor; }
-:root[data-skin='zen'] .btn-pri, :root[data-skin='zen'] .permission-actions button.primary { color: var(--zen-accent); text-decoration-color: var(--zen-accent); }
-/* 코드: 회색 대신 본문 색 + 강조색 줄, 인라인 코드는 강조색 글자 */
-:root[data-skin='zen'] .md pre { color: var(--ink); box-shadow: inset 2px 0 0 var(--zen-accent); }
-:root[data-skin='zen'] .md :not(pre) > code { background: var(--zen-accent-bg); color: var(--zen-accent); }
-/* diff: 줄 표시만 하던 것을 옅은 색 면까지 */
+/* ── 강조색 없음: 실행 중·지금 고른 것은 먹색과 굵기로만. 색은 신호색(승인 대기·오류)과 diff뿐 ── */
+:root[data-skin='zen'] .dot-running { color: var(--ink); }
+:root[data-skin='zen'] .band-bar i, :root[data-skin='zen'] .task.selected .band-bar i { background: var(--ink); }
+:root[data-skin='zen'] .btn-pri { color: var(--ink); text-decoration-color: var(--ink); }
 :root[data-skin='zen'] .diff .add, :root[data-skin='zen'] .wt-diff .add { background: var(--diff-add-bg); color: var(--diff-add-fg); }
 :root[data-skin='zen'] .diff .del, :root[data-skin='zen'] .wt-diff .del { background: var(--diff-del-bg); color: var(--diff-del-fg); }
-:root[data-skin='zen'] .tool-st.run { color: var(--zen-accent); }
-/* 패널 대신 머리 줄에 보이는 하위 에이전트 수: 돌고 있으니 강조색 + 맥동 점 */
-:root[data-skin='zen'] .tb-nopanel.tb-live { color: var(--zen-accent); text-decoration-color: color-mix(in srgb, var(--zen-accent) 45%, transparent); }
-:root[data-skin='zen'] .tb-nopanel.tb-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--zen-accent); animation: blink-soft var(--pulse) var(--ease-io) infinite; }
+/* 패널 대신 머리 줄에 보이는 하위 에이전트 수: 돌고 있으니 먹색 + 맥동 점 */
+:root[data-skin='zen'] .tb-nopanel.tb-live { color: var(--ink); }
+:root[data-skin='zen'] .tb-nopanel.tb-live::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); align-self: center; animation: blink-soft var(--pulse) var(--ease-io) infinite; }
 /* UPDATE: 레일이 좁아 한 줄이면 잘린다. 버전은 툴팁으로 빼고 두 줄(update / get·42%·restart)로 */
 :root[data-skin='zen'] .nav-update { flex-direction: column; gap: 1px; }
 :root[data-skin='zen'] .nav-update .nav-update-v { display: none; }
-:root[data-skin='zen'] .nav-update .nav-name { font-size: 11.5px; text-align: center; }
-:root[data-skin='zen'] .nav-update .nav-update-side { display: block; font: 400 10.5px/1.2 var(--font); letter-spacing: 0; text-transform: lowercase; color: var(--zen-accent); }
+:root[data-skin='zen'] .nav-update .nav-name { font-size: 12px; text-align: center; }
+:root[data-skin='zen'] .nav-update .nav-update-side { display: block; font: 400 11px/1.2 var(--font); letter-spacing: 0; text-transform: lowercase; color: var(--ink); }
 :root[data-skin='zen'] .nav-update.ready .nav-update-side { font-weight: 600; }
 /* 사용량을 누르면 새로 고친다: 머리줄(새로 고침 버튼)이 없으니 받는 동안 숫자가 맥동 */
-:root[data-skin='zen'] .usage:hover .uw b { color: var(--zen-accent); }
+:root[data-skin='zen'] .usage:hover .uw b { color: var(--ink); }
 :root[data-skin='zen'] .usage.loading .uw b { animation: blink-soft var(--pulse) var(--ease-io) infinite; }
-/* 돌고 있는 하위 에이전트·백그라운드: 위쪽 버튼들에 묻히지 않게 모델 줄 아래 오른쪽에 따로 한 줄 */
-:root[data-skin='zen'] .tb-running { display: flex; flex: 1 0 100%; justify-content: flex-end; gap: 4px; margin-top: 2px; }
-:root[data-skin='zen'] .tb-running .tb-btn { padding: 0 0 0 14px; }
-/* 백그라운드 작업도 돌고 있는 것이라 강조색과 점 (끝나지 않을 수 있는 셸이라 맥동은 하위 에이전트만) */
-:root[data-skin='zen'] .tb-running .tb-nopanel { color: var(--zen-accent); text-decoration-color: color-mix(in srgb, var(--zen-accent) 45%, transparent); }
-:root[data-skin='zen'] .tb-running .tb-nopanel:not(.tb-live)::before { content: ''; width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--zen-accent); box-sizing: border-box; }
+/* 돌고 있는 하위 에이전트·백그라운드: 탭 줄 아래 오른쪽에 따로 한 줄 */
+:root[data-skin='zen'] .tb-running { order: 7; display: flex; flex: 1 0 100%; justify-content: flex-end; gap: 0; margin-top: 6px; }
+:root[data-skin='zen'] .tb-running .tb-btn { gap: 6px; padding: 0 0 0 18px; }
+:root[data-skin='zen'] .tb-running .tb-nopanel { color: var(--ink); }
+:root[data-skin='zen'] .tb-running .tb-nopanel:not(.tb-live)::before { content: ''; width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--ink); box-sizing: border-box; align-self: center; }
 
-/* 맨 아래로 버튼 */
-:root[data-skin='zen'] .to-bottom button { padding: 7px 14px; border: 0; border-radius: 999px; background: var(--paper); color: var(--gray); font: 400 12.5px/1 var(--font); letter-spacing: 0; text-transform: lowercase; box-shadow: 0 6px 24px var(--shadow), 0 0 0 1px var(--line); }
+/* 맨 아래로 버튼: 종이 위의 작은 회색 글자 (그림자·테두리 없이 가장자리만 흐리게) */
+:root[data-skin='zen'] .to-bottom button { padding: 8px 16px; border: 0; border-radius: 999px; background: var(--paper); color: var(--gray); font: 400 12.5px/1 var(--font); letter-spacing: 0; text-transform: lowercase; box-shadow: 0 0 0 1px var(--line), 0 0 24px 12px var(--paper); }
 :root[data-skin='zen'] .to-bottom button:hover { background: var(--paper); color: var(--ink); }

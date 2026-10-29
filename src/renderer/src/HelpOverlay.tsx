@@ -60,6 +60,8 @@ const GROUPS: Group[] = [
       ['tab', 'Leave the input to answer Y / A / N (approval waiting)'],
       ['up', 'Previous prompt (empty input or first line)'],
       ['down', 'Next prompt'],
+      ['PgUp', 'Scroll the conversation up a page'],
+      ['PgDn', 'Scroll the conversation down a page'],
       ['1…4', 'Pick an option (question box)'],
       ['/', 'All commands and skills'],
       ['@', 'Insert a file, folder or @agent-name'],

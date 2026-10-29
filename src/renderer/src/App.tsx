@@ -540,6 +540,7 @@ export function App(): React.JSX.Element {
     if (is('terminalClose')) return take(() => chatPanelRef.current?.closeTerminal())
     if (is('cycleEffort')) return take(() => chatPanelRef.current?.cycleEffort())
     if (is('rewind')) return take(() => chatPanelRef.current?.rewind())
+    if (is('scrollBottom')) return take(() => chatPanelRef.current?.scrollBottom())
     if (is('files')) return take(() => chatPanelRef.current?.files())
     if (is('git')) return take(() => chatPanelRef.current?.git())
     // 새 탭: 탭 줄의 +와 같다 (설정에 따라 작업 공간을 만든다)

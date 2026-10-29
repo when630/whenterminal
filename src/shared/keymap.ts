@@ -10,7 +10,7 @@ export type ActionId =
   | 'allow' | 'always' | 'deny'
   | 'nextConversation' | 'prevConversation' | 'closeConversation' | 'closeProject' | 'clear' | 'compact' | 'cycleMode'
   | 'panelNext' | 'panelPrev' | 'panelBack' | 'stopTask' | 'renameConversation' | 'newConversation' | 'terminal'
-  | 'terminalNew' | 'terminalNext' | 'terminalPrev' | 'terminalClose' | 'terminalFind' | 'cycleEffort' | 'rewind' | 'away' | 'files' | 'projectUp' | 'projectDown' | 'palette' | 'git' | 'sendAfter'
+  | 'terminalNew' | 'terminalNext' | 'terminalPrev' | 'terminalClose' | 'terminalFind' | 'cycleEffort' | 'rewind' | 'scrollBottom' | 'away' | 'files' | 'projectUp' | 'projectDown' | 'palette' | 'git' | 'sendAfter'
 
 export type ActionScope = 'system' | 'anywhere' | 'home' | 'chat' | 'approval'
 
@@ -79,6 +79,7 @@ export const ACTIONS: ActionDef[] = [
   { id: 'stopTask', label: 'Stop shown task', scope: 'chat', default: 'Ctrl+Shift+X' },
   { id: 'renameConversation', label: 'Rename tab', scope: 'chat', default: 'Ctrl+Shift+E' },
   { id: 'rewind', label: 'Rewind files / chat', scope: 'chat', default: 'Ctrl+Alt+Z' },
+  { id: 'scrollBottom', label: 'Scroll to latest', scope: 'chat', default: 'Ctrl+Shift+G' },
   { id: 'sendAfter', label: 'Send after the current task', scope: 'chat', default: 'Ctrl+Enter' },
 ]
 

@@ -45,6 +45,13 @@ test('답이 길어지면 맨 아래를 따라가고, 위로 올리면 멈추고
   for (let i = 0; i < 10; i++) await emit(app, { kind: 'text_delta', text: `끝 ${i + 1}\n\n` })
   await expect.poll(() => gap(win)).toBeLessThan(4)
 
+  // 단축키로도 맨 아래로
+  await win.mouse.wheel(0, -1200)
+  await expect(win.locator('.to-bottom button')).toBeVisible()
+  await win.keyboard.press('Control+Shift+KeyG')
+  await expect.poll(() => gap(win)).toBeLessThan(4)
+  await expect(win.locator('.to-bottom button')).toHaveCount(0)
+
   // 위로 올린 채 메시지를 보내면 다시 따라간다
   await win.mouse.wheel(0, -1200)
   await expect(win.locator('.to-bottom button')).toBeVisible()

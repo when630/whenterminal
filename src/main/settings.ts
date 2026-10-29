@@ -73,7 +73,8 @@ function sanitize(raw: unknown): Settings {
   const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback)
   const away = bool(o.away, DEFAULT_SETTINGS.away)
   const hideTaskbar = bool(o.hideTaskbar, DEFAULT_SETTINGS.hideTaskbar)
+  const acrylic = bool(o.acrylic, DEFAULT_SETTINGS.acrylic)
   const promptSuggestions = bool(o.promptSuggestions, DEFAULT_SETTINGS.promptSuggestions)
   const budgetWhenHot = bool(o.budgetWhenHot, DEFAULT_SETTINGS.budgetWhenHot)
-  return { skin, theme, skinThemes, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, hideTaskbar, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
+  return { skin, theme, skinThemes, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, hideTaskbar, acrylic, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
 }

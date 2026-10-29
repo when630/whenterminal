@@ -1,5 +1,6 @@
-import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { release } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cwdOf, IPC, MAX_PROJECTS, type Conversation, type DeniedCall, type ModelOption, type StoredTask, type UsageInfo, type AgentEventEnvelope, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRuleSource, type RateLimitInfo, type RewindScope, type ShellResult, type TerminalShell, type EffortLevel, type GitDiffTarget } from '@shared/types'
@@ -86,6 +87,18 @@ function applyAppIcon(s: Settings): void {
 }
 
 const themeBackground = (s: Settings): string => THEMES.find((t) => t.id === s.theme)?.colors[0] ?? '#ffffff'
+/** 창 바탕 아크릴(setBackgroundMaterial)은 Windows 11 22H2(빌드 22621) 이상에서만 된다 */
+const acrylicSupported = process.platform === 'win32' && Number(release().split('.')[2] ?? 0) >= 22621
+/** glass 스킨이고 켜 두었으면 창 바탕을 아크릴로: 렌더러는 바탕을 칠하지 않고(data-backdrop) 판에만 색을 얹는다 */
+const useAcrylic = (s: Settings): boolean => acrylicSupported && s.skin === 'glass' && s.acrylic
+/** 창 바탕: 아크릴이면 투명 바탕 + 아크릴(색조는 창 테마를 따르므로 밝은·어두운 테마에 맞춘다), 아니면 테마 바탕색 */
+function applyBackdrop(s: Settings): void {
+  const on = useAcrylic(s)
+  nativeTheme.themeSource = on ? (THEMES.find((t) => t.id === s.theme)?.dark ? 'dark' : 'light') : 'system'
+  if (!win) return
+  win.setBackgroundColor(on ? '#00000000' : themeBackground(s))
+  if (acrylicSupported) win.setBackgroundMaterial(on ? 'acrylic' : 'none')
+}
 
 
 let win: BrowserWindow | null = null
@@ -111,7 +124,7 @@ function bootstrap(): void {
     e.returnValue = settingsStore.get()
   })
   ipcMain.on(IPC.appInfo, (e) => {
-    e.returnValue = { packaged: app.isPackaged, version: app.getVersion(), platform: process.platform }
+    e.returnValue = { packaged: app.isPackaged, version: app.getVersion(), platform: process.platform, acrylic: acrylicSupported }
   })
   applyLoginItem(settingsStore.get())
   ipcMain.handle(IPC.setSettings, (_e, next: Settings) => {
@@ -123,7 +136,7 @@ function bootstrap(): void {
       // 등록에 실패한 호출 키는 저장하지 않는다
       if (error) saved = settingsStore.set({ ...saved, keymap: { ...saved.keymap, summon: before.keymap.summon } })
     }
-    win?.setBackgroundColor(themeBackground(saved))
+    applyBackdrop(saved)
     if (saved.openAtLogin !== before.openAtLogin) applyLoginItem(saved)
     if (saved.hideTaskbar !== before.hideTaskbar && !isMac) win?.setSkipTaskbar(saved.hideTaskbar)
     if (saved.appIcon !== before.appIcon) applyAppIcon(saved)
@@ -609,7 +622,8 @@ function createWindow(): void {
     minHeight: 480,
     show: false,
     title: 'WHENTERMINAL',
-    backgroundColor: themeBackground(settingsStore.get()),
+    backgroundColor: useAcrylic(settingsStore.get()) ? '#00000000' : themeBackground(settingsStore.get()),
+    ...(useAcrylic(settingsStore.get()) ? { backgroundMaterial: 'acrylic' as const } : {}),
     icon: iconFile(settingsStore.get().appIcon),
     autoHideMenuBar: true,
     // Windows: 제목 표시줄·창 버튼 없는 창. 끌기는 사이드바 로고(-webkit-app-region), 크기 조절은 가장자리, 닫기는 Alt+F4(트레이로)
@@ -629,6 +643,8 @@ function createWindow(): void {
       backgroundThrottling: false,
     },
   })
+  // 아크릴 색조(밝게·어둡게)는 창 테마를 따른다
+  applyBackdrop(settingsStore.get())
   const sendShown = (shown: boolean): void => win?.webContents.send(IPC.windowShown, shown)
   win.on('hide', () => sendShown(false))
   win.on('minimize', () => {

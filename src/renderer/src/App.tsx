@@ -84,9 +84,9 @@ export function App(): React.JSX.Element {
   // 스킨·테마: 처음에는 그리기 전에 바로, 이후 바뀔 때는 부드럽게
   const themeApplied = useRef(false)
   useLayoutEffect(() => {
-    applyTheme(settings.skin, settings.theme, themeApplied.current)
+    applyTheme(settings.skin, settings.theme, themeApplied.current, settings.acrylic && window.api.appInfo.acrylic)
     themeApplied.current = true
-  }, [settings.skin, settings.theme])
+  }, [settings.skin, settings.theme, settings.acrylic])
   useLayoutEffect(() => applyFonts(settings), [settings.textFont, settings.questionFont, settings.answerFont, settings.codeFont])
   useEffect(() => {
     const offs = [

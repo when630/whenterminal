@@ -21,6 +21,7 @@ import { forgetTerminals, newTerminal, showTerminal, stepTerminal } from './term
 import { pruneDrafts } from './drafts'
 import { useTooltips } from './tooltip'
 import { requestRefocus } from './focus'
+import { isMorphing, morph } from './morph'
 
 export type View = { screen: 'home' } | { screen: 'chat'; projectId: string; conversationId: string } | { screen: 'settings'; back: View }
 
@@ -28,6 +29,10 @@ export function App(): React.JSX.Element {
   const [projects, setProjects] = useState<Project[]>([])
   const [convs, setConvs] = useState<ConversationMap>({})
   const [view, setView] = useState<View>({ screen: 'home' })
+  const viewRef = useRef(view)
+  viewRef.current = view
+  const convsRef = useRef(convs)
+  convsRef.current = convs
   const [settings, setSettings] = useState<Settings>(window.api.initialSettings)
   const km = useMemo(() => effectiveKeymap(settings), [settings])
   const [usage, setUsage] = useState<UsageInfo | null>(null)
@@ -206,12 +211,17 @@ export function App(): React.JSX.Element {
     // 닫힌 대화의 보고서에서 '대화 열기'를 누르면 그 대화를 다시 탭으로
     const conv = projects.find((p) => p.id === projectId)?.conversations.find((c) => c.id === conversationId)
     if (conv?.closedAt) void window.api.reopenConversation(projectId, conversationId)
-    setOpenReportId(null)
     const i = projects.findIndex((p) => p.id === projectId)
-    if (i >= 0) setDispatchIndex(i)
-    setView({ screen: 'chat', projectId, conversationId })
-    if (panel) setOpenPanel({ conversationId, panel, nonce: Date.now() })
-  }, [projects])
+    const open = (): void => {
+      setOpenReportId(null)
+      if (i >= 0) setDispatchIndex(i)
+      setView({ screen: 'chat', projectId, conversationId })
+      if (panel) setOpenPanel({ conversationId, panel, nonce: Date.now() })
+    }
+    // 홈에서 열면 그 대화의 카드(펼친 보고서)가 커지며 대화창이 된다
+    if (viewRef.current.screen === 'home') morph('card', homeCardOf(conversationId, openReportId === conversationId), open, () => document.querySelector('.stage > .screen'))
+    else open()
+  }, [projects, openReportId])
 
   const openChatRef = useRef(openChat)
   openChatRef.current = openChat
@@ -230,6 +240,14 @@ export function App(): React.JSX.Element {
 
   const respond = useCallback((projectId: string, conversationId: string, requestId: string, decision: PermissionDecision, extra?: PermissionExtra) => {
     void window.api.respondPermission(projectId, conversationId, requestId, decision, extra)
+    // 메인의 permission_resolved를 기다리지 않고 바로 뺀다 (같은 이벤트라 나중에 와도 그대로)
+    const resolve = (): void => setConvs((prev) => (prev[conversationId] ? { ...prev, [conversationId]: applyEvent(prev[conversationId], { kind: 'permission_resolved', requestId }) } : prev))
+    // 대화창에서 답하면 승인창이 물었던 도구 줄로 접혀 들어간다
+    const v = viewRef.current
+    const toolUseId = convsRef.current[conversationId]?.permissions.find((p) => p.requestId === requestId)?.toolUseId
+    if (v.screen === 'chat' && v.conversationId === conversationId) {
+      morph('ask', document.querySelector('.stage .transcript > .permission:not(.leaving)'), resolve, () => (toolUseId ? document.querySelector(`.stage .transcript [data-tool-id="${CSS.escape(toolUseId)}"]`) : null))
+    } else resolve()
   }, [])
 
   const openReport = useCallback((id: string) => {
@@ -334,8 +352,21 @@ export function App(): React.JSX.Element {
   }, [confirmTwice, removeProject])
 
   const goHome = (): void => {
-    setOpenReportId(null)
-    setView({ screen: 'home' })
+    const go = (): void => {
+      setOpenReportId(null)
+      setView({ screen: 'home' })
+    }
+    // 대화창이 그 대화의 홈 카드로 줄어든다
+    if (view.screen === 'chat') {
+      const id = view.conversationId
+      morph('card', document.querySelector('.stage > .screen'), go, () => homeCardOf(id))
+    } else go()
+  }
+  /** 탭을 옮기면 고른 탭 표시가 새 탭으로 미끄러진다 */
+  const selectConversation = (projectId: string, conversationId: string): void => {
+    const go = (): void => setView({ screen: 'chat', projectId, conversationId })
+    if (view.screen === 'chat' && view.conversationId !== conversationId) morph('tab', document.querySelector('.tabs .tab.active'), go, () => document.querySelector('.tabs .tab.active'))
+    else go()
   }
   // 설정은 어느 화면에서든 열고, 닫으면 원래 화면으로 돌아간다
   const openSettings = (): void => setView((v) => (v.screen === 'settings' ? v : { screen: 'settings', back: v }))
@@ -523,7 +554,7 @@ export function App(): React.JSX.Element {
       return take(() => {
         const ids = openConversations(project).map((c) => c.id)
         const next = (ids.indexOf(conversationId) + (is('prevConversation') ? -1 : 1) + ids.length) % ids.length
-        setView({ screen: 'chat', projectId, conversationId: ids[next] })
+        selectConversation(projectId, ids[next])
       })
     }
     if (is('closeConversation')) return take(() => requestClose(projectId, conversationId))
@@ -631,6 +662,10 @@ export function App(): React.JSX.Element {
     return out
   }, [paletteOpen, view, projects, settings, km, openChat, openProject])
 
+  const stageKey = view.screen === 'chat' ? `chat:${view.projectId}` : view.screen
+  // 모핑으로 들어온 화면은 등장 움직임(screen-in)을 건너뛴다. 처음 그릴 때 정해 그 화면 동안 그대로
+  const stageQuiet = useMemo(() => isMorphing(), [stageKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <KeymapContext.Provider value={km}>
     <div className="shell">
@@ -660,7 +695,7 @@ export function App(): React.JSX.Element {
       />
       <div className="content">
         <Ticker running={all.running} reports={all.reports} background={background} />
-        <div className="stage" key={view.screen === 'chat' ? `chat:${view.projectId}` : view.screen}>
+        <div className={`stage ${stageQuiet ? 'quiet' : ''}`} key={stageKey}>
           {view.screen === 'settings' ? (
             <SettingsScreen settings={settings} activeHotkey={hotkey} update={update} onClose={closeSettings} onSaved={(next, hk) => { setSettings(next); if (hk !== undefined) setHotkey(hk) }} />
           ) : view.screen === 'chat' && chatProject ? (
@@ -677,7 +712,7 @@ export function App(): React.JSX.Element {
               onClearRequest={() => requestClear(chatProject.id, view.conversationId)}
               onCloseRequest={(id) => requestClose(chatProject.id, id)}
               onClose={(id) => void closeConversation(chatProject.id, id)}
-              onSelectConversation={(conversationId) => setView({ screen: 'chat', projectId: chatProject.id, conversationId })}
+              onSelectConversation={(conversationId) => selectConversation(chatProject.id, conversationId)}
               onRespond={respond}
               panelRef={chatPanelRef}
               jump={jump?.conversationId === view.conversationId ? jump : null}
@@ -759,4 +794,12 @@ export function App(): React.JSX.Element {
     </div>
     </KeymapContext.Provider>
   )
+}
+
+/** 홈에서 그 대화를 나타내는 것: 펼친 보고서(sheet) → 진행 띠·쉬는 줄 → 보고서 카드 */
+function homeCardOf(conversationId: string, sheet = false): Element | null {
+  const stage = document.querySelector('.stage')
+  if (!stage) return null
+  const id = CSS.escape(conversationId)
+  return (sheet ? stage.querySelector('.sheet') : null) ?? stage.querySelector(`[data-layout-id="${id}"]`) ?? stage.querySelector(`[data-layout-id="rep:${id}"]`)
 }

@@ -223,6 +223,8 @@ export interface PermissionRequest {
   always?: AlwaysInfo
   /** 하위 에이전트 안에서 온 요청이면 그 에이전트 ID */
   agentId?: string
+  /** 묻는 도구 호출의 ID (대화 기록의 도구 줄 data-tool-id). 답하면 승인창이 그 줄로 모핑한다 */
+  toolUseId?: string
   /** toolName이 ELICITATION_TOOL일 때 */
   elicitation?: ElicitationInfo
   /** toolName이 REFUSAL_TOOL일 때 */

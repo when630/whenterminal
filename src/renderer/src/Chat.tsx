@@ -22,6 +22,7 @@ import { WorktreePanel } from './WorktreePanel'
 import { EffortPicker, ModelPicker } from './ModelPicker'
 import { useDraft } from './drafts'
 import { formatReset, limitAllowed, worstLimit } from '@shared/usage'
+import { isMorphing, morph } from './morph'
 import { FileMenu, mentionText, rankCommands, SlashMenu, useSlashCommands, type Mention } from './SlashMenu'
 
 interface Props {
@@ -96,6 +97,27 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     el.style.height = `${el.scrollHeight}px`
   }, [draft])
   const scrollRef = useRef<HTMLElement>(null)
+  // 보낸 글: 입력창 자리(왼쪽 위)·보낸 시각·그때의 기록 줄 수. 내 말풍선이 들어오면 그 자리에서 날아와 앉는다
+  const sentFrom = useRef<{ x: number; y: number; at: number; count: number } | null>(null)
+  useLayoutEffect(() => {
+    const from = sentFrom.current
+    if (!from) return
+    // 1.5초 안에 안 들어오면(대기열·명령 등) 잊는다
+    if (performance.now() - from.at > 1500) {
+      sentFrom.current = null
+      return
+    }
+    const idx = state.items.findLastIndex((i) => i.type === 'user')
+    if (idx < from.count) return
+    sentFrom.current = null
+    const el = scrollRef.current?.querySelector<HTMLElement>(`.msg.user[data-idx="${idx}"]`)
+    if (!el || reducedMotion()) return
+    const box = el.getBoundingClientRect()
+    // 기록 줄의 등장(enter) 대신 이 움직임으로
+    el.getAnimations().forEach((a) => a.cancel())
+    // 모핑과 같은 곡선으로, 살짝 작게 출발해 제 크기로 앉는다
+    el.animate([{ transform: `translate(${from.x - box.left}px, ${from.y - box.top}px) scale(0.96)`, opacity: 0.3, transformOrigin: 'left top' }, { transform: 'none', opacity: 1, transformOrigin: 'left top' }], { duration: 440, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' })
+  }, [state.items])
   const pending = state.permissions[0]
   const permission = usePresence(pending)
   const closeArmed = closeArmedId === conversationId
@@ -438,11 +460,23 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const panelHeld = usePresence(panel)
   const panelShown = panelHeld.item?.id === conversationId ? panelHeld : { item: null, leaving: false }
   const transcriptMounted = !panelShown.item
+  /**
+   * 세부 내용을 바꾼다. 대화 기록에서 처음 펼치면 상태 패널의 그 줄이 커져 세부 화면이 되고,
+   * 닫으면(대화 기록으로) 세부 화면이 그 줄로 줄어든다. 세부 화면끼리 넘길 때는 그대로 바꾼다
+   */
+  const changeDetail = (next: DetailTarget | null, apply: () => void): void => {
+    const slot = (): Element | null => document.querySelector('.chat-body > .panel-slot')
+    if (next && !panelShown.item) morph('detail', detailRow(next), apply, slot)
+    else if (!next && panelShown.item?.detail && !panelShown.leaving) {
+      const was = panelShown.item.detail
+      morph('detail', slot(), apply, () => detailRow(was))
+    } else apply()
+  }
   const hadPanel = useRef(!transcriptMounted)
   useLayoutEffect(() => {
     const was = hadPanel.current
     hadPanel.current = !transcriptMounted
-    if (was && transcriptMounted && !reducedMotion()) scrollRef.current?.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: EASE })
+    if (was && transcriptMounted && !reducedMotion() && !isMorphing()) scrollRef.current?.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: EASE })
   }, [transcriptMounted])
   const placeholderHeld = usePresence(state.items.length === 0 ? conversationId : null)
   const placeholder = placeholderHeld.item === conversationId ? placeholderHeld : { item: null, leaving: false }
@@ -517,18 +551,26 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   panelRef.current = {
     step: (dir) => {
       if (targets.length === 0 && !detail) return
-      setShowChanges(false)
-      setTool(null)
-      setDetail((cur) => {
-        // -1은 대화 기록. 끝난 작업을 보고 있었으면 대화 기록에서 출발한 것으로 친다
-        const at = cur ? targets.findIndex((t) => sameTarget(t, cur)) : -1
-        const n = targets.length + 1
-        return targets[((at + 1 + dir + n) % n) - 1] ?? null
-      })
+      // -1은 대화 기록. 끝난 작업을 보고 있었으면 대화 기록에서 출발한 것으로 친다
+      const at = detail ? targets.findIndex((t) => sameTarget(t, detail)) : -1
+      const n = targets.length + 1
+      const next = targets[((at + 1 + dir + n) % n) - 1] ?? null
+      const changing = showChanges || !!tool
+      const apply = (): void => {
+        setShowChanges(false)
+        setTool(null)
+        setDetail(next)
+      }
+      if (changing) apply()
+      else changeDetail(next, apply)
     },
     back: () => {
-      setDetail(null)
-      setTool(null)
+      const apply = (): void => {
+        setDetail(null)
+        setTool(null)
+      }
+      if (tool) apply()
+      else changeDetail(null, apply)
     },
     rewind: () => openTool({ kind: 'rewind' }),
     scrollBottom: () => {
@@ -647,6 +689,9 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     }
     setDraft('')
     history.push(text)
+    // 보낸 글이 말풍선으로 들어오면 입력창 자리에서 날아가게 (아래 useLayoutEffect)
+    const box = inputRef.current?.getBoundingClientRect()
+    if (box) sentFrom.current = { x: box.left, y: box.top, at: performance.now(), count: state.items.length }
     void window.api.send(project.id, conversationId, text, after)
   }
 
@@ -952,7 +997,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
           projectId={project.id}
           conversationId={conversationId}
           root={root}
-          onClose={() => setDetail(null)}
+          onClose={() => changeDetail(null, () => setDetail(null))}
           onStopTask={(taskId) => window.api.stopTask(project.id, conversationId, taskId)}
         />
       ) : null}
@@ -1025,9 +1070,14 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             root={root}
             selected={detail}
             onOpen={(t) => {
-              setShowChanges(false)
-              setTool(null)
-              setDetail((cur) => (cur && sameTarget(cur, t) ? null : t))
+              const next = detail && sameTarget(detail, t) ? null : t
+              const apply = (): void => {
+                setShowChanges(false)
+                setTool(null)
+                setDetail(next)
+              }
+              if (showChanges || tool) apply()
+              else changeDetail(next, apply)
             }}
             onTools={() => (tool?.kind === 'tools' ? setTool(null) : openTool({ kind: 'tools', since: state.task?.startedAt }))}
             artifactOpen={tool?.kind === 'artifact' ? tool.url : null}
@@ -1254,6 +1304,10 @@ interface PanelProps {
   onStopTask: (taskId: string) => Promise<void>
 }
 
+const detailKey = (t: DetailTarget): string => (t.kind === 'task' ? `task:${t.taskId}` : `agent:${t.toolUseId}`)
+/** 상태 패널에서 그 세부 내용의 줄 (모핑의 한쪽) */
+const detailRow = (t: DetailTarget): Element | null => document.querySelector(`.status-panel [data-detail="${CSS.escape(detailKey(t))}"]`)
+
 const sameTarget = (a: DetailTarget, b: DetailTarget): boolean =>
   a.kind === 'task' ? b.kind === 'task' && a.taskId === b.taskId : b.kind === 'agent' && a.toolUseId === b.toolUseId
 
@@ -1287,7 +1341,7 @@ function StatusPanel({ task, status, background, agents, artifacts, artifactOpen
               const info = agentInfo(a.input)
               const target: DetailTarget = { kind: 'agent', toolUseId: a.toolUseId }
               return (
-                <li className={`${isSel(target) ? 'sel' : ''} ${leaving ? 'leaving' : ''}`}>
+                <li className={`${isSel(target) ? 'sel' : ''} ${leaving ? 'leaving' : ''}`} data-detail={detailKey(target)}>
                   <button type="button" className="sp-bg-open" onClick={() => onOpen(target)} title={`${info.description}\n누르면 이 에이전트가 하는 일을 자세히 봐요`}>
                     <span className="sp-bg-row">
                       <span className="sp-bg-sq" aria-hidden="true" />
@@ -1317,7 +1371,7 @@ function StatusPanel({ task, status, background, agents, artifacts, artifactOpen
               const target: DetailTarget = { kind: 'task', taskId: b.id }
               const agent = d.label === 'AGENT' && b.toolUseId ? b.toolUseId : undefined
               return (
-                <li className={`${isSel(target) ? 'sel' : ''} ${leaving ? 'leaving' : ''}`}>
+                <li className={`${isSel(target) ? 'sel' : ''} ${leaving ? 'leaving' : ''}`} data-detail={detailKey(target)}>
                   <button type="button" className="sp-bg-open" onClick={() => onOpen(target)} title={`${cmd && cmd !== desc ? `${desc}\n${cmd}` : desc}\n누르면 ${agent ? '이 에이전트가 하는 일을' : '출력을'} 자세히 봐요`}>
                     <span className="sp-bg-row">
                       <span className="sp-bg-sq" aria-hidden="true" />

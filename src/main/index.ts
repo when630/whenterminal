@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { release } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cwdOf, IPC, MAX_PROJECTS, type Conversation, type DeniedCall, type ModelOption, type StoredTask, type UsageInfo, type AgentEventEnvelope, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRuleSource, type RateLimitInfo, type RewindScope, type ShellResult, type TerminalShell, type EffortLevel, type GitDiffTarget } from '@shared/types'
 import { limitAllowed, worstLimit } from '@shared/usage'
@@ -26,6 +26,10 @@ import { Updater } from './updater'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isMac = process.platform === 'darwin'
+// Windows 로그인 자동 실행(레지스트리 Run 키)은 작업 폴더를 정하지 않고 띄워 C:\Windows\System32에서 시작한다.
+// 바로가기로 켠 것(작업 폴더 = 설치 폴더)과 같게 맞춘다. 안 그러면 작업 폴더에 기대는 동작이 달라진다
+// (예: 그 폴더에 cmd.exe가 있어 node-pty가 이름만 받은 셸을 못 찾고 'File not found: '로 실패했다)
+if (process.platform === 'win32' && app.isPackaged && process.argv.includes('--hidden')) process.chdir(dirname(process.execPath))
 // 앞에서부터 등록을 시도. Ctrl+Space는 한글 IME 등이 선점하고 있으면 실패한다 (OPEN-005)
 // Windows PC에서는 Control+Space / Control+Alt+Space / Alt+Space가 다른 앱에 선점되어 있음 (2026-10-09 확인)
 // macOS는 Control+Space(입력 소스 전환)를 가로채도 등록이 성공해 버리므로 아예 후보에서 뺀다.

@@ -569,9 +569,9 @@
 :root[data-skin='sketch'] .fv-head, :root[data-skin='sketch'] .fv-bar, :root[data-skin='sketch'] .files-crumbs, :root[data-skin='sketch'] .quick-head { border-bottom: 1px solid var(--wash-2); }
 :root[data-skin='sketch'] .quick-head .kr { font: 700 24px/1 var(--hand); }
 :root[data-skin='sketch'] .quick-meta { border-left: 0; }
-:root[data-skin='sketch'] .quick-sheet .composer { width: auto; margin: 0 16px 14px; }
+:root[data-skin='sketch'] .quick-sheet .composer { align-self: stretch; width: auto; margin: 0 16px 14px; }
 :root[data-skin='sketch'] .quick-sheet .transcript { padding-bottom: 20px; }
-:root[data-skin='sketch'] .quick-sheet .limit-warn { width: auto; margin: 0 16px 4px; }
+:root[data-skin='sketch'] .quick-sheet .limit-warn { align-self: stretch; width: auto; margin: 0 16px 4px; }
 :root[data-skin='sketch'] .tip { padding: 5px 10px; border: 0; border-radius: 8px; background: var(--island); color: var(--ink); font: 500 12px/1.4 var(--font); box-shadow: var(--island-shadow); }
 
 /* 버튼 */
@@ -595,3 +595,8 @@
 :root[data-skin='sketch'] .hh-run .hh-label::after { content: 'Tasks running'; font-size: 20px; }
 /* 설정 머리의 제목 칸은 글자가 길어 정사각이 아니라 알약 */
 :root[data-skin='sketch'] .screen.settings .tb-key { width: auto; padding: 0 12px; font-size: 17px; }
+
+/* 질문 창 머리줄: 칸 사이를 띄운다 */
+:root[data-skin='sketch'] .quick-meta { align-items: center; gap: 6px; padding: 0 6px; border-left: 0; }
+:root[data-skin='sketch'] .quick-meta .meta-k { display: inline; font: 600 11px/1 var(--font); color: var(--gray); }
+:root[data-skin='sketch'] .quick-meta > .btn { margin-left: 2px; }

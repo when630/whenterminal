@@ -568,3 +568,11 @@
 :root[data-skin='ide'] .hh-run .hh-label { font-size: 0; text-transform: none; }
 :root[data-skin='ide'] .hh-run .hh-label::after { content: 'Tasks running'; font-size: 12px; }
 :root[data-skin='ide'] .permission-input-toggle::first-letter { text-transform: uppercase; }
+
+/* 질문 창 머리줄: .meta는 상태 표시줄용(흰 글자)이라 여기서는 판 글자색으로, 칸 사이를 띄운다 */
+:root[data-skin='ide'] .quick-meta { align-items: center; gap: 6px; padding: 0 4px; border-left: 1px solid var(--line); }
+:root[data-skin='ide'] .quick-meta .meta, :root[data-skin='ide'] .quick-meta .model-pick > .meta { height: 26px; border-radius: 4px; color: var(--ink); }
+:root[data-skin='ide'] .quick-meta .meta:hover, :root[data-skin='ide'] .quick-meta .model-pick > .meta:hover, :root[data-skin='ide'] .quick-meta .model-pick > .meta.open { background: var(--hover); color: var(--ink-2); }
+:root[data-skin='ide'] .quick-meta .meta-k { display: inline; font: 400 11px/1 var(--font); color: var(--gray); }
+:root[data-skin='ide'] .quick-meta > .btn { margin-left: 2px; }
+:root[data-skin='ide'] .quick-ctx.hot .meta-v { color: var(--signal-ink); }

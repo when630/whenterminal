@@ -35,6 +35,9 @@ export function applyFonts(s: Pick<Settings, 'textFont' | 'questionFont' | 'answ
   put('--question-font', s.questionFont)
   put('--answer-font', s.answerFont)
   put('--mono', s.codeFont)
+  // 손글씨처럼 글자 크기가 달라야 하는 글꼴을 CSS가 알 수 있게 (:root[data-answer-font='hand'])
+  document.documentElement.dataset.questionFont = s.questionFont
+  document.documentElement.dataset.answerFont = s.answerFont
   // 질문 굵기: SKIN은 스킨 값, DISPLAY는 그 자체로 굵은 글꼴이라 400, 나머지 본문 글꼴은 가늘어 보이므로 700
   if (s.questionFont === 'skin') style.removeProperty('--question-weight')
   else style.setProperty('--question-weight', s.questionFont === 'display' || s.questionFont === 'serif' ? '400' : '700')

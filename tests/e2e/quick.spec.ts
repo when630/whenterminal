@@ -96,7 +96,7 @@ test('질문 창: 포커스가 창 밖으로 빠져도 Esc로 닫힌다', async 
 test('질문 창 머리줄: 모든 스킨에서 MODEL·EFFORT·CONTEXT·버튼이 세로 가운데로 맞고 서로 붙지 않는다 (이슈 #68)', async ({ app, win }) => {
   const ids = await quickIds(win)
   await emit(app, ids, { kind: 'context', context: { percent: 12, tokens: 24000, max: 200000 } })
-  for (const [skin, theme] of [['poster', 'poster'], ['soft', 'soft-light'], ['tui', 'tui-night'], ['zen', 'zen-paper'], ['glass', 'glass-night']]) {
+  for (const [skin, theme] of [['poster', 'poster'], ['soft', 'soft-light'], ['tui', 'tui-night'], ['zen', 'zen-paper'], ['glass', 'glass-night'], ['ide', 'ide-dark'], ['sketch', 'sketch-paper']]) {
     await win.evaluate(async ([skin, theme]) => {
       const w = window as unknown as { api: { initialSettings: object; setSettings: (s: object) => Promise<unknown> } }
       await w.api.setSettings({ ...w.api.initialSettings, skin, theme })

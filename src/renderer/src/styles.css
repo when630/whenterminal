@@ -907,6 +907,9 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .md th { border-bottom: var(--rule); font-weight: 800; }
 .msg.assistant { white-space: normal; }
 .msg.assistant { padding: 14px max(28px, calc(100% - 860px)) 14px 28px; font-family: var(--answer-font); font-size: 15.5px; line-height: 1.75; }
+/* 설정 FONT의 HANDWRITING(Gaegu)은 글자가 작고 가늘어 보여 키운다. 스킨 규칙보다 앞서게 :root를 두 번 */
+:root:root[data-answer-font='hand'] .msg.assistant { font-size: 19.5px; line-height: 1.6; }
+:root:root[data-answer-font='hand'] .msg.assistant .md :is(code, pre) { font-size: 13px; }
 .msg.assistant.streaming .md > :last-child::after { content: ''; display: inline-block; width: 11px; height: 19px; margin-left: 4px; vertical-align: -3px; background: var(--signal); animation: blink var(--pulse-urgent) var(--ease-io) infinite; }
 .msg.notice { padding: 8px 28px; font: 12.5px var(--mono); color: var(--gray); }
 .msg.notice.error { margin: 6px 0; padding: 10px 28px; background: var(--sel-bg); color: var(--sel-fg); box-shadow: inset 8px 0 0 var(--signal); }
@@ -1499,7 +1502,7 @@ button.pn-row:hover:not(:disabled) .pn-sub, button.pn-row:hover:not(:disabled) .
 /* 상태 패널을 숨기는 스킨(zen)만 대화창 머리에 도구 목록·아티팩트 버튼을 둔다 */
 .tb-nopanel { display: none; }
 /* 스킨이 쓰는 마크업 (poster에서는 숨기거나 배치에 끼어들지 않는다) */
-.nav-ico, .nav-switch, .permission-kind { display: none; }
+.nav-ico, .nav-switch, .permission-kind, .cmd-bar { display: none; }
 .nav-marks, .sp-task { display: contents; }
 .effort-bars { display: none; }
 /* 사용량은 어디를 눌러도 새로 고친다 */

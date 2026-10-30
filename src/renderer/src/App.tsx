@@ -690,6 +690,13 @@ export function App(): React.JSX.Element {
         onToggleAway={toggleAway}
       />
       <div className="content">
+        {/* 명령 센터 (ide 스킨만, 나머지는 숨김): 창 위 가운데 찾기 칸. 누르면 명령 팔레트 */}
+        <div className="cmd-bar">
+          <button type="button" className="cmd-center" onClick={() => setPaletteOpen(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></svg>
+            <span>{chatProject ? `${chatProject.name} — ` : ''}명령·대화·프로젝트 찾기</span>
+          </button>
+        </div>
         <Ticker running={all.running} reports={all.reports} background={background} />
         <div className={`stage ${stageQuiet ? 'quiet' : ''}`} key={stageKey}>
           {view.screen === 'settings' ? (

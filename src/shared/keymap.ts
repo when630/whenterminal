@@ -134,7 +134,7 @@ export function toAccelerator(binding: string): string {
 }
 
 /** 스킨: 모양(선·모서리·그림자·글꼴·배치). 색은 스킨마다 따로 있는 테마가 정한다. poster는 G안 그대로(:root에 data-skin 없음) */
-export type SkinId = 'poster' | 'soft' | 'tui' | 'zen' | 'glass'
+export type SkinId = 'poster' | 'soft' | 'tui' | 'zen' | 'glass' | 'ide' | 'sketch'
 
 export const SKINS: { id: SkinId; name: string; note: string }[] = [
   { id: 'poster', name: 'POSTER', note: '굵은 검은 선과 큰 글자, 스위스 포스터' },
@@ -142,6 +142,8 @@ export const SKINS: { id: SkinId; name: string; note: string }[] = [
   { id: 'tui', name: 'TUI', note: '고정폭 글자와 제목이 박힌 상자, 터미널처럼' },
   { id: 'zen', name: 'ZEN', note: '선도 패널도 없이 여백과 글만' },
   { id: 'glass', name: 'GLASS', note: '흐린 바탕 위 반투명 유리 패널' },
+  { id: 'ide', name: 'IDE', note: '편집기처럼 탭·탐색기 트리·아래 상태 표시줄' },
+  { id: 'sketch', name: 'SKETCH', note: '캔버스 위 손그림과 떠 있는 도구 판' },
 ]
 
 export type ThemeId =
@@ -150,6 +152,8 @@ export type ThemeId =
   | 'tui-night' | 'tui-phosphor' | 'tui-amber' | 'tui-paper'
   | 'zen-sage' | 'zen-paper' | 'zen-ink' | 'zen-stone' | 'zen-snow' | 'zen-kraft' | 'zen-night' | 'zen-moss' | 'zen-dim'
   | 'glass-day' | 'glass-night' | 'glass-dusk'
+  | 'ide-dark' | 'ide-light' | 'ide-midnight' | 'ide-solar' | 'ide-hc'
+  | 'sketch-paper' | 'sketch-board' | 'sketch-blueprint' | 'sketch-kraft' | 'sketch-legal'
 
 /** 색 테마. 스킨마다 제 테마 목록이 있고 목록의 첫 테마가 그 스킨의 기본값. colors는 [바탕, 글자, 신호색] (설정 견본·창 바탕색) */
 export const THEMES: { id: ThemeId; skin: SkinId; name: string; note: string; colors: [string, string, string]; dark?: boolean }[] = [
@@ -177,6 +181,16 @@ export const THEMES: { id: ThemeId; skin: SkinId; name: string; note: string; co
   { id: 'glass-day', skin: 'glass', name: 'DAY', note: '밝은 바탕에 흰 유리', colors: ['#eef0f4', '#111318', '#ff3b30'] },
   { id: 'glass-night', skin: 'glass', name: 'NIGHT', note: '어두운 바탕에 짙은 유리', colors: ['#0f1218', '#e6eaf0', '#ff6b5e'], dark: true },
   { id: 'glass-dusk', skin: 'glass', name: 'DUSK', note: '보랏빛 저녁 바탕', colors: ['#1b1626', '#ece6f5', '#ff7a6b'], dark: true },
+  { id: 'ide-dark', skin: 'ide', name: 'DARK', note: '기본 어두운 편집기', colors: ['#1f1f1f', '#cccccc', '#f14c4c'], dark: true },
+  { id: 'ide-light', skin: 'ide', name: 'LIGHT', note: '밝은 편집기', colors: ['#ffffff', '#3b3b3b', '#c72e0f'] },
+  { id: 'ide-midnight', skin: 'ide', name: 'MIDNIGHT', note: '푸른 검정, 밤에 오래 볼 때', colors: ['#0d1117', '#c9d1d9', '#f85149'], dark: true },
+  { id: 'ide-solar', skin: 'ide', name: 'SOLAR', note: '따뜻한 미색, 눈부심이 적어요', colors: ['#fdf6e3', '#44525a', '#c4361c'] },
+  { id: 'ide-hc', skin: 'ide', name: 'HIGH CONTRAST', note: '검정 바탕에 밝은 테두리, 대비가 가장 커요', colors: ['#000000', '#ffffff', '#ff5c5c'], dark: true },
+  { id: 'sketch-paper', skin: 'sketch', name: 'PAPER', note: '흰 모눈 캔버스, 보라 강조', colors: ['#ffffff', '#1e1e1e', '#e03131'] },
+  { id: 'sketch-board', skin: 'sketch', name: 'BOARD', note: '어두운 캔버스, 밤에 편해요', colors: ['#121214', '#e3e3e8', '#ff8787'], dark: true },
+  { id: 'sketch-blueprint', skin: 'sketch', name: 'BLUEPRINT', note: '청사진 위 노란 연필', colors: ['#1d4f8f', '#eaf2ff', '#ff8a80'], dark: true },
+  { id: 'sketch-kraft', skin: 'sketch', name: 'KRAFT', note: '갈색 크라프트지에 초록 펜', colors: ['#d6bf99', '#2b2117', '#c92a2a'] },
+  { id: 'sketch-legal', skin: 'sketch', name: 'LEGAL', note: '줄 친 노란 패드에 파란 펜', colors: ['#fff6b8', '#1e1e1e', '#e03131'] },
 ]
 
 /** 스킨의 테마 목록 */
@@ -214,7 +228,7 @@ export const APP_ICONS: { id: AppIconId; name: string; note: string }[] = [
 ]
 
 /** skin: 지금 스킨이 정한 글꼴 (기본값). 나머지는 스킨과 상관없이 그 글꼴로 */
-export type FontId = 'skin' | 'display' | 'pretendard' | 'serif' | 'geist' | 'cascadia' | 'd2coding'
+export type FontId = 'skin' | 'display' | 'pretendard' | 'serif' | 'hand' | 'geist' | 'cascadia' | 'd2coding'
 
 /** 글꼴 (설정 FONT). css는 --font·--mono·--answer-font·--question-font에 넣는 목록. 한글이 없는 글꼴은 뒤의 글꼴로 넘어간다 */
 export const FONTS: Record<FontId, { name: string; css: string }> = {
@@ -222,6 +236,7 @@ export const FONTS: Record<FontId, { name: string; css: string }> = {
   display: { name: 'DISPLAY', css: "'WT Display', 'Black Han Sans', 'Pretendard Variable', sans-serif" },
   pretendard: { name: 'PRETENDARD', css: "'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" },
   serif: { name: 'SERIF', css: "'Noto Serif KR', 'AppleMyungjo', Batang, serif" },
+  hand: { name: 'HANDWRITING', css: "'Gaegu', 'Pretendard Variable', cursive" },
   geist: { name: 'GEIST MONO', css: "'Geist Mono', 'SF Mono', 'Cascadia Code', 'D2Coding', Consolas, monospace" },
   cascadia: { name: 'CASCADIA CODE NF', css: "'Cascadia Code NF', 'D2Coding', Consolas, 'Pretendard Variable', monospace" },
   d2coding: { name: 'D2CODING NF', css: "'D2Coding NF', D2Coding, Consolas, monospace" },
@@ -231,8 +246,8 @@ export const FONTS: Record<FontId, { name: string; css: string }> = {
  * 다른 것을 고르면 스킨과 상관없이 그 글꼴. 터미널은 고정폭만
  */
 export const TEXT_FONTS: FontId[] = ['skin', 'pretendard', 'cascadia', 'd2coding']
-export const QUESTION_FONTS: FontId[] = ['skin', 'display', 'pretendard', 'serif', 'cascadia', 'd2coding']
-export const ANSWER_FONTS: FontId[] = ['skin', 'pretendard', 'serif', 'cascadia', 'd2coding']
+export const QUESTION_FONTS: FontId[] = ['skin', 'display', 'pretendard', 'serif', 'hand', 'cascadia', 'd2coding']
+export const ANSWER_FONTS: FontId[] = ['skin', 'pretendard', 'serif', 'hand', 'cascadia', 'd2coding']
 export const CODE_FONTS: FontId[] = ['skin', 'geist', 'cascadia', 'd2coding']
 
 export interface Settings {

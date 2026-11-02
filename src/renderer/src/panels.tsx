@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DidFailLoadEvent, DidNavigateEvent, WebviewTag } from 'electron'
 import { Presence, PresenceList } from './motion'
-import type { AgentOption, McpServerInfo, MemoryFile, PermissionRuleSource, PermissionsInfo, RewindScope, SessionOption, SessionStatus } from '@shared/types'
+import type { AccountsInfo, AgentOption, McpServerInfo, MemoryFile, PermissionRuleSource, PermissionsInfo, RewindScope, SessionOption, SessionStatus } from '@shared/types'
 import { ARTIFACT_PARTITION, MODE_LABEL } from '@shared/types'
 import { artifactsOf, isRunningTool, relPath as relPathOf, summarizeInput as summarizeInputOf, type TranscriptItem } from './state'
 import { elapsed, useNow } from './time'
@@ -649,9 +649,31 @@ function StatusPanel({ projectId, conversationId, onClose, onRunInTerminal }: Pr
     void window.api.accountStatus(refresh).then(() => window.api.sessionStatus(projectId, conversationId)).then(setSt, (err) => setMessage({ ok: false, text: err instanceof Error ? err.message : String(err) }))
   }
   useEffect(() => load(), [projectId, conversationId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [accounts, setAccounts] = useState<AccountsInfo | null>(null)
+  const [switching, setSwitching] = useState<string | null>(null)
+  useEffect(() => {
+    void window.api.accounts().then(setAccounts)
+    // 터미널에서 로그인을 마치면 메인이 알아채고 보낸다
+    return window.api.onAccountsChanged((info) => {
+      setAccounts(info)
+      load(true)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const login = async (): Promise<void> => {
     onRunInTerminal(await window.api.loginCommand())
-    setMessage({ ok: true, text: '아래 터미널에 로그인 명령을 넣었어요. Enter로 실행하고 브라우저에서 로그인한 뒤 REFRESH를 눌러요' })
+    setMessage({ ok: true, text: '아래 터미널에 로그인 명령을 넣었어요. Enter로 실행하고 브라우저에서 로그인하면 이 계정도 목록에 남아요' })
+  }
+  const switchTo = async (id: string): Promise<void> => {
+    setSwitching(id)
+    try {
+      setAccounts(await window.api.switchAccount(id))
+      setMessage({ ok: true, text: '계정을 바꿨어요. 쉬는 대화는 다음 메시지부터, 도는 작업은 끝난 뒤부터 이 계정을 써요' })
+      load(true)
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err) })
+    } finally {
+      setSwitching(null)
+    }
   }
   const a = st?.account
   const row = (k: string, v?: React.ReactNode): React.JSX.Element | null => (v ? <div><dt>{k}</dt><dd>{v}</dd></div> : null)
@@ -662,7 +684,7 @@ function StatusPanel({ projectId, conversationId, onClose, onRunInTerminal }: Pr
       onClose={onClose}
       actions={
         <>
-          <button type="button" className="btn" onClick={() => void login()}>{a?.loggedIn ? 'SWITCH ACCOUNT' : 'LOGIN IN TERMINAL'}</button>
+          <button type="button" className="btn" onClick={() => void login()}>{a?.loggedIn ? 'ADD ACCOUNT' : 'LOGIN IN TERMINAL'}</button>
           <button type="button" className="btn" onClick={() => load(true)}>REFRESH</button>
         </>
       }
@@ -682,6 +704,29 @@ function StatusPanel({ projectId, conversationId, onClose, onRunInTerminal }: Pr
             </dl>
             {!a?.loggedIn && <p className="pn-note">구독으로만 인증해요. API 키 환경 변수는 자식 프로세스에 넘기지 않아요.</p>}
           </section>
+          {accounts?.supported && (
+            <section className="pn-sec">
+              <h5>ACCOUNTS · {accounts.list.length}</h5>
+              {accounts.list.length < 2 && <p className="pn-note">한 번 로그인한 계정은 여기 남아요. ADD ACCOUNT로 다른 계정에도 로그인해 두면 브라우저 없이 바로 바꿀 수 있어요.</p>}
+              <ul className="pn-list" aria-label="계정">
+                {accounts.list.map((x) => {
+                  const current = x.id === accounts.current
+                  return (
+                    <li key={x.id}>
+                      <button type="button" className="pn-row" disabled={current || switching !== null} onClick={() => void switchTo(x.id)}>
+                        <span className={`chip ${current ? 'ok' : ''}`}>{current ? 'CURRENT' : switching === x.id ? 'SWITCHING' : 'SAVED'}</span>
+                        <span className="pn-text">
+                          <b>{x.email}</b>
+                          <span className="pn-sub">{[x.organization, x.seatTier?.toUpperCase()].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        {!current && <span className="pn-tags"><span className="chip">SWITCH</span></span>}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
           <section className="pn-sec">
             <h5>SESSION</h5>
             <dl className="pn-dl">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { MAX_PROJECTS, MODE_CYCLE, needsChoice, QUICK_PROJECT_ID, openConversations, type AgentMode, type StoredTask, type PermissionDecision, type PermissionExtra, type Project, type UpdateState, type UsageInfo } from '@shared/types'
+import { MAX_PROJECTS, MODE_CYCLE, needsChoice, QUICK_PROJECT_ID, openConversations, type AgentMode, type StoredTask, type PermissionDecision, type PermissionExtra, type Project, type UpdateState, type UsageInfo, type AccountsInfo } from '@shared/types'
 import { applyEvent, collectBackground, collectTasks, IDLE_KEY, mostUrgentConversation, type ConversationMap, type TaskInfo, type TaskRef } from './state'
 import { Home, type DispatchOrigin } from './Home'
 import { Chat, type PanelControl } from './Chat'
@@ -36,6 +36,7 @@ export function App(): React.JSX.Element {
   const [settings, setSettings] = useState<Settings>(window.api.initialSettings)
   const km = useMemo(() => effectiveKeymap(settings), [settings])
   const [usage, setUsage] = useState<UsageInfo | null>(null)
+  const [accounts, setAccounts] = useState<AccountsInfo | null>(null)
   const [update, setUpdate] = useState<UpdateState | null>(null)
   const [hotkey, setHotkey] = useState<string | null>(null)
   const [dispatchIndex, setDispatchIndex] = useState(0)
@@ -134,7 +135,9 @@ export function App(): React.JSX.Element {
     window.api.getHotkey().then(setHotkey)
     window.api.getUsage().then(setUsage)
     window.api.getUpdate().then(setUpdate)
+    window.api.accounts().then(setAccounts)
     const offs = [
+      window.api.onAccountsChanged(setAccounts),
       window.api.onProjectsChanged(setProjects),
       window.api.onUsage(setUsage),
       window.api.onUpdate(setUpdate),
@@ -655,8 +658,23 @@ export function App(): React.JSX.Element {
       if (t.id === settings.theme) continue
       out.push({ id: `theme:${t.id}`, group: 'THEME', label: `Theme · ${t.name}`, note: t.note, run: () => save({ ...settings, theme: t.id }) })
     }
+    // 보관해 둔 다른 구독 계정으로 바꾸기
+    if (accounts?.supported) {
+      for (const a of accounts.list) {
+        if (a.id === accounts.current) continue
+        const switchTo = (): void =>
+          void window.api.switchAccount(a.id).then(
+            (info) => {
+              setAccounts(info)
+              showFlash(`ACCOUNT · ${a.email}`)
+            },
+            (err: unknown) => showFlash(`계정을 바꾸지 못했어요: ${err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err)}`),
+          )
+        out.push({ id: `account:${a.id}`, group: 'ACCOUNT', label: `Account · ${a.email}`, note: [a.organization, a.seatTier?.toUpperCase()].filter(Boolean).join(' · ') || undefined, keywords: 'switch login 계정 전환', run: switchTo })
+      }
+    }
     return out
-  }, [paletteOpen, view, projects, settings, km, openChat, openProject])
+  }, [paletteOpen, view, projects, settings, km, openChat, openProject, accounts, showFlash])
 
   const stageKey = view.screen === 'chat' ? `chat:${view.projectId}` : view.screen
   // 모핑으로 들어온 화면은 등장 움직임(screen-in)을 건너뛴다. 처음 그릴 때 정해 그 화면 동안 그대로

@@ -315,6 +315,25 @@ export interface AccountStatus {
   error?: string
 }
 
+/** 보관해 둔 구독 계정 (accounts.ts). 토큰은 메인에만 있다 */
+export interface SavedAccount {
+  /** accountUuid:organizationUuid */
+  id: string
+  email: string
+  organization?: string
+  /** Team 시트 등급 (CLI의 oauthAccount.seatTier) */
+  seatTier?: string
+  savedAt: number
+}
+
+export interface AccountsInfo {
+  /** 지금 로그인한 계정 ID */
+  current: string | null
+  list: SavedAccount[]
+  /** 바꿔 끼울 수 있는 환경인지 (macOS 키체인이면 아님) */
+  supported: boolean
+}
+
 /** /status: 이 대화의 세션 정보 */
 export interface SessionStatus {
   sessionId?: string
@@ -805,6 +824,10 @@ export const IPC = {
   sessionStatus: 'agent:session-status',
   accountStatus: 'agent:account-status',
   loginCommand: 'agent:login-command',
+  accounts: 'account:list',
+  switchAccount: 'account:switch',
+  // 메인 → 렌더러
+  accountsChanged: 'account:changed',
   prewarm: 'agent:prewarm',
   quickProject: 'quick:project',
   setTag: 'agent:set-tag',
@@ -891,6 +914,11 @@ export interface WhenTerminalApi {
   accountStatus(refresh?: boolean): Promise<AccountStatus>
   /** 터미널에서 로그인할 때 칠 명령 (번들된 CLI 경로 포함) */
   loginCommand(): Promise<string>
+  /** 보관해 둔 계정들 (한 번 로그인한 계정은 자동으로 보관) */
+  accounts(): Promise<AccountsInfo>
+  /** 보관한 계정으로 바꾼다. 쉬는 CLI는 바로, 도는 것은 턴이 끝나면 다시 띄운다 */
+  switchAccount(id: string): Promise<AccountsInfo>
+  onAccountsChanged(cb: (info: AccountsInfo) => void): () => void
   /** 대화 내용을 요약해 컨텍스트를 줄인다. instructions는 요약할 때 중점을 둘 내용 */
   compact(projectId: string, conversationId: string, instructions?: string): Promise<void>
   /** 컨텍스트를 비우고 다음 메시지부터 새 세션으로 시작한다 */

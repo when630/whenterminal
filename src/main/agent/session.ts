@@ -637,6 +637,24 @@ export class AgentSession {
     else if (this.status === 'running' || this.status === 'waiting_approval') this.setStatus('stopped')
   }
 
+  /**
+   * 로그인 계정이 바뀌었다: 쉬고 있으면 프로세스만 끝내 다음 메시지가 새 계정으로 이어 열게 한다 (대화·상태는 그대로).
+   * 턴·확인 대기·컴팩트·백그라운드 작업(프로세스와 함께 죽는다)이 있거나 보낼 메시지를 들고 있으면 false (나중에 다시)
+   */
+  recycle(): boolean {
+    const q = this.q
+    if (!q) return true
+    if (this.isBusy() || this.claiming || this.manualCompact || this.quietCommand || this.held.length || this.folding.length || this.background.length || this.pending.size) return false
+    // consume의 finally가 '예기치 않게 끝남'으로 보지 않게 먼저 떼어 낸다
+    this.q = null
+    this.queue?.close()
+    this.queue = null
+    this.inflight = []
+    this.interrupted = false
+    q.close()
+    return true
+  }
+
   /** 추가 폴더를 바꾼다. 살아 있으면 바로, 아니면 다음 시작 때 */
   async setAdditionalDirectories(dirs: string[]): Promise<void> {
     this.opts.additionalDirectories = dirs

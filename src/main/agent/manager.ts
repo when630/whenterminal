@@ -221,6 +221,28 @@ export class AgentManager {
     return busy >= limit
   }
 
+  /** 로그인 계정이 바뀐 뒤 아직 옛 계정으로 떠 있는 세션 (쉬게 되면 다시 띄운다) */
+  private staleAuth = new Set<string>()
+
+  /**
+   * 로그인 계정이 바뀌었다(계정 전환·터미널 로그인). 떠 있는 CLI는 띄울 때의 로그인을 들고 있으므로
+   * 미리 띄운 것은 버리고, 쉬는 세션은 바로·도는 세션은 끝나면 프로세스를 끝내 다음 메시지가 새 계정으로 이어 열게 한다
+   */
+  reloadAuth(): void {
+    this.spare.dispose()
+    this.account = null
+    this.models = null
+    for (const id of this.sessions.keys()) this.staleAuth.add(id)
+    this.recycleStale()
+  }
+
+  private recycleStale(): void {
+    for (const id of [...this.staleAuth]) {
+      const s = this.sessions.get(id)
+      if (!s || s.recycle()) this.staleAuth.delete(id)
+    }
+  }
+
   /** 자리가 났으면 대기열 앞에서부터 시작한다. 설정을 바꿨을 때도 부른다 */
   drain(): void {
     while (this.waiting.length && !this.atCapacity()) {
@@ -365,7 +387,9 @@ export class AgentManager {
 
   /** 살아 있는 아무 세션의 Query (사용량처럼 계정 단위 조회에 쓴다). 없으면 null */
   liveQuery(): Query | null {
-    for (const s of this.sessions.values()) {
+    for (const [id, s] of this.sessions) {
+      // 옛 계정으로 떠 있는 세션은 계정·사용량을 잘못 답한다
+      if (this.staleAuth.has(id)) continue
       const q = s.query()
       if (q) return q
     }
@@ -661,6 +685,8 @@ export class AgentManager {
       away: () => projectId !== QUICK_PROJECT_ID && this.prefs().away,
       budget: () => (projectId === QUICK_PROJECT_ID ? null : this.budgetFor()),
       emit: (event) => {
+        // 계정이 바뀐 뒤 쉬게 됐으면 프로세스를 새로 (대기열이 이 세션에 보내기 전에)
+        if (this.staleAuth.has(conversationId) && (event.kind === 'status' || event.kind === 'background')) queueMicrotask(() => this.recycleStale())
         // 실행이 끝나 자리가 나면 다음 차례를 시작한다
         if (event.kind === 'status' && event.status !== 'running' && event.status !== 'waiting_approval' && event.status !== 'queued') {
           queueMicrotask(() => this.drain())

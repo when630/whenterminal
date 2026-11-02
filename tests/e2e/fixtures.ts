@@ -20,7 +20,8 @@ export interface Env {
   root: string
   userData: string
   path: (project: string) => string
-  launch: () => Promise<{ app: ElectronApplication; win: Page; errors: string[] }>
+  /** env: 앱에 더 넘길 환경 변수 (CLAUDE_CONFIG_DIR 등) */
+  launch: (env?: Record<string, string>) => Promise<{ app: ElectronApplication; win: Page; errors: string[] }>
 }
 
 /**
@@ -52,8 +53,8 @@ export function makeEnv(seed: Seed): Env {
     root,
     userData,
     path,
-    launch: async () => {
-      const app = await _electron.launch({ executablePath: electronPath, args: [repo, `--user-data-dir=${userData}`], cwd: repo })
+    launch: async (env) => {
+      const app = await _electron.launch({ executablePath: electronPath, args: [repo, `--user-data-dir=${userData}`], cwd: repo, env: env ? { ...(process.env as Record<string, string>), ...env } : undefined })
       const win = await app.firstWindow()
       const errors: string[] = []
       win.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
@@ -68,7 +69,7 @@ export function makeEnv(seed: Seed): Env {
  * 테스트가 끝난 앱을 끝낸다. 앱이 시작할 때 띄운 CLI 탐색(한도·peek·명령 목록)과 셸이 남아 있으면 정상 종료가 2초쯤 걸리고
  * 남은 자식 프로세스가 임시 폴더를 잡는다. 저장할 것은 이미 다 썼으므로 Windows에서는 프로세스 트리째 바로 끝낸다
  */
-async function quit(app: ElectronApplication): Promise<void> {
+export async function quit(app: ElectronApplication): Promise<void> {
   const pid = app.process().pid
   if (process.platform === 'win32' && pid) {
     try {

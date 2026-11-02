@@ -9,6 +9,7 @@ import { newConversationId, ProjectStore } from './store'
 import { memoryFiles, permissionsInfo, setPermissionRule } from './agent/config'
 import { exportMarkdown } from './agent/history'
 import { loginCommand } from './executable'
+import { AccountStore } from './accounts'
 import { branchOf, createWorktree, discardWorktree, isGitRepo, mergeWorktree, worktreeChanges } from './worktree'
 import { listChildren, searchFiles } from './files'
 import { gitCheckout, gitCommit, gitDiff, gitLog, gitOverview } from './git-view'
@@ -159,7 +160,7 @@ function bootstrap(): void {
   let usageInflight: Promise<UsageInfo | null> | null = null
   let usageTimer: ReturnType<typeof setTimeout> | null = null
   const USAGE_STALE_MS = 5 * 60_000
-  const usageAlerts = new UsageAlerts()
+  let usageAlerts = new UsageAlerts()
   const alertUsage = (u: UsageInfo | null): void => {
     if (!u) return
     for (const a of usageAlerts.check(u)) notifier.usage(a.id, a.title, a.body)
@@ -555,6 +556,21 @@ function bootstrap(): void {
   ipcMain.handle(IPC.sessionStatus, (_e, projectId: string, conversationId: string) => manager.sessionStatus(projectId, conversationId))
   ipcMain.handle(IPC.accountStatus, (_e, refresh?: boolean) => manager.accountStatus(refresh))
   ipcMain.handle(IPC.loginCommand, () => loginCommand())
+  // 구독 계정 오가기: 로그인이 바뀌면(앱에서 고르거나 터미널에서 로그인) 떠 있는 CLI를 새로 띄우고 계정 단위 정보를 다시 읽는다
+  const accounts = new AccountStore(join(app.getPath('userData'), 'accounts.json'), () => {
+    manager.reloadAuth()
+    usage = null
+    usageAlerts = new UsageAlerts()
+    void refreshUsage()
+    send(IPC.accountsChanged, accounts.accounts())
+  })
+  accounts.start()
+  ipcMain.handle(IPC.accounts, () => accounts.accounts())
+  ipcMain.handle(IPC.switchAccount, (_e, id: string) => {
+    // 파일을 바꾸기 전에 쉬는 CLI부터 내린다 (옛 토큰을 갱신해 다시 써 넣지 않게)
+    accounts.switchTo(id, () => manager.reloadAuth())
+    return accounts.accounts()
+  })
   ipcMain.handle(IPC.prewarm, () => manager.prewarm())
   ipcMain.handle(IPC.quickProject, () => store.quick())
   ipcMain.handle(IPC.setTag, async (_e, projectId: string, conversationId: string, tag: string | null) => {
@@ -581,6 +597,7 @@ function bootstrap(): void {
     quitting = true
     updater.stop()
     manager.disposeAll()
+    accounts.dispose()
     terminals.closeAll()
   })
   app.on('will-quit', () => globalShortcut.unregisterAll())

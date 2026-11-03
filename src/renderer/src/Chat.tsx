@@ -13,6 +13,7 @@ import { clock, useNow } from './time'
 import { SubLog, TaskDetail, type DetailTarget } from './TaskDetail'
 import { closeTerminal, execInTerminal, forgetTerminals, pathForComposer, runInTerminal, terminalStats, TerminalDrawer, toggleTerminal } from './terminal'
 import { Markdown } from './Markdown'
+import { ImageRefs, ToolImages } from './images'
 import { CopyButton } from './copy'
 import { useOpened } from './opened'
 import { FilesOverlay } from './FilesOverlay'
@@ -768,6 +769,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       cancel: (id: string) => void itemActs.current.cancelQueued(id),
       rewind: (uuid: string) => itemActs.current.openTool({ kind: 'rewind', uuid }),
       expand: (toolUseId: string) => window.api.toolResult(itemActs.current.projectId, itemActs.current.conversationId, toolUseId),
+      image: (path: string) => window.api.localImage(itemActs.current.projectId, itemActs.current.conversationId, path),
+      toolImages: (toolUseId: string) => window.api.toolImages(itemActs.current.projectId, itemActs.current.conversationId, toolUseId),
     }),
     [],
   )
@@ -1042,6 +1045,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 onQueueCancel={acts.cancel}
                 onRewind={!busy && state.status !== 'queued' ? acts.rewind : undefined}
                 onExpand={acts.expand}
+                onImage={acts.image}
+                onToolImages={acts.toolImages}
               />
             )
             if (node.kind === 'item') return render(node.item, node.idx)
@@ -1498,10 +1503,14 @@ interface ItemProps {
   onRewind?: (uuid: string) => void
   /** 잘린 도구 결과의 전문 읽기 */
   onExpand?: (toolUseId: string) => Promise<string | null>
+  /** 로컬 그림 경로 → 그릴 주소 (첨부·답변의 그림) */
+  onImage?: (path: string) => Promise<string | null>
+  /** 도구 결과에 든 그림들 */
+  onToolImages?: (toolUseId: string) => Promise<string[]>
 }
 
 /** 대화 기록 한 줄. memo: 다른 대화·다른 줄의 이벤트로 기록 전체를 다시 그리지 않는다 */
-export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand }: ItemProps): React.JSX.Element {
+export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand, onImage, onToolImages }: ItemProps): React.JSX.Element {
   const e = enter ? ' enter' : ''
   const [opened, onToggle] = useOpened()
   // 차례를 기다리던 글이 보내지면 EDIT/CANCEL은 잠시 남아 나간다
@@ -1511,6 +1520,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
       return (
         <div className={`msg user ${item.pending ? 'pending' : ''}${e}`} data-idx={di}>
           {item.text}
+          {onImage && <ImageRefs text={item.text} load={onImage} />}
           {acts.item && (
             <span className={`msg-acts ${acts.leaving ? 'leaving' : ''}`}>
               <span className="msg-wait" title={item.steer ? '지금 작업 중에 읽어요. 다음 도구 호출 사이에 반영돼요' : '지금 작업이 끝난 뒤에 보내요'}>{item.steer ? 'NEXT STEP' : 'NEXT'}</span>
@@ -1533,7 +1543,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
     case 'assistant':
       return (
         <div className={`msg assistant ${item.streaming ? 'streaming' : ''}${e}`} data-idx={di}>
-          <Markdown text={item.text} />
+          <Markdown text={item.text} loadImage={onImage} />
         </div>
       )
     case 'thinking':
@@ -1608,7 +1618,9 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
                 <SubLog list={sub} subs={subs ?? {}} root={root} live={!item.stopped} />
               </>
             )}
-            {item.result !== undefined && <ToolOutput toolUseId={item.toolUseId} text={item.result} truncated={item.truncated} onExpand={onExpand} />}
+            {!!item.images && onToolImages && <ToolImages key={item.toolUseId} count={item.images} load={() => onToolImages(item.toolUseId)} />}
+            {/* 그림만 든 결과는 OUTPUT에 '[image]'만 남으므로 그리지 않는다 */}
+            {item.result !== undefined && !(item.images && onToolImages && /^(\[image\]\s*)+$/.test(item.result)) && <ToolOutput toolUseId={item.toolUseId} text={item.result} truncated={item.truncated} onExpand={onExpand} />}
             </>
             )}
           </div>

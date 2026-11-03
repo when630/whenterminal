@@ -31,6 +31,9 @@ export function QuickAsk({ convs, usage, leaving, onClose, onRespond }: Props): 
   const conv = project?.conversations[0]
   const conversationId = conv?.id ?? ''
   const state = (conversationId && convs[conversationId]) || emptyConversation()
+  const projectId = project?.id ?? ''
+  // 기록 줄의 그림은 load가 바뀌면 다시 읽으므로 같은 함수를 준다
+  const loadImage = useCallback((path: string) => (projectId && conversationId ? window.api.localImage(projectId, conversationId, path) : Promise.resolve(null)), [projectId, conversationId])
   const [draft, setDraft] = useDraft('quick')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLElement>(null)
@@ -236,6 +239,8 @@ export function QuickAsk({ convs, usage, leaving, onClose, onRespond }: Props): 
               subs={state.subs}
               progress={state.progress}
               onExpand={(toolUseId) => (project && conv ? window.api.toolResult(project.id, conv.id, toolUseId) : Promise.resolve(null))}
+              onImage={loadImage}
+              onToolImages={(toolUseId) => (project && conv ? window.api.toolImages(project.id, conv.id, toolUseId) : Promise.resolve([]))}
             />
           ))}
           {working.item && <Working status={state.status} activity={state.task?.activity} startedAt={state.task?.startedAt} leaving={working.leaving} />}

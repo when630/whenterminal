@@ -4,7 +4,7 @@ import { ELICITATION_TOOL, isAgentMode, REFUSAL_TOOL, type AlwaysInfo, type Alwa
 import { MessageQueue } from './message-queue'
 import { claudeExecutable } from '../executable'
 import { outputPathIn, rememberTaskOutput } from './task-output'
-import { taskLine, watcherNote } from './history'
+import { imageCount, taskLine, watcherNote } from './history'
 import type { SessionCallbacks, SpareHandle } from './spare'
 
 /** 사람의 답을 기다리는 것: 도구 승인 · MCP 입력 요청 · CLI 대화 상자. 화면에는 모두 승인창으로 */
@@ -1064,6 +1064,7 @@ export class AgentSession {
             content: content.slice(0, TOOL_RESULT_PREVIEW_LIMIT),
             isError: block.is_error ?? false,
             truncated: content.length > TOOL_RESULT_PREVIEW_LIMIT,
+            images: imageCount(block.content) || undefined,
           })
         }
         break

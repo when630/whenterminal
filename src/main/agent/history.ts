@@ -43,6 +43,9 @@ export const watcherNote = (summary?: string): boolean => !!summary && /^\s*live
 export const taskLine = (status?: string, summary?: string, event?: string): string =>
   [(status && TASK_STATUS[status]) || 'TASK', summary, event].filter(Boolean).join(' · ')
 
+/** 도구 결과에 든 그림 수 */
+export const imageCount = (content: unknown): number => (Array.isArray(content) ? (content as Block[]).filter((c) => c?.type === 'image').length : 0)
+
 function textOf(content: unknown): string {
   if (typeof content === 'string') return content
   if (!Array.isArray(content)) return ''
@@ -84,6 +87,8 @@ export async function readHistory(sessionId: string, dir: string): Promise<Histo
             t.result = full.slice(0, RESULT_LIMIT)
             t.isError = b.is_error ?? false
             if (full.length > RESULT_LIMIT) t.truncated = true
+            const images = imageCount(b.content)
+            if (images) t.images = images
           }
         } else if (b.type === 'text' && b.text?.trim() && !INTERNAL.test(b.text)) {
           const note = taskNote(b.text)
@@ -121,6 +126,23 @@ export async function fullToolResult(sessionId: string, dir: string, toolUseId: 
     }
   }
   return null
+}
+
+/** 도구 결과에 든 그림들을 data URI로 (화면에는 수만 보내고 펼칠 때 읽는다) */
+export async function toolImages(sessionId: string, dir: string, toolUseId: string): Promise<string[]> {
+  const messages = await getSessionMessages(sessionId, { dir })
+  for (const m of messages) {
+    if (m.type !== 'user') continue
+    const content = (m.message as { content?: unknown } | undefined)?.content
+    if (!Array.isArray(content)) continue
+    for (const b of content as Block[]) {
+      if (b.type !== 'tool_result' || b.tool_use_id !== toolUseId || !Array.isArray(b.content)) continue
+      return (b.content as { type?: string; source?: { type?: string; media_type?: string; data?: string } }[])
+        .filter((c) => c?.type === 'image' && c.source?.type === 'base64' && c.source.data)
+        .map((c) => `data:${c.source!.media_type ?? 'image/png'};base64,${c.source!.data}`)
+    }
+  }
+  return []
 }
 
 /** 세션 기록을 마크다운으로 (/export) */

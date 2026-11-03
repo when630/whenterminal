@@ -10,7 +10,7 @@ export type TranscriptItem =
   /** 모델의 생각 (요약본). 접힌 채로 보인다 */
   | { type: 'thinking'; text: string; streaming: boolean; at: number }
   /** truncated: 결과 전문은 세션 기록에 (펼칠 때 읽는다). elapsedS: 도는 동안의 경과 시간. stopped: 턴이 끝났는데 결과가 끝내 오지 않음(중단) */
-  | { type: 'tool'; toolUseId: string; name: string; input: unknown; result?: string; isError?: boolean; truncated?: boolean; elapsedS?: number; stopped?: boolean; at: number }
+  | { type: 'tool'; toolUseId: string; name: string; input: unknown; result?: string; isError?: boolean; truncated?: boolean; images?: number; elapsedS?: number; stopped?: boolean; at: number }
   | { type: 'notice'; text: string; tone: 'info' | 'warn' | 'error'; mono?: boolean; at: number }
   | { type: 'divider'; text: string; at: number }
   /** 설정의 훅이 도는 것 (살아 있는 세션에서만. 기록 파일에는 남지 않는다) */
@@ -273,7 +273,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     }
     case 'tool_result': {
       const idx = s.items.findLastIndex((i) => i.type === 'tool' && i.toolUseId === event.toolUseId)
-      if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'tool' }>), result: event.content, isError: event.isError, truncated: event.truncated, elapsedS: undefined, stopped: undefined }
+      if (idx >= 0) items()[idx] = { ...(s.items[idx] as Extract<TranscriptItem, { type: 'tool' }>), result: event.content, isError: event.isError, truncated: event.truncated, images: event.images, elapsedS: undefined, stopped: undefined }
       // 이번 작업에서 남은 도구가 없으면 모델이 결과를 보고 다음 걸음을 고르는 중 (중단된 턴의 도구는 결과가 끝내 오지 않으므로 뺀다)
       const since = s.task?.startedAt ?? 0
       if (!s.items.some((i) => isRunningTool(i) && i.at >= since)) task({ activity: 'THINKING' })

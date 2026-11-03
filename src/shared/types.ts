@@ -608,7 +608,7 @@ export type HistoryItem =
   | { type: 'assistant'; text: string }
   /** 모델의 생각 (요약본) */
   | { type: 'thinking'; text: string }
-  | { type: 'tool'; toolUseId: string; name: string; input: unknown; result?: string; isError?: boolean; truncated?: boolean }
+  | { type: 'tool'; toolUseId: string; name: string; input: unknown; result?: string; isError?: boolean; truncated?: boolean; images?: number }
   | { type: 'divider'; text: string }
   /** 명령 출력·안내문. mono면 고정폭으로 */
   | { type: 'notice'; text: string; tone: 'info' | 'warn' | 'error'; mono?: boolean }
@@ -666,7 +666,8 @@ export type AgentEvent =
   | { kind: 'thinking_delta'; text: string }
   | { kind: 'thinking'; text: string }
   | { kind: 'tool_use'; toolUseId: string; name: string; input: unknown }
-  | { kind: 'tool_result'; toolUseId: string; content: string; isError: boolean; truncated?: boolean }
+  /** images: 결과에 든 그림 수 (그림은 펼칠 때 toolImages로 읽는다) */
+  | { kind: 'tool_result'; toolUseId: string; content: string; isError: boolean; truncated?: boolean; images?: number }
   /** 오래 도는 도구의 경과 시간 */
   | { kind: 'tool_progress'; toolUseId: string; elapsedS: number }
   | { kind: 'permission_request'; request: PermissionRequest }
@@ -759,6 +760,7 @@ export const IPC = {
   listDir: 'files:list',
   viewFile: 'files:view',
   fileImages: 'files:images',
+  localImage: 'files:local-image',
   saveImage: 'files:save-image',
   worktreeChanges: 'worktree:changes',
   worktreeMerge: 'worktree:merge',
@@ -806,6 +808,7 @@ export const IPC = {
   windowShown: 'window:shown',
   dropQueued: 'agent:drop-queued',
   toolResult: 'agent:tool-result',
+  toolImages: 'agent:tool-images',
   rewind: 'agent:rewind',
   listSessions: 'agent:list-sessions',
   attachSession: 'agent:attach-session',
@@ -884,6 +887,8 @@ export interface WhenTerminalApi {
   dropQueued(projectId: string, conversationId: string, queuedId: string): Promise<string | null>
   /** 도구 결과 전문 (화면에는 앞부분만 보내므로). 세션 기록에 없으면 null */
   toolResult(projectId: string, conversationId: string, toolUseId: string): Promise<string | null>
+  /** 도구 결과에 든 그림들 (data URI) */
+  toolImages(projectId: string, conversationId: string, toolUseId: string): Promise<string[]>
   /** 되감기: 그 사용자 메시지 시점으로 파일·대화를 되돌린다. dryRun이면 바뀔 파일만 알려 준다 */
   rewind(projectId: string, conversationId: string, uuid: string, scope: RewindScope, dryRun?: boolean): Promise<RewindResult>
   /** 이 프로젝트 폴더(작업 공간 포함)의 지난 세션들 (최근 순) */
@@ -934,6 +939,8 @@ export interface WhenTerminalApi {
   viewFile(projectId: string, conversationId: string, path: string, offset?: number): Promise<FileView>
   /** 파일 보기 md의 원격 그림을 받아 data URI로 (주소 → data URI, 못 받은 것은 빠진다) */
   fileImages(urls: string[]): Promise<Record<string, string>>
+  /** 대화창에 보일 로컬 그림의 wt-file 주소. 상대 경로는 대화 폴더 기준. 그림이 아니거나 없으면 null */
+  localImage(projectId: string, conversationId: string, path: string): Promise<string | null>
   /** 끌어다 놓은 파일의 실제 경로 (sandbox라 File.path가 없어 preload의 webUtils로) */
   pathForFile(file: File): string
   /** 붙여넣은 이미지(스크린샷)를 userData/attachments에 저장하고 경로를 돌려준다 */

@@ -14,7 +14,7 @@ import { branchOf, createWorktree, discardWorktree, isGitRepo, mergeWorktree, wo
 import { listChildren, searchFiles } from './files'
 import { gitCheckout, gitCommit, gitDiff, gitLog, gitOverview } from './git-view'
 import { setupArtifactView } from './artifact-view'
-import { fetchRemoteImages, handleFileScheme, registerFileScheme, viewFile } from './file-view'
+import { fetchRemoteImages, handleFileScheme, localImageUrl, registerFileScheme, viewFile } from './file-view'
 import { captureMemoryDump } from './memory-dump'
 import { SettingsStore } from './settings'
 import { applyBadge, Notifier } from './notify'
@@ -439,6 +439,10 @@ function bootstrap(): void {
     return viewFile(cwdOf(project, store.getConversation(projectId, conversationId)), path, offset)
   })
   ipcMain.handle(IPC.fileImages, (_e, urls: string[]) => fetchRemoteImages(Array.isArray(urls) ? urls.filter((u) => typeof u === 'string') : []))
+  ipcMain.handle(IPC.localImage, (_e, projectId: string, conversationId: string, path: string) => {
+    const project = store.get(projectId)
+    return project && typeof path === 'string' ? localImageUrl(cwdOf(project, store.getConversation(projectId, conversationId)), path) : null
+  })
   ipcMain.handle(IPC.peek, (_e, projectId: string, conversationId: string) => manager.peek(projectId, conversationId))
   ipcMain.handle(IPC.clear, (_e, projectId: string, conversationId: string) => {
     manager.clear(projectId, conversationId)
@@ -452,6 +456,7 @@ function bootstrap(): void {
   )
   ipcMain.handle(IPC.dropQueued, (_e, projectId: string, conversationId: string, queuedId: string) => manager.dropQueued(projectId, conversationId, queuedId))
   ipcMain.handle(IPC.toolResult, (_e, projectId: string, conversationId: string, toolUseId: string) => manager.toolResult(projectId, conversationId, toolUseId))
+  ipcMain.handle(IPC.toolImages, (_e, projectId: string, conversationId: string, toolUseId: string) => manager.toolImages(projectId, conversationId, toolUseId))
   ipcMain.handle(IPC.rewind, async (_e, projectId: string, conversationId: string, uuid: string, scope: RewindScope, dryRun?: boolean) => {
     const r = await manager.rewind(projectId, conversationId, uuid, scope, dryRun)
     if (!dryRun && r.ok) projectsChanged()

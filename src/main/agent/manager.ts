@@ -20,7 +20,7 @@ export const BUDGET_BY_LEVEL: Partial<Record<LimitLevel, number>> = { 80: 150_00
 const HOLD_MARGIN_MS = 5_000
 import { commandsFor, remember, withProbe } from './commands'
 import { SpareKeeper } from './spare'
-import { fullToolResult, readHistory } from './history'
+import { fullToolResult, readHistory, toolImages } from './history'
 import { readTaskOutput } from './task-output'
 import { draftTitle, saveSessionTitle, sessionTitle } from './title'
 import { removeWorktreeIfClean } from '../worktree'
@@ -478,6 +478,14 @@ export class AgentManager {
     const conv = this.store.getConversation(projectId, conversationId)
     if (!project || !conv?.sessionId) return null
     return fullToolResult(conv.sessionId, cwdOf(project, conv), toolUseId)
+  }
+
+  /** 도구 결과에 든 그림들 (data URI) */
+  async toolImages(projectId: string, conversationId: string, toolUseId: string): Promise<string[]> {
+    const project = this.store.get(projectId)
+    const conv = this.store.getConversation(projectId, conversationId)
+    if (!project || !conv?.sessionId) return []
+    return toolImages(conv.sessionId, cwdOf(project, conv), toolUseId)
   }
 
   /**

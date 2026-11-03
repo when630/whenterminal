@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { open, stat } from 'node:fs/promises'
-import { extname, isAbsolute, relative, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { basename, dirname, extname, isAbsolute, relative, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { net, protocol } from 'electron'
 import type { FileView } from '@shared/types'
 
@@ -100,6 +100,29 @@ export async function viewFile(cwd: string, rel: string, offset = 0): Promise<Fi
   } finally {
     await fh.close()
   }
+}
+
+/**
+ * 대화창에 보일 로컬 그림(첨부 경로·답변의 그림)의 wt-file 주소. 그 파일이 든 폴더를 열어 준다.
+ * 입력창 꼴(@상대경로, 따옴표)도 받는다. 상대 경로는 base 기준. 그림이 아니거나 없으면 null
+ */
+export async function localImageUrl(base: string, raw: string): Promise<string | null> {
+  let p = raw.trim().replace(/^@/, '').replace(/^"(.*)"$/, '$1')
+  if (/^file:\/\//i.test(p)) {
+    try {
+      p = fileURLToPath(p)
+    } catch {
+      return null
+    }
+  }
+  if (!IMAGE.has(extname(p).toLowerCase())) return null
+  const full = resolve(base, p)
+  try {
+    if (!(await stat(full)).isFile()) return null
+  } catch {
+    return null
+  }
+  return urlOf(rootKey(dirname(full)), basename(full))
 }
 
 /**

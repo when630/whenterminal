@@ -141,7 +141,7 @@
 - 태그(`/tag 이름`, `/tag clear`): `Conversation.tag` + SDK `tagSession`. 홈 TAGS 줄로 거른다(App이 거른 목록으로 키 이동, 배지·전광판은 전체)
 - 작업 공간(OPEN-002, `main/worktree.ts`): 탭 +로 만든 대화만 git worktree(`wt/<id>`). 위치는 설정 `worktreeDir`(기본 `.claude/worktrees`, Claude Code와 같은 관례): 상대 경로면 프로젝트 폴더 기준 `<폴더>/<id>`, 절대 경로면 `<폴더>/<프로젝트>-<id>`. 저장소 안이면 `.git/info/exclude`에 적어 git이 새 파일로 보지 않게 한다(`ignoreInRepo`, .gitignore는 안 건드림). 이미 만든 것은 저장된 절대 경로(`Conversation.worktree.path`) 그대로. 세션·기록·peek의 폴더는 `cwdOf()`. 닫을 때 깨끗하면 정리
 - 앱 아이콘: 원본 `build/icons/*.svg` → `npm run icons`(Electron 오프스크린 렌더, Archivo 글꼴)로 `resources/icons/*.png`와 `build/icons/preview.png`. 기본·설치 파일 아이콘은 `prompt`. 설정에서 고르면 메인이 Dock(macOS)·창 아이콘을 바로 바꾼다. 패키징한 앱은 `extraResources`의 `Resources/icons`
-- 패키징: electron-builder(`package.json`의 `build`). SDK의 OS별 CLI 바이너리는 `asarUnpack`으로 풀고, 패키징한 앱에서는 `claudeExecutable()` 경로를 `pathToClaudeCodeExecutable`로 넘긴다. 렌더러에서만 쓰는 패키지는 devDependencies에 둘 것 (번들에 들어가므로)
+- 패키징: electron-builder(`package.json`의 `build`). CLI는 전역으로 설치한 `claude`(`~/.local/bin` 등 설치 자리 → PATH, Windows는 .exe만)를 `claudeExecutable()`로 찾아 `pathToClaudeCodeExecutable`로 넘긴다. 없으면 패키징한 앱은 `asarUnpack`으로 풀어 둔 SDK의 OS별 CLI 바이너리, 개발 실행은 SDK 기본. 로그인 명령(`loginCommand`)도 같은 바이너리. 렌더러에서만 쓰는 패키지는 devDependencies에 둘 것 (번들에 들어가므로)
 - 자동 업데이트(`src/main/updater.ts`): 공개 저장소의 GitHub 릴리즈를 본다. 패키징한 앱은 시작 15초 뒤·4시간마다 확인, 설정 UPDATE의 CHECK로 바로 확인. 새 버전이 있으면 사이드바 SETTINGS 위에 UPDATE 줄
   - Windows 설치판(NSIS, 실행 파일 옆에 `Uninstall WHENTERMINAL.exe`가 있으면): `electron-updater`가 `latest.yml`을 읽어 백그라운드로 받고, RESTART로 조용히 설치 후 재실행(안 누르면 종료할 때 설치). `quitAndInstall`은 창부터 닫으므로 그 전에 `quitting`을 세운다
   - Windows zip·macOS: 스스로 바꿀 수 없어 릴리즈 API로 새 버전만 알아채고 릴리즈 페이지를 연다 (macOS는 임시 서명이라 Squirrel.Mac 서명 검증에서 막힌다)

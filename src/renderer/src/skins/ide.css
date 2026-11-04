@@ -221,6 +221,7 @@
 :root[data-skin='ide'] .msg.user { position: relative; margin: 12px 0 2px; padding: 10px 24px 12px 52px; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--wash); color: var(--ink-2); font: var(--question-weight) 13.5px/1.55 var(--question-font); }
 :root[data-skin='ide'] .msg.user:first-child { margin-top: 0; }
 :root[data-skin='ide'] .msg.user::before { content: 'Y'; position: absolute; left: 18px; top: 10px; display: grid; place-items: center; width: 24px; height: 24px; margin: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font: 700 11px/1 var(--font); letter-spacing: 0; }
+:root[data-skin='ide'] .msg.user.remote::before { content: 'R'; }
 :root[data-skin='ide'] .msg.user::after { left: 52px; top: -9px; padding: 0 6px; border-radius: 3px; background: var(--accent); color: var(--accent-fg); font: 500 10px/16px var(--font); letter-spacing: 0.04em; }
 :root[data-skin='ide'] .msg.user.pending { color: var(--gray); }
 :root[data-skin='ide'] .msg-acts { top: 8px; right: 16px; gap: 2px; }

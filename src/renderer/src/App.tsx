@@ -634,7 +634,7 @@ export function App(): React.JSX.Element {
     }
     // 입력창 명령 중 인자 없이 바로 되는 것 (키맵 동작과 겹치는 것은 뺀다)
     if (screen === 'chat') {
-      const direct = new Set(['git', 'files', 'resume', 'fork', 'export', 'mcp', 'agents', 'permissions', 'memory', 'status'])
+      const direct = new Set(['git', 'files', 'resume', 'fork', 'export', 'mcp', 'agents', 'permissions', 'memory', 'status', 'remote'])
       for (const c of LOCAL) {
         if (!direct.has(c.name)) continue
         out.push({ id: `cmd:${c.name}`, group: 'COMMAND', label: `/${c.name}`, note: c.description, keywords: c.aliases?.join(' '), run: () => chatPanelRef.current?.command(c.name) })

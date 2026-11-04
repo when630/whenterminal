@@ -142,6 +142,7 @@ const GROUPS: Group[] = [
       ['/add-dir', 'Allow another folder'],
       ['/goal', 'Keep working until a condition is met'],
       ['/tag', 'Tag this chat (filter on home)'],
+      ['/remote', 'Control this chat from claude.ai or the mobile app'],
       ['/memory', 'Open CLAUDE.md files'],
       ['/status', 'Account · session · login'],
     ],

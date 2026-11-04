@@ -1,10 +1,10 @@
 import { query, type SlashCommand, type ElicitationRequest, type ElicitationResult, type Options, type PermissionResult, type PermissionUpdate, type Query, type SDKMessage, type UserDialogRequest, type UserDialogResult } from '@anthropic-ai/claude-agent-sdk'
 import { randomUUID } from 'node:crypto'
-import { ELICITATION_TOOL, isAgentMode, REFUSAL_TOOL, type AlwaysInfo, type AlwaysScope, type DeniedCall, type EffortLevel, type AgentEvent, type AgentMode, type AgentStatus, type BackgroundTask, type ContextInfo, type GoalInfo, type PermissionDecision, type PermissionExtra, type PermissionRequest, type RateLimitInfo, type ShellResult } from '@shared/types'
+import { ELICITATION_TOOL, isAgentMode, REFUSAL_TOOL, type AlwaysInfo, type AlwaysScope, type DeniedCall, type EffortLevel, type AgentEvent, type AgentMode, type AgentStatus, type BackgroundTask, type ContextInfo, type GoalInfo, type PermissionDecision, type PermissionExtra, type PermissionRequest, type RateLimitInfo, type RemoteInfo, type ShellResult } from '@shared/types'
 import { MessageQueue } from './message-queue'
 import { claudeExecutable } from '../executable'
 import { outputPathIn, rememberTaskOutput } from './task-output'
-import { imageCount, taskLine, watcherNote } from './history'
+import { imageCount, taskLine, userMessageText, watcherNote } from './history'
 import type { SessionCallbacks, SpareHandle } from './spare'
 
 /** 사람의 답을 기다리는 것: 도구 승인 · MCP 입력 요청 · CLI 대화 상자. 화면에는 모두 승인창으로 */
@@ -129,6 +129,25 @@ export function baseOptions(cb: SessionCallbacks, prefs: BasePrefs): Options {
   }
 }
 
+/** enableRemoteControl의 답 (CLI control request remote_control) */
+interface RemoteControlResponse {
+  session_url: string
+  bridge_session_id: string
+}
+type RemoteControl = (enabled: boolean, name?: string, opts?: { reattachSessionId?: string }) => Promise<RemoteControlResponse>
+
+/** enableRemoteControl은 sdk.mjs의 Query에 있지만 sdk.d.ts의 Query 타입에는 없다 */
+function remoteControl(q: Query): RemoteControl {
+  const fn = (q as unknown as { enableRemoteControl?: RemoteControl }).enableRemoteControl
+  if (typeof fn !== 'function') throw new Error('이 SDK 버전은 Remote Control을 지원하지 않아요')
+  return fn.bind(q)
+}
+
+/** 원격 메시지의 글을 기록에서 읽지 못했을 때 */
+const REMOTE_FALLBACK = '(claude.ai에서 보낸 메시지)'
+/** CLI가 갑자기 끝났을 때 원격 연결을 위해 다시 띄우는 간격 (곧바로 또 죽으면 되풀이하지 않게) */
+const REMOTE_RESTART_GAP_MS = 60_000
+
 const TOOL_RESULT_PREVIEW_LIMIT = 4000
 /** 하위 에이전트의 도구 결과는 수가 많아 더 짧게 */
 const SUB_RESULT_PREVIEW_LIMIT = 1500
@@ -252,6 +271,22 @@ export class AgentSession {
   private askFrom: AgentStatus | null = null
   /** AWAY에서 거절했다가 사용자가 승인한 호출. 같은 도구·입력이 다시 오면 한 번 묻지 않고 허용한다 */
   private preapproved = new Set<string>()
+  /**
+   * Remote Control(/remote). 켜 두면 CLI를 다시 띄울 때마다(계정 전환·세션 바꿈 등) 같은 원격 세션에 다시 붙인다(remoteBridgeId).
+   * 원격 연결은 CLI 프로세스에 묶여 있어 프로세스가 끝나면 끊긴다
+   */
+  private remoteWanted = false
+  private remoteName?: string
+  private remote: RemoteInfo | null = null
+  private remoteBridgeId?: string
+  private remoteConnecting = false
+  private remoteRestartAt = 0
+  /** 원격 메시지의 글을 기록에서 읽는 중 (그 턴이 열려도 resumeTurn이 앞 작업을 다시 열지 않게) */
+  private remoteTurn: string | null = null
+  /** 원격 메시지의 글을 읽는 사이에 그 턴의 result가 왔다 */
+  private remoteTurnEnded = false
+  /** 이 앱이 보낸 메시지의 uuid. command_lifecycle에서 이것이 아니면 원격(claude.ai)에서 온 메시지 */
+  private sentUuids = new Set<string>()
 
   constructor(private readonly opts: AgentSessionOptions) {
     this.mode = opts.mode
@@ -309,6 +344,7 @@ export class AgentSession {
       if (steer) {
         const uuid = randomUUID()
         this.folding.push({ id, text, display, uuid })
+        this.markSent(uuid)
         this.queue!.push(text, uuid)
         return
       }
@@ -397,7 +433,14 @@ export class AgentSession {
     if (this.status === 'waiting_approval') this.askFrom = 'running'
     else this.setStatus('running')
     this.inflight.push({ text, uuid })
+    this.markSent(uuid)
     this.queue!.push(text, uuid)
+  }
+
+  private markSent(uuid: string): void {
+    this.sentUuids.add(uuid)
+    // 오래된 것부터 버린다 (Set은 넣은 순서를 지킨다)
+    if (this.sentUuids.size > 200) this.sentUuids.delete(this.sentUuids.values().next().value!)
   }
 
   /**
@@ -425,7 +468,7 @@ export class AgentSession {
    * CLI가 스스로 모델을 다시 부른 것. 끝난 작업을 다시 실행 중으로 돌려 result에서 끝나게 한다
    */
   private resumeTurn(): void {
-    if (this.quietCommand || this.manualCompact || this.interrupted || this.status === 'queued' || this.status === 'running') return
+    if (this.quietCommand || this.manualCompact || this.interrupted || this.remoteTurn || this.status === 'queued' || this.status === 'running') return
     // 백그라운드 확인 요청을 기다리는 중에 턴이 열렸다: 답하면 RUNNING으로
     if (this.status === 'waiting_approval') {
       if (this.askFrom) this.askFrom = 'running'
@@ -633,8 +676,11 @@ export class AgentSession {
     this.setBackground([])
     this.sessionId = sessionId
     this.model = undefined
+    this.remoteTurn = null
     if (this.status === 'waiting_approval' && this.askFrom && this.askFrom !== 'running') this.setStatus(this.askFrom, true)
     else if (this.status === 'running' || this.status === 'waiting_approval') this.setStatus('stopped')
+    // 바꾼 세션으로 다시 띄워 원격 연결을 잇는다
+    this.remoteDropped(true)
   }
 
   /**
@@ -652,7 +698,100 @@ export class AgentSession {
     this.inflight = []
     this.interrupted = false
     q.close()
+    // 원격으로 조작하는 중이면 기다리지 않고 새 로그인으로 다시 띄운다 (다음 메시지가 원격에서 올 수 있다)
+    this.remoteDropped(true)
     return true
+  }
+
+  /**
+   * Remote Control을 켜거나 끈다. 켜면 CLI를 띄워(모델은 부르지 않는다) claude.ai 세션에 붙이고 그 링크를 돌려준다.
+   * 원격에서 보낸 메시지·승인·멈춤은 CLI가 직접 받는다 (승인은 앱과 claude.ai 양쪽에 뜨고 먼저 답한 쪽으로)
+   */
+  async setRemote(on: boolean, name?: string): Promise<RemoteInfo | null> {
+    if (name) this.remoteName = name
+    if (on) {
+      this.remoteWanted = true
+      await this.connectRemote()
+      return this.remote
+    }
+    this.remoteWanted = false
+    this.remoteBridgeId = undefined
+    this.setRemoteInfo(null)
+    if (this.q) await remoteControl(this.q)(false)
+    return null
+  }
+
+  /** 지금 CLI를 원격 세션에 붙인다. 전에 붙였던 원격 세션이 있으면 그 세션을 다시 쓴다(링크가 그대로) */
+  private async connectRemote(): Promise<void> {
+    if (this.remoteConnecting) return
+    this.remoteConnecting = true
+    try {
+      const q = this.ensureQuery()
+      this.setRemoteInfo({ state: 'connecting', url: this.remote?.url })
+      const enable = remoteControl(q)
+      let r: RemoteControlResponse
+      try {
+        r = await enable(true, this.remoteName, this.remoteBridgeId ? { reattachSessionId: this.remoteBridgeId } : undefined)
+      } catch (err) {
+        // 다시 붙지 못하면 새 원격 세션으로 (링크가 바뀐다)
+        if (!this.remoteBridgeId || this.q !== q) throw err
+        console.warn('원격 세션에 다시 붙지 못해 새로 엶', err)
+        this.remoteBridgeId = undefined
+        r = await enable(true, this.remoteName)
+      }
+      if (this.q !== q || !this.remoteWanted) return
+      this.remoteBridgeId = r.bridge_session_id
+      // 답보다 bridge_state가 먼저 왔을 수 있다
+      const state = this.remote && this.remote.state !== 'connecting' ? this.remote.state : 'ready'
+      this.setRemoteInfo({ state, url: r.session_url, detail: this.remote?.detail })
+    } catch (err) {
+      this.remoteWanted = false
+      this.setRemoteInfo(null)
+      throw err instanceof Error ? err : new Error(String(err))
+    } finally {
+      this.remoteConnecting = false
+    }
+  }
+
+  private setRemoteInfo(info: RemoteInfo | null): void {
+    this.remote = info
+    this.emit({ kind: 'remote', remote: info })
+  }
+
+  /** CLI 프로세스가 끝났다: 원격 연결도 함께 끊겼다. 켜 둔 상태면 다시 띄워 붙인다 (restart=false면 다음 시작 때) */
+  private remoteDropped(restart: boolean): void {
+    if (!this.remoteWanted) return
+    this.setRemoteInfo({ state: 'disconnected', url: this.remote?.url })
+    if (restart && !this.disposed) this.start()
+  }
+
+  /**
+   * CLI 명령 대기열의 메시지가 차례를 받았다(command_lifecycle). 이 앱이 보내지 않은 것은 claude.ai에서 온 메시지:
+   * 스트림에는 글이 오지 않으므로 기록에서 읽어 말풍선으로 보이고, 쉬던 중이면 그 메시지의 작업을 시작한다
+   */
+  private onCommandLifecycle(uuid: string, state: string): void {
+    if (state !== 'started' || !this.remote || this.sentUuids.has(uuid) || this.swallowTurn) return
+    this.remoteTurn = uuid
+    this.remoteTurnEnded = false
+    const read = async (): Promise<string | null> => {
+      // 기록 파일에는 차례를 받을 때 쓰이지만, 늦을 수 있어 몇 번 더 본다. 새 세션이면 세션 ID도 곧 온다(init)
+      for (let i = 0; i < 4; i++) {
+        const text = this.sessionId ? await userMessageText(this.sessionId, this.opts.cwd, uuid).catch(() => null) : null
+        if (text) return text
+        await new Promise((r) => setTimeout(r, 250))
+      }
+      return null
+    }
+    void read().then((text) => {
+      if (this.remoteTurn !== uuid || this.disposed) return
+      this.remoteTurn = null
+      const open = this.turnOpen() || this.status === 'queued'
+      this.emit({ kind: 'user', text: text ?? REMOTE_FALLBACK, uuid, remote: true })
+      // 글을 읽는 사이에 턴이 이미 끝났으면 작업을 다시 열지 않는다
+      if (open || this.remoteTurnEnded) return
+      this.quietCommand = null
+      this.setStatus('running')
+    })
   }
 
   /** 추가 폴더를 바꾼다. 살아 있으면 바로, 아니면 다음 시작 때 */
@@ -663,6 +802,7 @@ export class AgentSession {
 
   dispose(): void {
     this.disposed = true
+    this.remoteWanted = false
     this.held = []
     if (this.afterPlanTimer) clearTimeout(this.afterPlanTimer)
     if (this.deltaTimer) clearTimeout(this.deltaTimer)
@@ -684,6 +824,10 @@ export class AgentSession {
     const spare = this.sessionId || this.opts.tools || budget ? null : (this.opts.takeSpare?.() ?? null)
     if (spare) this.startFromSpare(spare)
     else this.startCold(budget)
+    // 원격을 켜 둔 채 다시 띄웠다: 같은 원격 세션에 다시 붙인다
+    if (this.remoteWanted && !this.remoteConnecting) {
+      void this.connectRemote().catch((err: unknown) => this.emit({ kind: 'error', message: `원격 연결을 잇지 못했어요: ${err instanceof Error ? err.message : String(err)}` }))
+    }
   }
 
   private startCold(budget: number | null = null): void {
@@ -881,6 +1025,10 @@ export class AgentSession {
         this.setBackground([])
         this.interrupted = false
         if (this.manualCompact) this.endCompacting()
+        this.remoteTurn = null
+        // 원격을 켜 둔 채 끝났으면 다시 띄운다. 띄우자마자 또 끝나면 되풀이하지 않고 다음 시작 때로
+        const restart = Date.now() - this.remoteRestartAt > REMOTE_RESTART_GAP_MS
+        if (restart && this.remoteWanted) this.remoteRestartAt = Date.now()
         // 턴 밖의 확인 요청만 기다리던 중이면 그 전 상태로
         if (this.status === 'waiting_approval' && this.askFrom && this.askFrom !== 'running') this.setStatus(this.askFrom, true)
         // 결과 없이 끝났으면(프로세스가 죽는 등) 실행 중으로 남지 않게 한다
@@ -888,7 +1036,8 @@ export class AgentSession {
           this.emit({ kind: 'error', message: '세션이 예기치 않게 끝났어요' })
           this.setStatus('error')
         }
-        this.sendHeld()
+        if (this.held.length) this.sendHeld()
+        else this.remoteDropped(restart)
       }
     }
   }
@@ -898,6 +1047,16 @@ export class AgentSession {
     if ((msg as { type: string }).type === 'active_goal') {
       const v = (msg as unknown as { value: { condition: string; iterations: number; set_at: number; last_reason?: string } | null }).value
       this.emit({ kind: 'goal', goal: v ? { condition: v.condition, iterations: v.iterations, setAt: v.set_at, lastReason: v.last_reason } : null })
+      return
+    }
+    // Remote Control의 연결 상태와 명령 대기열 차례도 SDK 메시지 유니온 밖에서 온다
+    const raw = msg as unknown as { type: string; subtype?: string; state?: string; detail?: string; command_uuid?: string }
+    if (raw.type === 'system' && raw.subtype === 'bridge_state') {
+      if (this.remoteWanted && raw.state) this.setRemoteInfo({ state: raw.state, url: this.remote?.url, detail: raw.detail || undefined })
+      return
+    }
+    if (raw.type === 'command_lifecycle') {
+      if (raw.command_uuid && raw.state) this.onCommandLifecycle(raw.command_uuid, raw.state)
       return
     }
     switch (msg.type) {
@@ -1083,6 +1242,7 @@ export class AgentSession {
           break
         }
         this.consumed((msg as { user_message_uuids?: string[] }).user_message_uuids)
+        if (this.remoteTurn) this.remoteTurnEnded = true
         void this.refreshContext()
         if (this.quietCommand) {
           // /goal 같은 명령의 결과: 작업이 아니다
@@ -1110,7 +1270,9 @@ export class AgentSession {
         if (this.status === 'queued') break
         this.emit({ kind: 'result', subtype: msg.subtype, durationMs: msg.duration_ms, costUsd: msg.total_cost_usd })
         if (this.status !== 'stopped') {
-          const fin: AgentStatus = msg.subtype === 'success' && !msg.is_error ? 'done' : 'error'
+          // 앱 밖(claude.ai의 멈춤 등)에서 끊긴 턴은 오류가 아니라 멈춤
+          const aborted = msg.terminal_reason === 'aborted_streaming' || msg.terminal_reason === 'aborted_tools'
+          const fin: AgentStatus = aborted ? 'stopped' : msg.subtype === 'success' && !msg.is_error ? 'done' : 'error'
           const asking = this.status === 'waiting_approval' && this.pending.size > 0
           this.setStatus(fin)
           // 턴은 끝났지만 백그라운드 에이전트의 확인 요청이 남아 있다: 작업은 끝내고 확인 대기로 되돌린다

@@ -877,6 +877,7 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 /* YOU / NEXT 라벨: 둘 다 pseudo-element로 두고 자리를 바꾸며 굴러간다 (DOM 글자에 섞이지 않게) */
 .msg.user::before, .msg.user::after { font: 600 11px/1 var(--disp); letter-spacing: 0.14em; transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease); }
 .msg.user::before { content: 'YOU'; display: block; margin-bottom: 8px; }
+.msg.user.remote::before { content: 'REMOTE'; }
 .msg.user::after { content: 'NEXT'; position: absolute; top: 20px; left: 28px; opacity: 0; transform: translateY(100%); }
 .msg.user.pending::before { opacity: 0; transform: translateY(-100%); }
 .msg.user.pending::after { opacity: 1; transform: none; }
@@ -1365,6 +1366,8 @@ button.pn-row:hover:not(:disabled) .pn-sub, button.pn-row:hover:not(:disabled) .
 
 .badge.goal { font: var(--disp-w) 13px/1 var(--disp); letter-spacing: 0.06em; background: var(--paper); box-shadow: inset 0 -4px 0 var(--ink); cursor: default; }
 .badge.tag { font: 12.5px/1 var(--mono); cursor: default; }
+.badge.remote.link { cursor: pointer; }
+.badge.remote.bad { color: var(--signal); }
 
 /* 도구 호출 묶음: 요약 한 줄 아래로 접는다 (도구 줄과 같은 칸 배치) */
 .tgroup { border-top: var(--rule); interpolate-size: allow-keywords; }

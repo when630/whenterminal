@@ -65,6 +65,7 @@ const api: WhenTerminalApi = {
   approveDenied: (projectId, conversationId, calls) => ipcRenderer.invoke(IPC.approveDenied, projectId, conversationId, calls),
   command: (projectId, conversationId, text) => ipcRenderer.invoke(IPC.command, projectId, conversationId, text),
   shellOutput: (projectId, conversationId, result) => ipcRenderer.invoke(IPC.shellOutput, projectId, conversationId, result),
+  setRemote: (projectId, conversationId, on) => ipcRenderer.invoke(IPC.setRemote, projectId, conversationId, on),
   compact: (projectId, conversationId, instructions) => ipcRenderer.invoke(IPC.compact, projectId, conversationId, instructions),
   clear: (projectId, conversationId) => ipcRenderer.invoke(IPC.clear, projectId, conversationId),
   listCommands: (projectId) => ipcRenderer.invoke(IPC.listCommands, projectId),

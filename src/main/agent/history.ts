@@ -114,6 +114,15 @@ export async function readHistory(sessionId: string, dir: string): Promise<Histo
   return items.slice(-MAX_ITEMS)
 }
 
+/** 사용자 메시지 하나의 글 (Remote Control로 들어온 메시지는 SDK 스트림에 글이 오지 않아 기록에서 읽는다). 없으면 null */
+export async function userMessageText(sessionId: string, dir: string, uuid: string): Promise<string | null> {
+  const messages = await getSessionMessages(sessionId, { dir })
+  const m = messages.find((x) => x.uuid === uuid && x.type === 'user')
+  if (!m) return null
+  const text = textOf((m.message as { content?: unknown } | undefined)?.content).trim()
+  return text || null
+}
+
 /** 도구 결과 전문 (화면에는 앞부분만 보내므로 펼칠 때 읽는다). 없으면 null */
 export async function fullToolResult(sessionId: string, dir: string, toolUseId: string): Promise<string | null> {
   const messages = await getSessionMessages(sessionId, { dir })

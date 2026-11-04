@@ -22,6 +22,7 @@ export const LOCAL: SlashCommandInfo[] = [
   { name: 'status', description: '로그인 계정·세션·모델·폴더를 봐요', argumentHint: '', aliases: ['login'], builtin: true },
   { name: 'goal', description: '조건을 걸면 턴이 끝날 때마다 확인하고 못 미치면 계속해요. clear로 풀어요', argumentHint: '[조건 | clear]', builtin: true },
   { name: 'tag', description: '이 대화에 태그를 붙여요. 홈에서 태그로 거를 수 있어요. clear로 떼요', argumentHint: '[태그 | clear]', builtin: true },
+  { name: 'remote', description: 'claude.ai·모바일 앱에서 이 대화를 이어 조작하게 연결하고 링크를 복사해요. off로 꺼요', argumentHint: '[off]', builtin: true },
 ]
 
 const cache = new Map<string, SlashCommandInfo[]>()

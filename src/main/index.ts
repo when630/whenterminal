@@ -585,6 +585,7 @@ function bootstrap(): void {
   ipcMain.handle(IPC.approveDenied, (_e, projectId: string, conversationId: string, calls: DeniedCall[]) => manager.approveDenied(projectId, conversationId, calls))
   ipcMain.handle(IPC.command, (_e, projectId: string, conversationId: string, text: string) => manager.command(projectId, conversationId, text))
   ipcMain.handle(IPC.shellOutput, (_e, projectId: string, conversationId: string, result: ShellResult) => manager.shellOutput(projectId, conversationId, result))
+  ipcMain.handle(IPC.setRemote, (_e, projectId: string, conversationId: string, on: boolean) => manager.setRemote(projectId, conversationId, on))
 
   // Windows: 기본 메뉴의 Alt 니모닉(Alt+F 파일, Alt+H 도움말 …)이 Alt+홈 줄 프로젝트 이동과 겹치므로 메뉴를 없앤다.
   // 메뉴가 없어도 입력창의 복사·붙여넣기는 그대로 동작한다.

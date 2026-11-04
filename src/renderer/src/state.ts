@@ -1,11 +1,12 @@
-import { openConversations, type StoredTask, type AgentEvent, type AgentMode, type AgentProgress, type AgentStatus, type BackgroundTask, type GoalInfo, type HistoryItem, type HookOutcome, type MemoryRecall, type SubItem, type ContextInfo, type PermissionRequest, type Project, type TaskInfo } from '@shared/types'
+import { openConversations, type StoredTask, type AgentEvent, type AgentMode, type AgentProgress, type AgentStatus, type BackgroundTask, type GoalInfo, type HistoryItem, type HookOutcome, type MemoryRecall, type SubItem, type ContextInfo, type PermissionRequest, type Project, type RemoteInfo, type TaskInfo } from '@shared/types'
 export type { TaskInfo }
 import { STATUS_PRIORITY } from '@shared/types'
 
 export type TranscriptItem =
   /** uuid: 되감기 기준점. queuedId가 있고 pending이면 아직 차례를 기다리는 메시지 (고치거나 뺄 수 있다) */
   /** steer: 실행 중에 보내 지금 턴에 끼워 넣은 메시지 (모델이 읽으면 folded로 pending이 풀린다) */
-  | { type: 'user'; text: string; at: number; uuid?: string; queuedId?: string; pending?: boolean; steer?: boolean }
+  /** remote: claude.ai(Remote Control)에서 보낸 메시지 */
+  | { type: 'user'; text: string; at: number; uuid?: string; queuedId?: string; pending?: boolean; steer?: boolean; remote?: boolean }
   | { type: 'assistant'; text: string; streaming: boolean; at: number }
   /** 모델의 생각 (요약본). 접힌 채로 보인다 */
   | { type: 'thinking'; text: string; streaming: boolean; at: number }
@@ -50,6 +51,8 @@ export interface ConversationState {
   suggestion?: string
   /** /goal로 건 목표. null이면 풀렸다 */
   goal?: GoalInfo | null
+  /** Remote Control(/remote) 연결. 없으면 꺼져 있다 */
+  remote?: RemoteInfo | null
 }
 
 export type ConversationMap = Record<string, ConversationState>
@@ -157,9 +160,9 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     case 'user':
       finalizeStreaming()
       s.suggestion = undefined
-      items().push({ type: 'user', text: event.text, at: now, uuid: event.uuid, queuedId: event.queuedId, pending: event.next || undefined, steer: event.steer })
-      // 실행 중에 보낸 메시지는 지금 작업을 덮지 않는다. 차례가 오면 task_start
-      if (!event.next) startTask(event.text)
+      items().push({ type: 'user', text: event.text, at: now, uuid: event.uuid, queuedId: event.queuedId, pending: event.next || undefined, steer: event.steer, remote: event.remote })
+      // 실행 중에 보낸 메시지는 지금 작업을 덮지 않는다. 차례가 오면 task_start. 원격 메시지는 실행 중이면 지금 작업에 붙는다
+      if (!event.next && !(event.remote && (s.status === 'running' || s.status === 'waiting_approval' || s.status === 'queued'))) startTask(event.text)
       break
     case 'task_start': {
       s.suggestion = undefined
@@ -304,6 +307,19 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
     case 'suggestion':
       s.suggestion = event.text ?? undefined
       break
+    case 'remote': {
+      const prev = s.remote
+      s.remote = event.remote
+      // 켜져 링크가 처음 왔을 때와 끌 때는 기록에도 남긴다
+      if (event.remote?.url && !prev?.url) {
+        finalizeStreaming()
+        items().push({ type: 'divider', text: 'REMOTE · claude.ai·모바일 앱에서 이 대화를 이어 조작할 수 있어요', at: now })
+      } else if (!event.remote && prev) {
+        finalizeStreaming()
+        items().push({ type: 'divider', text: 'REMOTE OFF', at: now })
+      }
+      break
+    }
     case 'goal': {
       const prev = s.goal
       s.goal = event.goal
@@ -400,6 +416,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       s.compacting = false
       s.suggestion = undefined
       s.goal = undefined
+      s.remote = undefined
       break
   }
   return s

@@ -1,6 +1,6 @@
 import { forkSession, getSessionMessages, listSessions, resolveSettings, tagSession, type Query } from '@anthropic-ai/claude-agent-sdk'
 import { randomUUID } from 'node:crypto'
-import { cwdOf, EFFORT_LEVELS, openConversations, QUICK_ALLOWED_TOOLS, QUICK_DISALLOWED_TOOLS, QUICK_PROJECT_ID, type AccountStatus, type AgentOption, type DeniedCall, type EffortInfo, type EffortLevel, type McpServerInfo, type ModelOption, type AgentEventEnvelope, type PermissionExtra, type RewindResult, type RewindScope, type SessionOption, type SessionStatus, type ShellResult, type TaskOutput, AgentMode, PermissionDecision, RateLimitInfo, SlashCommandInfo } from '@shared/types'
+import { cwdOf, EFFORT_LEVELS, openConversations, QUICK_ALLOWED_TOOLS, QUICK_DISALLOWED_TOOLS, QUICK_PROJECT_ID, type AccountStatus, type AgentOption, type DeniedCall, type EffortInfo, type EffortLevel, type McpServerInfo, type ModelOption, type AgentEventEnvelope, type PermissionExtra, type RemoteInfo, type RewindResult, type RewindScope, type SessionOption, type SessionStatus, type ShellResult, type TaskOutput, AgentMode, PermissionDecision, RateLimitInfo, SlashCommandInfo } from '@shared/types'
 import type { LimitLevel } from '@shared/usage'
 import type { ProjectStore } from '../store'
 import { AgentSession, baseOptions, modelLabel, shellMessage, toContext, type BasePrefs } from './session'
@@ -121,7 +121,14 @@ export class AgentManager {
     this.getOrCreate(projectId, conversationId).command(text)
   }
 
-  /** `!명령` 출력을 세션에 덧붙인다. 작업이 아니라 동시 실행 수·대기열과 무관 */
+  /** Remote Control(/remote) 켜고 끄기. 켤 때 claude.ai 목록에 보일 이름은 탭 제목 */
+  async setRemote(projectId: string, conversationId: string, on: boolean): Promise<RemoteInfo | null> {
+    const conv = this.store.getConversation(projectId, conversationId)
+    if (!conv) throw new Error(`대화 없음: ${projectId}/${conversationId}`)
+    if (!on && !this.sessions.has(conversationId)) return null
+    return this.getOrCreate(projectId, conversationId).setRemote(on, conv.title)
+  }
+
   /** 입력창 `!명령`의 출력: 기록에 보이고 보통 메시지로 보내 모델이 바로 이어 답하게 한다 (대기열·한도 보류도 같이 따른다) */
   shellOutput(projectId: string, conversationId: string, result: ShellResult): void {
     const { text, output } = shellMessage(result)

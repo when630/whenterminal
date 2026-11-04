@@ -70,6 +70,16 @@ export interface DeniedCall {
 }
 
 /** /goal로 건 목표 (SDK active_goal). Stop 훅이 조건을 확인하고 못 미치면 iterations를 올린다 */
+/**
+ * Remote Control(/remote): claude.ai·모바일 앱에서 이 세션을 이어 조작하는 연결. state는 CLI 브리지 상태(bridge_state:
+ * ready·connected·reconnecting·disconnected·failed …)이고 connecting은 앱이 켜는 중. url은 켜진 뒤에 온다
+ */
+export interface RemoteInfo {
+  state: string
+  url?: string
+  detail?: string
+}
+
 export interface GoalInfo {
   condition: string
   iterations: number
@@ -653,7 +663,8 @@ export type AgentEvent =
   | { kind: 'status'; status: AgentStatus; quiet?: boolean }
   /** next: 화면에만 보이고 작업은 차례가 오면(task_start) 시작한다. queuedId는 기다리는 동안 고치거나 뺄 때의 손잡이, uuid는 되감기 기준점 */
   /** steer: 실행 중에 보내 지금 턴에 끼워 넣는 메시지 (모델이 다음 도구 호출 사이에 읽으면 folded) */
-  | { kind: 'user'; text: string; next?: boolean; queuedId?: string; uuid?: string; steer?: boolean }
+  /** remote: claude.ai(Remote Control)에서 보낸 메시지. 실행 중이면 지금 작업에 붙고, 아니면 새 작업을 시작한다 */
+  | { kind: 'user'; text: string; next?: boolean; queuedId?: string; uuid?: string; steer?: boolean; remote?: boolean }
   /** 기다리던 메시지를 실제로 보냈다. 이 메시지의 작업이 지금 시작된다 */
   | { kind: 'task_start'; text: string; queuedId?: string; uuid?: string }
   /** 기다리던 메시지를 보내지 않기로 했다 (고치려고 꺼냈거나 취소) */
@@ -693,6 +704,8 @@ export type AgentEvent =
   | { kind: 'suggestion'; text: string | null }
   /** /goal 목표의 상태. null이면 목표가 풀렸다 */
   | { kind: 'goal'; goal: GoalInfo | null }
+  /** Remote Control 연결 상태. null이면 꺼졌다 */
+  | { kind: 'remote'; remote: RemoteInfo | null }
   /** 도구 호출 묶음의 한 줄 요약 (SDK tool_use_summary). 화면에서는 그 호출들을 이 줄 아래로 접는다 */
   | { kind: 'tool_summary'; summary: string; toolUseIds: string[] }
   /** 이번 턴에 들어간 기억 */
@@ -837,6 +850,7 @@ export const IPC = {
   approveDenied: 'agent:approve-denied',
   command: 'agent:command',
   shellOutput: 'agent:shell-output',
+  setRemote: 'agent:set-remote',
 } as const
 
 /** preload가 window.api로 노출하는 API */
@@ -858,6 +872,8 @@ export interface WhenTerminalApi {
   command(projectId: string, conversationId: string, text: string): Promise<void>
   /** 입력창 `!명령`으로 터미널에서 돌린 명령의 출력을 보낸다. 화면에는 출력 항목으로 보이고 모델이 이어 답한다 */
   shellOutput(projectId: string, conversationId: string, result: ShellResult): Promise<void>
+  /** Remote Control(/remote)을 켜거나 끈다. 켜면 claude.ai 세션 링크가 든 연결 정보, 끄면 null. 실패하면 오류 */
+  setRemote(projectId: string, conversationId: string, on: boolean): Promise<RemoteInfo | null>
   removeProject(projectId: string): Promise<void>
   /** 프로젝트를 목록의 to번째(0부터) 자리로 옮긴다 */
   moveProject(projectId: string, to: number): Promise<void>

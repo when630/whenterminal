@@ -16,7 +16,8 @@
 - `npm run test:session` — `AgentSession` 통합 테스트 (권한 요청→허용→파일 생성). 구독 사용량을 조금 씀
 - `npm run test:steer` — 실행 중에 보낸 메시지 통합 테스트 (haiku): 지금 턴에 끼워 넣기(folded·같은 작업)·Esc로 함께 멈춤(새 턴 없음)·끝난 뒤 보내기(after). 짧은 모델 호출 3번
 - `npm run test:spare` — CLI 미리 띄우기 통합 테스트 (스페어 claim으로 답 받기, 프로젝트 설정 `model` 때문에 claim이 거절되면 `query()` 폴백). 짧은 모델 호출 2번
-  - 세 테스트는 Electron 없이 node로 돌리므로 esbuild `--alias:electron=./scripts/electron-stub.ts`로 `app.isPackaged`만 대역을 끼운다
+- `npm run test:remote` — Remote Control(`/remote`) 통합 테스트: 켜면 링크, CLI를 다시 띄워도 같은 링크로 다시 붙음, 끄기. 모델은 부르지 않지만 claude.ai에 원격 세션이 하나 생긴다. `node out/test/remote-test.mjs --wait`면 끄기 전에 기다려 claude.ai에서 보낸 메시지가 어떻게 오는지 찍는다
+  - 이 테스트들은 Electron 없이 node로 돌리므로 esbuild `--alias:electron=./scripts/electron-stub.ts`로 `app.isPackaged`만 대역을 끼운다
 
 ## 구조
 
@@ -43,6 +44,8 @@
   - 사람이 보내지 않은 턴(백그라운드 작업 알림·Monitor·예약된 깨우기 등으로 CLI가 스스로 모델을 부름): 끝난 상태에서 최상위 `message_start`·답이 오면 `resumeTurn`이 다시 `running`으로, result에서 끝난다. 렌더러는 끝난 작업을 다시 열어(`RESUMED`) 같은 작업으로 이어 간다(걸린 시간은 `priorDurationMs`에 더한다). 자리를 기다리는(`queued`) 중에 온 이런 턴의 result는 상태·보고서를 바꾸지 않는다
   - 턴 밖의 확인 요청(메인 턴이 끝난 뒤 백그라운드 에이전트가 묻는 것): `ask`가 그 전 상태를 `askFrom`에 두고, 답하면 RUNNING 대신 그 상태로 `quiet` status(보고서·DONE 알림 없음). 이때는 턴이 열린 게 아니라(`turnOpen`) 새 메시지를 들고 있지 않고 보내며, Esc는 요청만 거절한다
   - 턴 끝 안전망: `subscriptionEnv`가 `CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS=1`을 넣어 `session_state_changed`를 받는다. `idle`이면 Esc의 `interrupted` 표시를 지우고, result 없이 RUNNING에 남았으면(보낸 메시지·확인 대기가 없을 때만) DONE으로. 세션을 바꿀 때(`switchSession`)도 `interrupted`·`quietCommand`를 비운다
+  - Remote Control(`/remote`, `/remote off`, 상단 `REMOTE` 배지를 누르면 링크 복사): 세션 `setRemote` → SDK `enableRemoteControl`(sdk.mjs에만 있고 sdk.d.ts에는 없는 숨은 API) → claude.ai 세션 링크. 연결 상태는 유니온 밖의 `system/bridge_state` → `remote` 이벤트. 원격 연결은 CLI 프로세스에 묶여 있어 다시 띄울 때(`recycle`·`switchSession`·갑자기 끝남, 마지막은 1분에 한 번)마다 `reattachSessionId`로 같은 원격 세션에 다시 붙는다. 앱을 다시 켜거나 클리어·닫기를 하면 꺼진다
+    - claude.ai에서 보낸 메시지는 SDK 스트림에 글이 오지 않고 `command_lifecycle`(`command_uuid`)만 온다. 이 앱이 보낸 uuid(`sentUuids`)가 아니면 원격 메시지로 보고 세션 기록에서 글을 읽어(`userMessageText`) `user` 이벤트(`remote`, 말풍선 라벨 `REMOTE`)로 보낸다. 읽는 동안(`remoteTurn`)은 `resumeTurn`이 앞 작업을 다시 열지 않는다. 승인은 앱·claude.ai 양쪽에 뜨고 claude.ai에서 답하면 `canUseTool`의 signal이 abort돼 승인창이 닫힌다. 앱 밖에서 끊긴 턴(result `terminal_reason` aborted_*)은 STOPPED
   - 클리어는 세션을 닫고 `sessionId`를 지운다. 다음 메시지가 새 세션을 만든다. 실수 방지로 `Ctrl+L`을 3초 안에 두 번 눌러야 한다
 - `src/main/store.ts` — `userData/projects.json`에 프로젝트·대화·SDK 세션 ID 저장 (재시작 시 resume)
 - `src/renderer/src/App.tsx` — 전역 키 처리 (기획서 7장 단축키 맵)

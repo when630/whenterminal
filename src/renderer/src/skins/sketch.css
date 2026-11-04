@@ -245,6 +245,7 @@
 :root[data-skin='sketch'] .msg.user { align-self: flex-start; width: auto !important; max-width: min(720px, calc(100% - 96px)); margin: 28px 44px 2px; padding: 6px 12px; border: 12px solid transparent; border-image: var(--rough) 12 / 12px stretch; background: transparent; font: var(--question-weight) 22px/1.4 var(--question-font); transform: rotate(-0.6deg); }
 :root[data-skin='sketch'] .msg.user:first-child { margin-top: 6px; }
 :root[data-skin='sketch'] .msg.user::before { content: 'You'; display: inline-block; margin: 0 10px 0 0; padding: 0 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); font: 700 14px/1.5 var(--hand); letter-spacing: 0; vertical-align: 3px; }
+:root[data-skin='sketch'] .msg.user.remote::before { content: 'Remote'; }
 :root[data-skin='sketch'] .msg.user::after { top: -24px; left: 0; padding: 2px 8px; background: var(--note-1); color: var(--note-ink); font: 700 13px/1 var(--hand); letter-spacing: 0; }
 :root[data-skin='sketch'] .msg.user.pending { color: var(--gray); }
 :root[data-skin='sketch'] .msg-acts { top: -4px; right: -8px; gap: 4px; }

@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { refocusAfterClick, stillTyping, useRefocus } from './focus'
 import { ALWAYS_SCOPE_LABEL, ALWAYS_SCOPE_TIP, ELICITATION_TOOL, MODE_CYCLE, MODE_LABEL, openConversations, REFUSAL_TOOL, STATUS_LABEL, type AgentOption, type AskQuestion, type EffortInfo, type EffortLevel, type GitBranch, type UsageInfo, type SlashCommandInfo, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRequest, type Project, type BackgroundTask, type AgentProgress, type RefusalChoice, type SubItem } from '@shared/types'
 import { agentInfo, artifactsOf, describeBackground, emptyConversation, foldSummaries, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ArtifactLink, type ConversationMap, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
-import type { GoalInfo, MemoryRecall } from '@shared/types'
+import type { GoalInfo, MemoryRecall, RemoteInfo } from '@shared/types'
 import { PANEL_TITLE, ToolPanelView, type ToolPanel } from './panels'
 import { usePromptHistory } from './drafts'
 import { HOME_ROW, matches } from './keys'
@@ -151,6 +151,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   // 이 대화의 것만 잠시 남긴다 (다른 대화로 옮기면 잔상 없이)
   const goalHeld = usePresence(state.goal ? { goal: state.goal, id: conversationId } : null)
   const goalShown = goalHeld.item?.id === conversationId ? { item: goalHeld.item.goal, leaving: goalHeld.leaving } : { item: null, leaving: false }
+  const remoteHeld = usePresence(state.remote ? { remote: state.remote, id: conversationId } : null)
+  const remoteShown = remoteHeld.item?.id === conversationId ? { item: remoteHeld.item.remote, leaving: remoteHeld.leaving } : { item: null, leaving: false }
   // 탭: 화면을 연 뒤 새로 생긴 탭만 등장, 닫힌 탭은 잠시 남아 나간다
   const liveTabs = openConversations(project)
   const tabs = usePresenceList(liveTabs, (c) => c.id, 240, project.id)
@@ -624,12 +626,20 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   }, [notice])
   const noticeShown = usePresence(notice, 220)
 
+  /** 원격 링크를 클립보드에 넣고 알린다 (폰으로 보내 열도록) */
+  const copyRemote = (url: string): void => {
+    void navigator.clipboard.writeText(url).then(
+      () => setNotice({ ok: true, text: `REMOTE · 링크를 복사했어요 · ${url}` }),
+      () => setNotice({ ok: true, text: `REMOTE · ${url}` }),
+    )
+  }
+
   /** after: 실행 중이면 지금 작업이 끝난 뒤에 보낸다 (키맵 sendAfter). 아니면 지금 턴에 끼워 넣어 다음 도구 호출 사이에 읽게 한다 */
   const submit = (raw = draft, keepDraft = false, after = false): void => {
     const text = raw.trim()
     if (!text) return
     // 앱이 직접 처리하는 명령: /compact [요약 지시], /clear, /close, /rename [이름], 그리고 명령 화면들
-    const cmd = /^\/(compact|clear|reset|new|close|rename|rewind|resume|fork|export|mcp|agents|permissions|hooks|add-dir|memory|status|login|goal|tag|files|git|diag)\b\s*([\s\S]*)$/.exec(text)
+    const cmd = /^\/(compact|clear|reset|new|close|rename|rewind|resume|fork|export|mcp|agents|permissions|hooks|add-dir|memory|status|login|goal|tag|files|git|diag|remote)\b\s*([\s\S]*)$/.exec(text)
     if (cmd) {
       if (!keepDraft) setDraft('')
       const arg = cmd[2].trim()
@@ -650,6 +660,23 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
           )
           return
         }
+        case 'remote':
+          if (arg === 'off') {
+            void window.api.setRemote(project.id, conversationId, false).then(
+              () => setNotice({ ok: true, text: '원격 연결을 껐어요' }),
+              (err) => setNotice({ ok: false, text: err instanceof Error ? err.message : String(err) }),
+            )
+            return
+          }
+          if (arg && arg !== 'on') return setNotice({ ok: false, text: '/remote로 켜고 /remote off로 꺼요' })
+          // 이미 켜져 있으면 링크만 다시 복사한다
+          if (state.remote?.url) return copyRemote(state.remote.url)
+          setNotice({ ok: true, text: 'REMOTE · claude.ai에 연결하는 중이에요' })
+          void window.api.setRemote(project.id, conversationId, true).then(
+            (r) => (r?.url ? copyRemote(r.url) : setNotice({ ok: false, text: '원격 링크를 받지 못했어요' })),
+            (err) => setNotice({ ok: false, text: `원격 연결을 켜지 못했어요: ${err instanceof Error ? err.message : String(err)}` }),
+          )
+          return
         case 'rename':
           // 이름을 같이 적으면 바로 바꾸고, 없으면 탭의 이름 칸을 연다
           if (arg) void window.api.renameConversation(project.id, conversationId, arg)
@@ -845,6 +872,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             {clearArmed ? 'AGAIN' : 'CLEAR'}
           </button>
           {goalShown.item && <GoalBadge goal={goalShown.item} leaving={goalShown.leaving} />}
+          {remoteShown.item && <RemoteBadge remote={remoteShown.item} leaving={remoteShown.leaving} onCopy={copyRemote} />}
           <Presence show={!!conv?.tag} className="badge tag" title="세션 태그 · /tag로 바꾸거나 /tag clear로 떼요">#{conv?.tag}</Presence>
           <span className={`badge badge-${state.status}`}>{STATUS_LABEL[state.status]}</span>
         </div>
@@ -1518,7 +1546,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
   switch (item.type) {
     case 'user':
       return (
-        <div className={`msg user ${item.pending ? 'pending' : ''}${e}`} data-idx={di}>
+        <div className={`msg user ${item.pending ? 'pending' : ''}${item.remote ? ' remote' : ''}${e}`} data-idx={di} title={item.remote ? 'claude.ai(Remote Control)에서 보낸 메시지예요' : undefined}>
           {item.text}
           {onImage && <ImageRefs text={item.text} load={onImage} />}
           {acts.item && (
@@ -1755,6 +1783,21 @@ function GoalBadge({ goal, leaving }: { goal: GoalInfo; leaving: boolean }): Rea
   return (
     <span className={`badge goal ${leaving ? 'leaving' : ''}`} title={`목표 · ${goal.condition}${goal.lastReason ? `\n아직 못 미친 이유 · ${goal.lastReason}` : ''}\n/goal clear로 풀어요`}>
       GOAL{goal.iterations > 0 ? ` · ${goal.iterations}` : ''}
+    </span>
+  )
+}
+
+/** CLI 브리지 상태(bridge_state) → 배지 글자. 모르는 상태는 그대로 대문자로 */
+const REMOTE_STATE: Record<string, string> = { connecting: 'CONNECTING', ready: '', connected: '', reconnecting: 'RECONNECTING', disconnected: 'OFFLINE', failed: 'FAILED' }
+
+/** /remote 연결: 누르면 claude.ai 링크를 복사한다. 끊겼거나 실패했으면 신호색 */
+function RemoteBadge({ remote, leaving, onCopy }: { remote: RemoteInfo; leaving: boolean; onCopy: (url: string) => void }): React.JSX.Element {
+  const label = REMOTE_STATE[remote.state] ?? remote.state.toUpperCase()
+  const bad = remote.state === 'failed' || remote.state === 'disconnected'
+  const tip = [remote.url ? `claude.ai·모바일 앱에서 이 대화를 이어 조작해요. 누르면 링크를 복사해요\n${remote.url}` : 'claude.ai에 연결하는 중이에요', remote.detail, '/remote off로 꺼요'].filter(Boolean).join('\n')
+  return (
+    <span className={`badge goal remote ${bad ? 'bad' : ''} ${remote.url ? 'link' : ''} ${leaving ? 'leaving' : ''}`} title={tip} onClick={() => remote.url && onCopy(remote.url)}>
+      REMOTE{label ? ` · ${label}` : ''}
     </span>
   )
 }

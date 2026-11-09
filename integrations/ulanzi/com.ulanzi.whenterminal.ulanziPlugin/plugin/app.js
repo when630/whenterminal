@@ -42,7 +42,16 @@ function order(key) {
 function register(jsn) {
   const ctx = jsn.context
   const { uuid, key, actionid } = $UD.decodeContext(ctx)
-  const prev = keys.get(ctx)
+  // 키를 옮기면 Studio는 새 위치로 add만 보내고 옛 위치를 clear하지 않는다. context는 위치를 품고 있어
+  // 옛 것이 유령 키로 남아 순번(14번 칸 등)과 사용량 나눔을 어긋나게 했다. ActionID는 옮겨도 그대로라 그걸로 정리한다
+  let prev = keys.get(ctx)
+  for (const [other, k] of keys) {
+    if (other === ctx || k.actionid !== actionid) continue
+    prev = prev || k
+    keys.delete(other)
+    sent.delete(other)
+    target.delete(other)
+  }
   keys.set(ctx, { kind: kindOf(uuid), key, actionid, slot: prev ? prev.slot : 0, pick: prev ? prev.pick : '' })
   applySettings(ctx, jsn.param)
 }

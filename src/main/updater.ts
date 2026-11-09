@@ -99,6 +99,10 @@ export class Updater {
     const u = this.autoUpdater
     u.autoDownload = true
     u.autoInstallOnAppQuit = true
+    // 기본값(false)이면 릴리즈 피드를 받은 뒤 github.com/…/releases/latest 페이지로 최신 태그를 한 번 더 묻는데,
+    // 이 페이지가 저장소에 따라 504로 오래 막히는 일이 있다(2026-11-09). true면 피드의 맨 위 정식 버전을 바로 쓴다.
+    // 사전 릴리즈는 내지 않으므로 고르는 버전은 같다 (지금 버전에 사전 릴리즈 표시가 없으면 alpha·beta 외 채널은 건너뛴다)
+    u.allowPrerelease = true
     u.logger = null
     u.on('update-available', (info) =>
       this.set({ status: 'downloading', latest: info.version, percent: 0, url: `https://github.com/${REPO}/releases/tag/v${info.version}` }),

@@ -150,6 +150,7 @@
 - 자동 업데이트(`src/main/updater.ts`): 공개 저장소의 GitHub 릴리즈를 본다. 패키징한 앱은 시작 15초 뒤·4시간마다 확인, 설정 UPDATE의 CHECK로 바로 확인. 새 버전이 있으면 사이드바 SETTINGS 위에 UPDATE 줄
   - Windows 설치판(NSIS, 실행 파일 옆에 `Uninstall WHENTERMINAL.exe`가 있으면): `electron-updater`가 `latest.yml`을 읽어 백그라운드로 받고, RESTART로 조용히 설치 후 재실행(안 누르면 종료할 때 설치). `quitAndInstall`은 창부터 닫으므로 그 전에 `quitting`을 세운다
   - Windows zip·macOS: 스스로 바꿀 수 없어 릴리즈 API로 새 버전만 알아채고 릴리즈 페이지를 연다 (macOS는 임시 서명이라 Squirrel.Mac 서명 검증에서 막힌다)
+- 업데이트 확인은 `allowPrerelease = true`로 릴리즈 피드의 맨 위 버전만 본다(`/releases/latest` 페이지가 504로 막혀서). **사전 릴리즈를 내면 그게 바로 업데이트로 잡힌다** — 사전 릴리즈를 쓰려면 이 설정부터 바꿀 것
 - 릴리즈 내기: `package.json` 버전을 올리고 Windows에서 `npm run dist:win`(NSIS 설치판은 Windows에서만 만든다), macOS에서 `npm run dist:mac`. `gh release create vX.Y.Z`로 정식 릴리즈(초안·사전 릴리즈는 앱이 못 본다)를 만들고 올린다
   - 자동 업데이트에 꼭 필요: `release/WHENTERMINAL-Setup-X.Y.Z.exe`, `.exe.blockmap`, `latest.yml`. 설치 파일 이름은 `latest.yml`과 맞도록 대시로 고정해 두었다(`nsis.artifactName`). 이름을 바꿔 올리면 업데이트가 404로 실패한다
   - 그 밖에 zip(Windows·macOS)과 dmg. `dist` 스크립트는 `--publish never`라 빌드만 하고 올리지 않는다

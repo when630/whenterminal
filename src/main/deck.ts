@@ -16,6 +16,8 @@ export interface DeckConversation {
   conversationId: string
   title: string
   status: AgentStatus
+  /** 턴이 끝나도 살아 있는 백그라운드 작업 수 (셸·모니터·하위 에이전트 등) */
+  background: number
   contextPercent: number | null
   model: string | null
 }
@@ -36,6 +38,8 @@ export class DeckBridge {
   private clients = new Set<ServerResponse>()
   /** 대화별 마지막 상태. 이벤트로만 알 수 있어 여기서 들고 있는다 (모르면 idle) */
   private status = new Map<string, AgentStatus>()
+  /** 대화별 살아 있는 백그라운드 작업 수 (background 이벤트가 목록 전체를 바꿔치기로 보낸다) */
+  private background = new Map<string, number>()
   private usage: UsageInfo | null = null
   private pushTimer: ReturnType<typeof setTimeout> | null = null
   private heartbeat: ReturnType<typeof setInterval> | null = null
@@ -76,6 +80,13 @@ export class DeckBridge {
   }
 
   onEvent(e: AgentEventEnvelope): void {
+    if (e.event.kind === 'background') {
+      const n = e.event.tasks.length
+      if ((this.background.get(e.conversationId) ?? 0) === n) return
+      this.background.set(e.conversationId, n)
+      this.changed()
+      return
+    }
     if (e.event.kind !== 'status') return
     if (this.status.get(e.conversationId) === e.event.status) return
     this.status.set(e.conversationId, e.event.status)
@@ -117,6 +128,7 @@ export class DeckBridge {
           conversationId: c.id,
           title: c.title,
           status: this.status.get(c.id) ?? 'idle',
+          background: this.background.get(c.id) ?? 0,
           contextPercent: c.contextPercent ?? null,
           model: c.modelLabel ?? c.model ?? null,
         })

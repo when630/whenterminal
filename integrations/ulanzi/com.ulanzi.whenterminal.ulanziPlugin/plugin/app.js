@@ -10,6 +10,9 @@ const PLUGIN = 'com.ulanzi.ulanzistudio.whenterminal'
 const CONV = `${PLUGIN}.conversation`
 const USAGE = `${PLUGIN}.usage`
 const PRIORITY = { waiting_approval: 6, error: 5, running: 4, queued: 3, stopped: 2, done: 1, idle: 0 }
+/** 백그라운드 작업이 돌면 턴이 끝났어도 실행 중으로 본다 */
+const busy = (c) => c.status === 'running' || (c.background > 0 && c.status !== 'waiting_approval' && c.status !== 'error')
+const effective = (c) => (busy(c) && c.status !== 'running' ? 'running' : c.status)
 
 /** context → { kind, key, actionid, slot(설정, 0이면 자동) } */
 const keys = new Map()
@@ -109,7 +112,7 @@ function render() {
   const total = map.size
   const last = Math.max(0, ...map.values())
   const counts = {
-    running: convs.filter((c) => c.status === 'running').length,
+    running: convs.filter(busy).length,
     waiting: convs.filter((c) => c.status === 'waiting_approval').length,
   }
   // 사용량 키가 하나면 요약, 여럿이면 놓은 순서대로 한도를 하나씩 (5시간 → 주간 → 모델별 주간)
@@ -128,9 +131,9 @@ function render() {
     // 대화가 키보다 많다: 마지막 순번 키가 남은 대화를 모아 보여 준다
     if (n === last && convs.length > total && convs.length > n) {
       const rest = convs.slice(n - 1)
-      const top = rest.reduce((a, c) => (PRIORITY[c.status] > PRIORITY[a.status] ? c : a), rest[0])
+      const top = rest.reduce((a, c) => (PRIORITY[effective(c)] > PRIORITY[effective(a)] ? c : a), rest[0])
       target.set(ctx, top)
-      send(ctx, Draw.overflow(rest.length, top.status, n))
+      send(ctx, Draw.overflow(rest.length, effective(top), n))
       continue
     }
     const c = convs[n - 1]
@@ -146,7 +149,7 @@ function render() {
 
 // 실행 중인 대화가 있으면 앞의 빨간 칸을 깜빡인다
 setInterval(() => {
-  if (!online || !state || !state.conversations.some((c) => c.status === 'running')) return
+  if (!online || !state || !state.conversations.some(busy)) return
   blink = !blink
   render()
 }, 700)

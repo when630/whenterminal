@@ -4,11 +4,13 @@
 //  - 대화 상태: 놓은 키를 위→아래, 왼쪽→오른쪽 순으로 세어 N번째 키에 N번째 대화를 보여 준다.
 //    키를 더 놓으면 그만큼 더 보이고, 대화가 키보다 많으면 마지막 키가 '+남은 수'가 된다. 설정에서 순번을 고정할 수 있다
 //  - 사용량: 5시간·주간 사용률. 누르면 새로 받는다
+//  - 홈: 누르면 창을 열고 홈 화면으로 (그림은 고정 아이콘)
 
 const BASE = 'http://127.0.0.1:37630'
 const PLUGIN = 'com.ulanzi.ulanzistudio.whenterminal'
 const CONV = `${PLUGIN}.conversation`
 const USAGE = `${PLUGIN}.usage`
+const HOME = `${PLUGIN}.home`
 const PRIORITY = { waiting_approval: 6, error: 5, running: 4, queued: 3, stopped: 2, done: 1, idle: 0 }
 /** 백그라운드 작업이 돌면 턴이 끝났어도 실행 중으로 본다 */
 const busy = (c) => c.status === 'running' || (c.background > 0 && c.status !== 'waiting_approval' && c.status !== 'error')
@@ -28,7 +30,7 @@ let offlineTimer = null
 $UD.connect(PLUGIN)
 
 function kindOf(uuid) {
-  return uuid === USAGE ? 'usage' : 'conv'
+  return uuid === USAGE ? 'usage' : uuid === HOME ? 'home' : 'conv'
 }
 
 /** 키 위치 'col_row' → 정렬 값. 모르는 형식이면 뒤로 */
@@ -100,7 +102,8 @@ function send(ctx, img) {
 
 function render() {
   if (!online || !state) {
-    for (const ctx of keys.keys()) {
+    for (const [ctx, k] of keys) {
+      if (k.kind === 'home') continue
       target.delete(ctx)
       send(ctx, Draw.offline())
     }
@@ -126,7 +129,7 @@ function render() {
     }
   })
   for (const [ctx, k] of keys) {
-    if (k.kind === 'usage') continue
+    if (k.kind !== 'conv') continue
     const n = map.get(ctx)
     // 대화가 키보다 많다: 마지막 순번 키가 남은 대화를 모아 보여 준다
     if (n === last && convs.length > total && convs.length > n) {
@@ -208,6 +211,10 @@ $UD.onRun((jsn) => {
   if (!k) return
   if (k.kind === 'usage') {
     post('/usage/refresh')
+    return
+  }
+  if (k.kind === 'home') {
+    post('/home')
     return
   }
   const c = target.get(jsn.context)

@@ -199,6 +199,10 @@ function bootstrap(): void {
       if (projectId) send(IPC.navigate, { projectId, conversationId })
     },
     () => void refreshUsage(),
+    () => {
+      showWindow()
+      send(IPC.goHome, null)
+    },
   )
   deck.start()
   app.on('will-quit', () => deck.stop())

@@ -797,6 +797,7 @@ export const IPC = {
   openSettings: 'app:open-settings',
   guestKey: 'app:guest-key',
   navigate: 'app:navigate',
+  goHome: 'app:go-home',
   setBadge: 'app:set-badge',
   // 메인 → 렌더러
   event: 'agent:event',
@@ -1003,6 +1004,8 @@ export interface WhenTerminalApi {
   /** 알림을 눌렀을 때 그 대화로 */
   /** terminal이 있으면 그 터미널(termId)을 펼친다 */
   onNavigate(cb: (to: { projectId: string; conversationId: string; terminal?: string }) => void): () => void
+  /** 스트림덱 홈 키: 홈 화면으로 */
+  onGoHome(cb: () => void): () => void
   /** Dock 배지·트레이 툴팁: 확인 대기 수와 새 보고 수 */
   setBadge(waiting: number, unread: number): void
   onEvent(cb: (e: AgentEventEnvelope) => void): () => void

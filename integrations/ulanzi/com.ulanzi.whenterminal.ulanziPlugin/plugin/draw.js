@@ -65,8 +65,8 @@ const Draw = (() => {
   const png = () => canvas.toDataURL('image/png')
 
   /**
-   * 대화 하나: 위에 상태, 아래에 프로젝트 글자(앱의 Alt+A·S·D… 순서). 한 프로젝트에 대화가 여럿이면 글자 뒤에 탭 번호
-   * c: { status }, letter: 'A' · 'S2' …, blink: 실행 중 깜빡이는 칸을 켤지
+   * 대화 하나: 위에 상태, 가운데 프로젝트 글자(앱의 Alt+A·S·D… 순서), 아래에 프로젝트 이름. 한 프로젝트에 대화가 여럿이면 글자 뒤에 탭 번호
+   * c: { status, projectName }, letter: 'A' · 'S2' …, blink: 실행 중 깜빡이는 칸을 켤지
    */
   function conversation(c, letter, blink) {
     const s = c.status
@@ -91,24 +91,28 @@ const Draw = (() => {
     ctx.fillStyle = needs ? W : s === 'error' ? R : '#2a2a2a'
     ctx.fillRect(16, 58, SIZE - 32, 3)
 
-    // 아래: 글자
+    // 가운데: 글자
     const main = letter.charAt(0)
     const sub = letter.slice(1)
     ctx.fillStyle = quiet ? DIM : W
-    font(900, 112)
-    ctx.textAlign = 'center'
+    font(900, 92)
     const mw = ctx.measureText(main).width
-    font(800, 40, MONO)
+    font(800, 34, MONO)
     const sw = sub ? ctx.measureText(sub).width + 6 : 0
     const cx = (SIZE - mw - sw) / 2
-    font(900, 112)
-    ctx.textAlign = 'left'
-    ctx.fillText(main, cx, 172)
+    font(900, 92)
+    ctx.fillText(main, cx, 146)
     if (sub) {
-      font(800, 40, MONO)
+      font(800, 34, MONO)
       ctx.fillStyle = needs ? W : DIM
-      ctx.fillText(sub, cx + mw + 6, 172)
+      ctx.fillText(sub, cx + mw + 6, 146)
     }
+
+    // 아래: 프로젝트 이름
+    font(700, 19)
+    ctx.textAlign = 'center'
+    ctx.fillStyle = needs ? W : DIM
+    ctx.fillText(fit(c.projectName || '', SIZE - 24), SIZE / 2, 182)
     return png()
   }
 

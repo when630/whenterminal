@@ -3,7 +3,7 @@
 // 앱의 로컬 통로(127.0.0.1:37630, src/main/deck.ts)에서 상태를 SSE로 받아 키마다 그린다.
 //  - 대화 상태: 놓은 키를 위→아래, 왼쪽→오른쪽 순으로 세어 N번째 키에 N번째 대화를 보여 준다.
 //    키를 더 놓으면 그만큼 더 보이고, 대화가 키보다 많으면 마지막 키가 '+남은 수'가 된다. 설정에서 순번을 고정할 수 있다
-//  - 사용량: 5시간·주간 사용률. 누르면 새로 받는다
+//  - 사용량: 키 설정에서 고른 한도(요약·5시간·주간·모델별 주간). 자동이면 놓은 사용량 키 수로 나눈다. 누르면 새로 받는다
 //  - 홈: 누르면 창을 열고 홈 화면으로 (그림은 고정 아이콘)
 
 const BASE = 'http://127.0.0.1:37630'
@@ -16,7 +16,7 @@ const PRIORITY = { waiting_approval: 6, error: 5, running: 4, queued: 3, stopped
 const busy = (c) => c.status === 'running' || (c.background > 0 && c.status !== 'waiting_approval' && c.status !== 'error')
 const effective = (c) => (busy(c) && c.status !== 'running' ? 'running' : c.status)
 
-/** context → { kind, key, actionid, slot(설정, 0이면 자동) } */
+/** context → { kind, key, actionid, slot(대화 순번, 0이면 자동), pick(사용량 한도, ''이면 자동) } */
 const keys = new Map()
 /** context → 마지막으로 보낸 그림 (같으면 다시 보내지 않는다) */
 const sent = new Map()
@@ -43,7 +43,7 @@ function register(jsn) {
   const ctx = jsn.context
   const { uuid, key, actionid } = $UD.decodeContext(ctx)
   const prev = keys.get(ctx)
-  keys.set(ctx, { kind: kindOf(uuid), key, actionid, slot: prev ? prev.slot : 0 })
+  keys.set(ctx, { kind: kindOf(uuid), key, actionid, slot: prev ? prev.slot : 0, pick: prev ? prev.pick : '' })
   applySettings(ctx, jsn.param)
 }
 
@@ -51,6 +51,7 @@ function applySettings(ctx, param) {
   const k = keys.get(ctx)
   if (!k || !param) return
   if (Object.prototype.hasOwnProperty.call(param, 'slot')) k.slot = Number(param.slot) || 0
+  if (Object.prototype.hasOwnProperty.call(param, 'pick')) k.pick = String(param.pick || '')
 }
 
 /** 대화 키마다 순번을 정한다. 고정한 키는 그 번호, 나머지는 위치 순으로 1부터 */
@@ -119,14 +120,22 @@ function render() {
     waiting: convs.filter((c) => c.status === 'waiting_approval').length,
   }
   // 사용량 키가 하나면 요약, 여럿이면 놓은 순서대로 한도를 하나씩 (5시간 → 주간 → 모델별 주간)
-  const usageKeys = [...keys.entries()].filter(([, k]) => k.kind === 'usage').sort(([, a], [, b]) => order(a.key) - order(b.key) || String(a.actionid).localeCompare(String(b.actionid)))
+  // 키 설정에서 한도를 고른 키는 그것만. 자동인 키끼리는 하나면 요약, 여럿이면 놓은 순서대로 5시간 → 주간 → 모델별 주간
   const windows = usageWindows(state.usage)
-  usageKeys.forEach(([ctx], i) => {
-    if (usageKeys.length === 1) send(ctx, Draw.usage(state.usage, counts))
-    else {
-      const w = windows[i]
-      send(ctx, Draw.usageOne(w || null, w ? w.label : 'USAGE'))
-    }
+  const one = (ctx, w, label) => send(ctx, Draw.usageOne(w || null, w ? w.label : label))
+  const autoKeys = []
+  for (const [ctx, k] of keys) {
+    if (k.kind !== 'usage') continue
+    if (k.pick === 'summary') send(ctx, Draw.usage(state.usage, counts))
+    else if (k.pick === 'five_hour') one(ctx, windows.find((w) => w.id === 'five_hour'), '5H')
+    else if (k.pick === 'seven_day') one(ctx, windows.find((w) => w.id === 'seven_day'), 'WEEK')
+    else if (k.pick === 'model') one(ctx, windows.find((w) => w.id.startsWith('model:')), 'MODEL WEEK')
+    else autoKeys.push([ctx, k])
+  }
+  autoKeys.sort(([, a], [, b]) => order(a.key) - order(b.key) || String(a.actionid).localeCompare(String(b.actionid)))
+  autoKeys.forEach(([ctx], i) => {
+    if (autoKeys.length === 1) send(ctx, Draw.usage(state.usage, counts))
+    else one(ctx, windows[i], 'USAGE')
   })
   for (const [ctx, k] of keys) {
     if (k.kind !== 'conv') continue

@@ -66,17 +66,19 @@ const Draw = (() => {
 
   /**
    * 대화 하나: 위에 상태, 가운데 프로젝트 글자(앱의 Alt+A·S·D… 순서), 아래에 프로젝트 이름. 한 프로젝트에 대화가 여럿이면 글자 뒤에 탭 번호
-   * c: { status, projectName }, letter: 'A' · 'S2' …, blink: 실행 중 깜빡이는 칸을 켤지
+   * c: { status, background, projectName }, letter: 'A' · 'S2' …, blink: 실행 중 깜빡이는 칸을 켤지
    */
   function conversation(c, letter, blink) {
-    const s = c.status
+    // 턴은 끝났어도 백그라운드 작업(셸·모니터·하위 에이전트)이 돌면 BG RUNNING
+    const bg = c.background > 0 && c.status !== 'running' && c.status !== 'waiting_approval' && c.status !== 'error'
+    const s = bg ? 'running' : c.status
     const needs = s === 'waiting_approval'
     clear(needs ? R : K)
     const quiet = s === 'idle' || s === 'queued' || s === 'stopped'
 
     // 위: 상태 (가운데)
-    const label = LABEL[s] || s.toUpperCase()
-    font(800, 24)
+    const label = bg ? 'BG RUNNING' : LABEL[s] || s.toUpperCase()
+    font(800, bg ? 21 : 24)
     const lw = ctx.measureText(label).width
     const mark = s === 'running' ? 22 : 0
     const x0 = (SIZE - lw - mark) / 2

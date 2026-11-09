@@ -6,6 +6,7 @@ import { openConversations, type AgentEventEnvelope, type AgentStatus, type Proj
 //   GET  /state           지금 상태 한 번
 //   GET  /events          상태가 바뀔 때마다 SSE로 (처음 연결하면 바로 한 번)
 //   POST /open?project=&conversation=   창을 열고 그 대화로 옮긴다 (둘 다 없으면 창만)
+//   POST /home            창을 열고 홈 화면으로
 //   POST /usage/refresh   사용량을 새로 받는다
 
 export const DECK_PORT = 37630
@@ -51,6 +52,7 @@ export class DeckBridge {
     private readonly projects: () => Project[],
     private readonly open: (projectId: string, conversationId: string) => void,
     private readonly refreshUsage: () => void,
+    private readonly goHome: () => void,
   ) {}
 
   start(): void {
@@ -166,6 +168,11 @@ export class DeckBridge {
     }
     if (req.method === 'POST' && url.pathname === '/open') {
       this.open(url.searchParams.get('project') ?? '', url.searchParams.get('conversation') ?? '')
+      res.writeHead(204).end()
+      return
+    }
+    if (req.method === 'POST' && url.pathname === '/home') {
+      this.goHome()
       res.writeHead(204).end()
       return
     }

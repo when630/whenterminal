@@ -98,6 +98,7 @@ export function App(): React.JSX.Element {
     const offs = [
       window.api.onSettingsChanged(setSettings),
       window.api.onOpenSettings(() => openSettingsRef.current()),
+      window.api.onGoHome(() => goHomeRef.current()),
       window.api.onNavigate(({ projectId, conversationId, terminal }) => {
         // 질문 창의 알림은 그 창을 연다
         if (projectId === QUICK_PROJECT_ID) return setQuickOpen(true)
@@ -365,6 +366,8 @@ export function App(): React.JSX.Element {
       morph('card', document.querySelector('.stage > .screen'), go, () => homeCardOf(id))
     } else afterMorph(go)
   }
+  const goHomeRef = useRef(goHome)
+  goHomeRef.current = goHome
   // 탭 이동은 하루에 수없이 하는 키 동작이라 모핑하지 않는다 (탭 색만 --t-fast로 바뀐다)
   const selectConversation = (projectId: string, conversationId: string): void => afterMorph(() => setView({ screen: 'chat', projectId, conversationId }))
   // 설정은 어느 화면에서든 열고, 닫으면 원래 화면으로 돌아간다

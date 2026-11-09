@@ -1,0 +1,41 @@
+{
+  "Author": "when630",
+  "Name": "WHENTERMINAL",
+  "Description": "WHENTERMINAL 대화 상태와 구독 사용량을 키에 보여 준다",
+  "Icon": "assets/plugin.png",
+  "Version": "0.1.0",
+  "Category": "WHENTERMINAL",
+  "CategoryIcon": "assets/category.png",
+  "CodePath": "plugin/app.html",
+  "Type": "JavaScript",
+  "UUID": "com.ulanzi.ulanzistudio.whenterminal",
+  "SupportedInMultiActions": false,
+  "Actions": [
+    {
+      "Name": "대화 상태",
+      "Icon": "assets/action-conversation.png",
+      "UUID": "com.ulanzi.ulanzistudio.whenterminal.conversation",
+      "PropertyInspectorPath": "property-inspector/conversation.html",
+      "Tooltip": "놓은 순서대로 대화를 하나씩 보여 준다. 누르면 그 대화를 연다",
+      "States": [{ "Name": "Conversation", "Image": "assets/action-conversation.png" }],
+      "Controllers": ["Keypad"],
+      "Devices": [],
+      "SupportedInMultiActions": false
+    },
+    {
+      "Name": "사용량",
+      "Icon": "assets/action-usage.png",
+      "UUID": "com.ulanzi.ulanzistudio.whenterminal.usage",
+      "PropertyInspectorPath": "property-inspector/usage.html",
+      "Tooltip": "구독 사용량(5시간·주간). 누르면 새로 받는다",
+      "States": [{ "Name": "Usage", "Image": "assets/action-usage.png" }],
+      "Controllers": ["Keypad"],
+      "Devices": [],
+      "SupportedInMultiActions": false
+    }
+  ],
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "10.11" }
+  ]
+}

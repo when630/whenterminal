@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>WHENTERMINAL</title>
+  <link rel="stylesheet" href="../libs/css/uspi.css">
+  <style>.note { color: #9a9a9a; font-size: 12px; line-height: 1.5; padding: 4px 0 0; }</style>
+</head>
+<body>
+  <div class="uspi-wrapper hidden">
+    <form id="property-inspector">
+      <div class="uspi-item">
+        <div class="uspi-item-label">순번</div>
+        <select class="uspi-item-value select" name="slot" id="slot"></select>
+      </div>
+    </form>
+    <div class="note">자동이면 이 액션을 놓은 키를 위→아래, 왼쪽→오른쪽 순서로 세어 N번째 대화를 보여 줘요. 대화가 키보다 많으면 마지막 키에 남은 대화 수가 나와요. 누르면 WHENTERMINAL에서 그 대화를 열어요.</div>
+  </div>
+  <script src="../libs/js/constants.js"></script>
+  <script src="../libs/js/eventEmitter.js"></script>
+  <script src="../libs/js/timers.js"></script>
+  <script src="../libs/js/utils.js"></script>
+  <script src="../libs/js/ulanziApi.js"></script>
+  <script>
+    const sel = document.getElementById('slot')
+    sel.add(new Option('자동 (위치 순)', '0'))
+    for (let i = 1; i <= 30; i++) sel.add(new Option(`${i}번 대화로 고정`, String(i)))
+    const form = document.getElementById('property-inspector')
+    const load = (jsn) => { if (jsn && jsn.param && jsn.param.slot !== undefined) sel.value = String(jsn.param.slot) }
+    $UD.connect()
+    $UD.onConnected(() => {
+      document.querySelector('.uspi-wrapper').classList.remove('hidden')
+      form.addEventListener('change', () => $UD.sendParamFromPlugin({ slot: Number(sel.value) }))
+    })
+    $UD.onAdd(load)
+    $UD.onParamFromApp(load)
+  </script>
+</body>
+</html>

@@ -24,6 +24,7 @@ import { searchConversations } from './agent/search'
 import { availableShells, TerminalManager } from './terminal'
 import { fetchUsage, mergeRateLimit, UsageAlerts } from './agent/usage'
 import { Updater } from './updater'
+import { DeckBridge } from './deck'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isMac = process.platform === 'darwin'
@@ -181,6 +182,7 @@ function bootstrap(): void {
       .finally(() => {
         usageInflight = null
         if (usage) send(IPC.usage, usage)
+        deck.setUsage(usage)
         alertUsage(usage)
       })
     return usageInflight
@@ -189,6 +191,17 @@ function bootstrap(): void {
     if (usageTimer) clearTimeout(usageTimer)
     usageTimer = setTimeout(() => void refreshUsage(), 2500)
   }
+  // 스트림덱 플러그인이 대화 상태·사용량을 읽어 가는 로컬 통로 (127.0.0.1:37630)
+  const deck = new DeckBridge(
+    () => store.list(),
+    (projectId, conversationId) => {
+      showWindow()
+      if (projectId) send(IPC.navigate, { projectId, conversationId })
+    },
+    () => void refreshUsage(),
+  )
+  deck.start()
+  app.on('will-quit', () => deck.stop())
 
   const notifier = new Notifier(store, () => win, () => settingsStore.get(), (projectId, conversationId, terminal) => {
     showWindow()
@@ -228,12 +241,14 @@ function bootstrap(): void {
     (e: AgentEventEnvelope) => {
       send(IPC.event, e)
       notifier.handle(e)
+      deck.onEvent(e)
       if (e.event.kind === 'result') refreshUsageSoon()
     },
     (info: RateLimitInfo) => {
       send(IPC.rateLimit, info)
       usage = mergeRateLimit(usage, info)
       if (usage) send(IPC.usage, usage)
+      deck.setUsage(usage)
       alertUsage(usage)
     },
     () => {

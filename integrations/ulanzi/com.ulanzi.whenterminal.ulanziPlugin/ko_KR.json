@@ -1,0 +1,9 @@
+{
+  "Name": "WHENTERMINAL",
+  "Description": "WHENTERMINAL 대화 상태와 구독 사용량을 키에 보여 준다",
+  "Actions": [
+    { "Name": "대화 상태", "Tooltip": "놓은 순서대로 대화를 하나씩 보여 준다. 누르면 그 대화를 연다" },
+    { "Name": "사용량", "Tooltip": "구독 사용량(5시간·주간). 누르면 새로 받는다" }
+  ],
+  "Localization": {}
+}

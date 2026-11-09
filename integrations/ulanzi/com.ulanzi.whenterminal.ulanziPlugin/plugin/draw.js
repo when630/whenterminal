@@ -65,53 +65,54 @@ const Draw = (() => {
   const png = () => canvas.toDataURL('image/png')
 
   /**
-   * 대화 하나. c: { title, status, projectName, contextPercent }, slot: 1부터, blink: 깜빡이는 칸을 켤지
+   * 대화 하나: 위에 상태, 가운데 프로젝트 글자(앱의 Alt+A·S·D… 순서), 아래에 프로젝트 이름. 한 프로젝트에 대화가 여럿이면 글자 뒤에 탭 번호
+   * c: { status, projectName }, letter: 'A' · 'S2' …, blink: 실행 중 깜빡이는 칸을 켤지
    */
-  function conversation(c, slot, blink) {
+  function conversation(c, letter, blink) {
     const s = c.status
     const needs = s === 'waiting_approval'
     clear(needs ? R : K)
-    const fg = W
     const quiet = s === 'idle' || s === 'queued' || s === 'stopped'
 
-    // 위: 상태
-    font(800, 22)
-    ctx.fillStyle = needs ? W : s === 'error' ? R : quiet ? DIM : W
-    let x = 16
-    if (s === 'running') {
-      if (blink) {
-        ctx.fillStyle = R
-        ctx.fillRect(16, 18, 14, 18)
-      }
-      x = 38
-      ctx.fillStyle = W
+    // 위: 상태 (가운데)
+    const label = LABEL[s] || s.toUpperCase()
+    font(800, 24)
+    const lw = ctx.measureText(label).width
+    const mark = s === 'running' ? 22 : 0
+    const x0 = (SIZE - lw - mark) / 2
+    if (s === 'running' && blink) {
+      ctx.fillStyle = R
+      ctx.fillRect(x0, 22, 14, 20)
     }
-    ctx.fillText(LABEL[s] || s.toUpperCase(), x, 36)
-    // 순번
-    font(700, 16, MONO)
-    ctx.textAlign = 'right'
-    ctx.fillStyle = needs ? W : DIM
-    ctx.fillText(String(slot).padStart(2, '0'), SIZE - 14, 34)
-    ctx.textAlign = 'left'
+    ctx.fillStyle = needs ? W : s === 'error' ? R : quiet ? DIM : W
+    ctx.fillText(label, x0 + mark, 42)
 
-    // 가운데: 제목 (최대 3줄)
-    font(700, 25)
-    ctx.fillStyle = quiet ? '#d6d6d6' : fg
-    const lines = wrap(c.title || '새 대화', SIZE - 32, 3)
-    lines.forEach((l, i) => ctx.fillText(l, 16, 78 + i * 31))
+    // 구분선
+    ctx.fillStyle = needs ? W : s === 'error' ? R : '#2a2a2a'
+    ctx.fillRect(16, 58, SIZE - 32, 3)
 
-    // 아래: 프로젝트 · 컨텍스트
+    // 가운데: 글자
+    const main = letter.charAt(0)
+    const sub = letter.slice(1)
+    ctx.fillStyle = quiet ? DIM : W
+    font(900, 92)
+    const mw = ctx.measureText(main).width
+    font(800, 34, MONO)
+    const sw = sub ? ctx.measureText(sub).width + 6 : 0
+    const cx = (SIZE - mw - sw) / 2
+    font(900, 92)
+    ctx.fillText(main, cx, 146)
+    if (sub) {
+      font(800, 34, MONO)
+      ctx.fillStyle = needs ? W : DIM
+      ctx.fillText(sub, cx + mw + 6, 146)
+    }
+
+    // 아래: 프로젝트 이름
+    font(700, 19)
+    ctx.textAlign = 'center'
     ctx.fillStyle = needs ? W : DIM
-    ctx.fillRect(16, 160, SIZE - 32, 2)
-    font(600, 17)
-    const pct = c.contextPercent != null ? `${Math.round(c.contextPercent)}%` : ''
-    ctx.textAlign = 'right'
-    font(700, 17, MONO)
-    ctx.fillText(pct, SIZE - 16, 186)
-    const pw = pct ? ctx.measureText(pct).width + 10 : 0
-    ctx.textAlign = 'left'
-    font(600, 17)
-    ctx.fillText(fit(c.projectName || '', SIZE - 32 - pw), 16, 186)
+    ctx.fillText(fit(c.projectName || '', SIZE - 24), SIZE / 2, 182)
     return png()
   }
 
@@ -226,5 +227,38 @@ const Draw = (() => {
     return png()
   }
 
-  return { conversation, overflow, empty, offline, usage, SIZE }
+  /** 하루 안이면 '17:40', 그 뒤면 '11/12 목' */
+  function resetText(ms) {
+    if (ms - Date.now() < 24 * 3600e3) return hhmm(ms)
+    const d = new Date(ms)
+    return `${d.getMonth() + 1}/${d.getDate()} ${'일월화수목금토'[d.getDay()]}`
+  }
+
+  /** 사용량 키를 여러 개 놓았을 때 한 키에 한도 하나: 이름 · 큰 사용률 · 막대 · 초기화 시각 */
+  function usageOne(w, label) {
+    clear(K)
+    const p = w && w.percent != null ? Math.max(0, Math.min(100, w.percent)) : null
+    const hot = p != null && (p >= 80 || w.status === 'rejected')
+    font(800, 20)
+    ctx.fillStyle = DIM
+    ctx.textAlign = 'center'
+    ctx.fillText(fit(label, SIZE - 24), SIZE / 2, 36)
+    font(900, 58, MONO)
+    ctx.fillStyle = hot ? R : W
+    ctx.fillText(p == null ? '--' : `${p}%`, SIZE / 2, 112)
+    ctx.fillStyle = '#2a2a2a'
+    ctx.fillRect(16, 128, SIZE - 32, 14)
+    if (p != null) {
+      ctx.fillStyle = hot ? R : W
+      ctx.fillRect(16, 128, Math.round(((SIZE - 32) * p) / 100), 14)
+    }
+    if (w && w.resetsAt) {
+      font(700, 18, MONO)
+      ctx.fillStyle = DIM
+      ctx.fillText(`↻ ${resetText(w.resetsAt)}`, SIZE / 2, 180)
+    }
+    return png()
+  }
+
+  return { conversation, overflow, empty, offline, usage, usageOne, SIZE }
 })()

@@ -1,0 +1,9 @@
+{
+  "Name": "WHENTERMINAL",
+  "Description": "Shows WHENTERMINAL conversation status and subscription usage on keys",
+  "Actions": [
+    { "Name": "Conversation", "Tooltip": "Shows one conversation per key in placement order. Press to open it" },
+    { "Name": "Usage", "Tooltip": "Subscription usage (5h / weekly). Press to refresh" }
+  ],
+  "Localization": {}
+}

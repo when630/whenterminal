@@ -137,14 +137,21 @@ const Draw = (() => {
   }
 
   /** 대화가 없는 칸 */
+  /** 보여 줄 대화가 없는 키. 대화 키와 같은 자리에 흐리게: 위 EMPTY · 가운데 순번 · 아래 빈 자리 */
   function empty(slot) {
     clear(K)
-    font(700, 16, MONO)
-    ctx.textAlign = 'right'
-    ctx.fillStyle = '#3a3a3a'
-    ctx.fillText(String(slot).padStart(2, '0'), SIZE - 14, 34)
+    ctx.textAlign = 'center'
+    font(800, 24)
+    ctx.fillStyle = DIM
+    ctx.fillText('EMPTY', SIZE / 2, 42)
     ctx.fillStyle = '#2a2a2a'
-    ctx.fillRect(SIZE / 2 - 30, SIZE / 2 - 4, 60, 8)
+    ctx.fillRect(16, 58, SIZE - 32, 3)
+    font(900, 72, MONO)
+    ctx.fillStyle = '#4a4a4a'
+    ctx.fillText(String(slot).padStart(2, '0'), SIZE / 2, 142)
+    font(700, 19)
+    ctx.fillStyle = DIM
+    ctx.fillText('빈 자리', SIZE / 2, 182)
     return png()
   }
 

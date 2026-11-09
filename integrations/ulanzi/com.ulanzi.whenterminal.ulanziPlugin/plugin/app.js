@@ -58,6 +58,37 @@ function slots() {
   return out
 }
 
+/** 앱의 프로젝트 글자(Alt+A = 1번 프로젝트 …). 대화가 여럿인 프로젝트는 글자 뒤에 탭 번호를 붙인다 (S1 · S2) */
+const HOME_ROW = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
+function lettersOf(convs) {
+  const projects = []
+  const perProject = new Map()
+  for (const c of convs) {
+    if (!perProject.has(c.projectId)) {
+      projects.push(c.projectId)
+      perProject.set(c.projectId, [])
+    }
+    perProject.get(c.projectId).push(c.conversationId)
+  }
+  const out = new Map()
+  projects.forEach((p, i) => {
+    const ids = perProject.get(p)
+    const ch = HOME_ROW[i] || '?'
+    ids.forEach((id, j) => out.set(id, ids.length > 1 ? `${ch}${j + 1}` : ch))
+  })
+  return out
+}
+
+/** 키에 나눠 줄 한도 순서. 앱 연동 한도(OAuth 앱)는 뺀다. 이름은 키 폭에 맞게 줄인다 */
+function usageWindows(u) {
+  if (!u || !u.available) return []
+  const rank = (w) => (w.id === 'five_hour' ? 0 : w.id === 'seven_day' ? 1 : 2)
+  return u.windows
+    .filter((w) => w.id !== 'seven_day_oauth_apps')
+    .sort((a, b) => rank(a) - rank(b))
+    .map((w) => ({ ...w, label: w.label.replace('WEEKLY', 'WEEK') }))
+}
+
 function send(ctx, img) {
   if (sent.get(ctx) === img) return
   sent.set(ctx, img)
@@ -73,6 +104,7 @@ function render() {
     return
   }
   const convs = state.conversations
+  const letters = lettersOf(convs)
   const map = slots()
   const total = map.size
   const last = Math.max(0, ...map.values())
@@ -80,11 +112,18 @@ function render() {
     running: convs.filter((c) => c.status === 'running').length,
     waiting: convs.filter((c) => c.status === 'waiting_approval').length,
   }
-  for (const [ctx, k] of keys) {
-    if (k.kind === 'usage') {
-      send(ctx, Draw.usage(state.usage, counts))
-      continue
+  // 사용량 키가 하나면 요약, 여럿이면 놓은 순서대로 한도를 하나씩 (5시간 → 주간 → 모델별 주간)
+  const usageKeys = [...keys.entries()].filter(([, k]) => k.kind === 'usage').sort(([, a], [, b]) => order(a.key) - order(b.key) || String(a.actionid).localeCompare(String(b.actionid)))
+  const windows = usageWindows(state.usage)
+  usageKeys.forEach(([ctx], i) => {
+    if (usageKeys.length === 1) send(ctx, Draw.usage(state.usage, counts))
+    else {
+      const w = windows[i]
+      send(ctx, Draw.usageOne(w || null, w ? w.label : 'USAGE'))
     }
+  })
+  for (const [ctx, k] of keys) {
+    if (k.kind === 'usage') continue
     const n = map.get(ctx)
     // 대화가 키보다 많다: 마지막 순번 키가 남은 대화를 모아 보여 준다
     if (n === last && convs.length > total && convs.length > n) {
@@ -101,7 +140,7 @@ function render() {
       continue
     }
     target.set(ctx, c)
-    send(ctx, Draw.conversation(c, n, blink))
+    send(ctx, Draw.conversation(c, letters.get(c.conversationId) || '?', blink))
   }
 }
 

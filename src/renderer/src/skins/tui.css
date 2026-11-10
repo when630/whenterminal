@@ -603,6 +603,7 @@
 
 /* ── 오른쪽 상태 패널: 제목이 박힌 상자 ── */
 :root[data-skin='tui'] .chat-body.open { grid-template-columns: minmax(0, 1fr) 260px; }
+:root[data-skin='tui'] .chat-body.beside.open { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 260px; }
 :root[data-skin='tui'] .status-panel { gap: 12px; padding: 10px 0; border-left: 1px solid var(--line); }
 :root[data-skin='tui'] .status-panel > * { padding: 0 12px; }
 /* 작업 상태 묶음: ┌─ STATUS ─┐ 상자 */

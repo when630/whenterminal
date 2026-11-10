@@ -4,6 +4,7 @@ import { useOpened } from './opened'
 import { agentInfo, describeBackground, isAgentTool, isRunningTool, relPath, subActivity, summarizeInput, type ConversationState, type ToolItem } from './state'
 import { clock, useNow } from './time'
 import { Markdown } from './Markdown'
+import { useBackLabel } from './beside'
 
 /** 오른쪽 패널에서 고른 것: 백그라운드 작업(셸·모니터·백그라운드 에이전트) 또는 앞에서 도는 하위 에이전트 */
 export type DetailTarget = { kind: 'task'; taskId: string } | { kind: 'agent'; toolUseId: string }
@@ -21,6 +22,7 @@ interface Props {
 
 /** 백그라운드 작업·하위 에이전트의 세부 내용. 대화 기록 자리에 대신 펼친다 (작업 공간 CHANGES처럼) */
 export function TaskDetail({ target, state, projectId, conversationId, root, onClose, onStopTask }: Props): React.JSX.Element {
+  const backLabel = useBackLabel()
   const now = useNow(1000)
   const background = state.background ?? []
   const task = target.kind === 'task' ? background.find((b) => b.id === target.taskId) : undefined
@@ -70,7 +72,7 @@ export function TaskDetail({ target, state, projectId, conversationId, root, onC
               {stopping ? 'STOPPING…' : 'STOP'}
             </button>
           )}
-          <button type="button" className="btn ghost" onClick={onClose}>BACK TO CHAT</button>
+          <button type="button" className="btn ghost" onClick={onClose}>{backLabel}</button>
         </div>
       </header>
       {info && (
@@ -146,6 +148,7 @@ interface AgentProps {
 }
 
 function AgentDetail({ toolUseId, item, subs, progress, live, background, startedAt, now, root, onClose, onStop, stopping }: AgentProps): React.JSX.Element {
+  const backLabel = useBackLabel()
   const info = agentInfo(item?.input)
   const list = subs[toolUseId] ?? []
   const tools = progress?.tools ?? list.filter((i) => i.type === 'tool').length
@@ -170,7 +173,7 @@ function AgentDetail({ toolUseId, item, subs, progress, live, background, starte
               {stopping ? 'STOPPING…' : 'STOP'}
             </button>
           )}
-          <button type="button" className="btn ghost" onClick={onClose}>BACK TO CHAT</button>
+          <button type="button" className="btn ghost" onClick={onClose}>{backLabel}</button>
         </div>
       </header>
       <div className="td-meta">

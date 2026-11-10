@@ -89,3 +89,43 @@ test.describe('git 저장소가 아닌 프로젝트', () => {
     await expect(win.locator('.git .empty')).toHaveText('git 저장소가 아닌 폴더예요.')
   })
 })
+
+test('넓은 창에서는 git 화면을 대화 기록 옆 칸에 펼치고, 좁아지면 기록 자리를 대신한다', async ({ app, win }) => {
+  const size = (w: number, h: number): Promise<void> =>
+    app.evaluate(({ BrowserWindow }, [w, h]) => {
+      const b = BrowserWindow.getAllWindows()[0]
+      b.unmaximize()
+      b.setSize(w, h)
+    }, [w, h])
+  await size(1920, 1080)
+  await expect.poll(() => win.evaluate(() => innerWidth)).toBe(1920)
+  await win.keyboard.press('Alt+a')
+  await win.locator('#composer-input').click()
+  await win.keyboard.press('Control+g')
+  await expect(win.locator('.git')).toBeVisible()
+  // 옆 칸: 기록이 남아 있고, 기록 → git 순서로 나란히
+  await expect(win.locator('.chat-body')).toHaveClass(/\bbeside\b/)
+  const t = await win.locator('.chat-body > .transcript').boundingBox()
+  const p = await win.locator('.chat-body > .panel-slot').boundingBox()
+  expect(t && p && t.x + t.width <= p.x + 1).toBeTruthy()
+  expect(t!.width).toBeGreaterThan(400)
+  // 옆 칸이 된 뒤에도 폭 판정이 뒤집히지 않는다 (칸 폭이 내용에 끌려가면 프레임마다 오간다)
+  await win.waitForTimeout(400)
+  await expect(win.locator('.chat-body.beside > .transcript')).toHaveCount(1)
+  // 기록이 보이므로 닫기 버튼은 CLOSE
+  await expect(win.locator('.git .wt-actions .btn.ghost')).toHaveText('CLOSE')
+
+  // 좁히면 git이 기록 자리를 대신한다
+  await size(1280, 820)
+  await expect(win.locator('.chat-body > .transcript')).toHaveCount(0)
+  await expect(win.locator('.git')).toBeVisible()
+  await expect(win.locator('.git .wt-actions .btn.ghost')).toHaveText('BACK TO CHAT')
+  // 다시 넓히고 닫으면 기록만 남고 입력창으로
+  await size(1920, 1080)
+  await expect(win.locator('.chat-body > .transcript')).toBeVisible()
+  await win.keyboard.press('Control+b')
+  await expect(win.locator('.chat-body > .panel-slot')).toHaveCount(0)
+  await expect(win.locator('.chat-body')).not.toHaveClass(/\bbeside\b/)
+  // 창 포커스는 실행 환경(여러 앱이 같이 뜸)에 따라 없을 수 있어 문서 안의 포커스만 본다
+  await expect.poll(() => win.evaluate(() => document.activeElement?.id)).toBe('composer-input')
+})

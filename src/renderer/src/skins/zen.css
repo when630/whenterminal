@@ -437,6 +437,7 @@
 
 /* ── 대화 본문: 오른쪽 상태 패널은 숨기고 대화 기록은 가운데 한 단 ── */
 :root[data-skin='zen'] .chat-body, :root[data-skin='zen'] .chat-body.open { grid-template-columns: minmax(0, 1fr); transition: none; }
+:root[data-skin='zen'] .chat-body.beside, :root[data-skin='zen'] .chat-body.beside.open { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
 :root[data-skin='zen'] .status-panel { display: none; }
 :root[data-skin='zen'] .transcript { padding: 64px var(--zen-pad) 40px; }
 :root[data-skin='zen'] .transcript > .hit { box-shadow: inset 1px 0 0 var(--ink); background: transparent; }

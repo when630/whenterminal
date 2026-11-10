@@ -3,6 +3,7 @@ import type { GitCommitInfo, GitDiff, GitDiffTarget, GitOverview } from '@shared
 import { DiffBody } from './WorktreePanel'
 import { Presence } from './motion'
 import { elapsed, useNow } from './time'
+import { useBackLabel } from './beside'
 
 interface Props {
   projectId: string
@@ -99,6 +100,7 @@ function Graph({ row, lanes, merge }: { row: GraphRow; lanes: number; merge: boo
  * 칸 사이는 H/L(←→), 칸 안은 J/K(↑↓). diff 칸은 J/K로 스크롤, Ctrl+D/U로 반 쪽씩
  */
 export function GitPanel({ projectId, conversationId, refreshKey, busy, onClose }: Props): React.JSX.Element {
+  const backLabel = useBackLabel()
   const now = useNow(60_000)
   const [overview, setOverview] = useState<GitOverview | null | undefined>(undefined)
   /** 커밋 기록을 볼 브랜치. undefined면 아직 고르지 않음(지금 브랜치), null이면 모든 브랜치 */
@@ -367,7 +369,7 @@ export function GitPanel({ projectId, conversationId, refreshKey, busy, onClose 
             REFRESH
           </button>
           <button type="button" className="btn ghost" onClick={onClose}>
-            BACK TO CHAT
+            {backLabel}
           </button>
         </div>
       </header>

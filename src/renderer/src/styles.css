@@ -734,6 +734,10 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .chat-body { flex: 1; min-height: 0; overflow-x: clip; display: grid; grid-template-columns: minmax(0, 1fr) 0px; transition: grid-template-columns 0.5s var(--ease-io) 1.6s; }
 .chat-body.open { grid-template-columns: minmax(0, 1fr) 260px; transition-delay: 0s; transition-timing-function: var(--ease-out); }
 .chat-body > .transcript, .chat-body > .panel-slot { min-width: 0; min-height: 0; }
+/* 넓으면(Chat SIDE_PANEL_MIN) 펼친 화면(git·CHANGES·세부 내용·명령 화면)을 기록 옆 칸에. 칸 수가 바뀌는 순간은 움직이지 않는다 */
+.chat-body.beside { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 0px; }
+.chat-body.beside.open { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 260px; }
+.chat-body.beside > .panel-slot { border-left: var(--rule-thick); }
 /* 대화 기록 자리에 펼친 화면(세부 내용·명령 화면·CHANGES)의 자리. 닫힐 때 잠시 남아 나간다 */
 .panel-slot { display: flex; flex-direction: column; }
 .panel-slot > .wt-panel { min-height: 0; }

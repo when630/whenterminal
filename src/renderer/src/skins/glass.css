@@ -386,6 +386,9 @@
 
 /* 대화 + 상태 패널: 둘 다 떨어진 유리 판 */
 :root[data-skin='glass'] .chat-body.open { grid-template-columns: minmax(0, 1fr) 274px; }
+:root[data-skin='glass'] .chat-body.beside { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 0px; }
+:root[data-skin='glass'] .chat-body.beside.open { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 274px; }
+:root[data-skin='glass'] .chat-body.beside > .panel-slot { margin-left: 12px; border-left: 1px solid var(--glass-stroke); }
 :root[data-skin='glass'] .transcript, :root[data-skin='glass'] .panel-slot {
   border: 1px solid var(--glass-stroke); border-radius: var(--g-r-lg); background: var(--glass); box-shadow: var(--g-pane-shadow);
 }

@@ -24,6 +24,7 @@ import { EffortPicker, ModelPicker } from './ModelPicker'
 import { useDraft } from './drafts'
 import { formatReset, limitAllowed, worstLimit } from '@shared/usage'
 import { afterMorph, isMorphing, morph } from './morph'
+import { BesideContext } from './beside'
 import { FileMenu, mentionText, rankCommands, SlashMenu, useSlashCommands, type Mention } from './SlashMenu'
 
 interface Props {
@@ -462,7 +463,18 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const panel = showChanges && conv?.worktree ? { changes: true as const, tool: null, detail: null, id: conversationId } : tool ? { changes: false as const, tool, detail: null, id: conversationId } : detail ? { changes: false as const, tool: null, detail, id: conversationId } : null
   const panelHeld = usePresence(panel)
   const panelShown = panelHeld.item?.id === conversationId ? panelHeld : { item: null, leaving: false }
-  const transcriptMounted = !panelShown.item
+  // 대화 칸이 넓으면 펼친 화면을 대화 기록 옆에 둔다(기록은 그대로). 좁으면 예전처럼 기록 자리를 대신한다
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [wide, setWide] = useState(false)
+  useLayoutEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setWide(e.contentRect.width >= SIDE_PANEL_MIN))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const side = wide && !!panelShown.item
+  const transcriptMounted = !panelShown.item || wide
   // 아직 화면에 그리지 않은 세부 내용 바뀜: 맡긴 수(n)·마지막 값(v). 맡긴 것이 다 실행된 뒤 처음 그릴 때 푼다(active).
   // 실행했어도 다시 그리기 전에는 detail이 옛 값이라, 그사이 온 키는 v를 기준으로 판단해야 한다
   const detailPending = useRef<{ n: number; v: DetailTarget | null; active: boolean }>({ n: 0, v: null, active: false })
@@ -481,7 +493,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       apply()
       p.n--
     }
-    const slot = (): Element | null => document.querySelector('.chat-body > .panel-slot')
+    const slot = (): Element | null => bodyRef.current?.querySelector(':scope > .panel-slot') ?? null
     if (plain) afterMorph(run)
     else if (next && !panelShown.item) morph('detail', detailRow(next), run, slot, true)
     else if (!next && panelShown.item?.detail && !panelShown.leaving) {
@@ -499,14 +511,13 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   }, [transcriptMounted])
   const placeholderHeld = usePresence(state.items.length === 0 ? conversationId : null)
   const placeholder = placeholderHeld.item === conversationId ? placeholderHeld : { item: null, leaving: false }
-  // 아래 터미널이 열리며 기록 칸이 줄어들 때도 맨 아래를 붙잡는다
-  const transcriptShown = !(showChanges && conv?.worktree) && !detail && !tool
-  // 패널·세부 화면을 닫고 대화로 돌아오면 입력창으로
+  // 패널·세부 화면을 닫으면(기록 자리든 옆 칸이든) 입력창으로
+  const panelOpen = !!(showChanges && conv?.worktree) || !!detail || !!tool
   const wasPanel = useRef(false)
   useEffect(() => {
-    if (wasPanel.current && transcriptShown) requestAnimationFrame(focusComposer)
-    wasPanel.current = !transcriptShown
-  }, [transcriptShown, focusComposer])
+    if (wasPanel.current && !panelOpen) requestAnimationFrame(focusComposer)
+    wasPanel.current = panelOpen
+  }, [panelOpen, focusComposer])
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -546,9 +557,12 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
 
   /** 명령 화면을 닫고 대화 기록의 그 도구 호출로 가서 펼친다 */
   const jumpToTool = (toolUseId: string): void => {
-    setTool(null)
-    setDetail(null)
-    setShowChanges(false)
+    // 옆 칸에 펼쳐 둔 화면은 그대로 두고 기록만 그 호출로 (목록에서 이어서 고를 수 있게)
+    if (!wide) {
+      setTool(null)
+      setDetail(null)
+      setShowChanges(false)
+    }
     setStick(false)
     setTimeout(() => {
       const el = scrollRef.current?.querySelector<HTMLDetailsElement>(`[data-tool-id="${toolUseId}"]`)
@@ -592,9 +606,12 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     },
     rewind: () => openTool({ kind: 'rewind' }),
     scrollBottom: () => {
-      setDetail(null)
-      setTool(null)
-      setShowChanges(false)
+      // 기록이 옆에 보이면 펼친 화면은 두고 기록만 내린다
+      if (!wide) {
+        setDetail(null)
+        setTool(null)
+        setShowChanges(false)
+      }
       toBottom()
     },
     git: () => (tool?.kind === 'git' ? setTool(null) : openTool({ kind: 'git' })),
@@ -999,56 +1016,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
         )}
       </header>
 
-      <div className={`chat-body ${busy || state.status === 'queued' || background.length > 0 || artifacts.length > 0 ? 'open' : ''}`}>
-      {panelShown.item ? (
-        <div className={`panel-slot ${panelShown.leaving ? 'leaving' : ''}`}>
-      {panelShown.item.changes ? (
-        <WorktreePanel
-          projectId={project.id}
-          conversationId={conversationId}
-          refreshKey={`${state.status}:${state.items.length}`}
-          onClose={() => setShowChanges(false)}
-          onDiscarded={(next) => {
-            setShowChanges(false)
-            onSelectConversation(next)
-            forgetTerminals(conversationId)
-          }}
-        />
-      ) : panelShown.item.tool ? (
-        <ToolPanelView
-          key={panelShown.item.tool.kind === 'artifact' ? `artifact:${panelShown.item.tool.url}` : panelShown.item.tool.kind}
-          panel={panelShown.item.tool}
-          projectId={project.id}
-          conversationId={conversationId}
-          items={state.items}
-          busy={busy || state.status === 'queued' || !!state.compacting}
-          onClose={() => {
-            setTool(null)
-            requestAnimationFrame(() => inputRef.current?.focus())
-          }}
-          onRewound={(text) => {
-            if (text) setDraft((d) => (d.trim() ? `${text}\n\n${d}` : text))
-          }}
-          onOpenConversation={onSelectConversation}
-          onRunInTerminal={(cmd) => void runInTerminal(project.id, conversationId, cmd)}
-          onInsert={(text) => insertAtCaret(text)}
-          onJumpToTool={jumpToTool}
-          root={root}
-        />
-      ) : panelShown.item.detail ? (
-        <TaskDetail
-          key={panelShown.item.detail.kind === 'task' ? panelShown.item.detail.taskId : panelShown.item.detail.toolUseId}
-          target={panelShown.item.detail}
-          state={state}
-          projectId={project.id}
-          conversationId={conversationId}
-          root={root}
-          onClose={() => changeDetail(null, () => setDetail(null))}
-          onStopTask={(taskId) => window.api.stopTask(project.id, conversationId, taskId)}
-        />
-      ) : null}
-        </div>
-      ) : (
+      <div ref={bodyRef} className={`chat-body ${busy || state.status === 'queued' || background.length > 0 || artifacts.length > 0 ? 'open' : ''} ${side ? 'beside' : ''}`}>
+      {transcriptMounted && (
         <main className="transcript" ref={scrollRef} onScroll={onScroll}>
           {placeholder.item && (
             <div className={`placeholder ${placeholder.leaving ? 'leaving' : ''}`}>
@@ -1103,6 +1072,57 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             <button type="button" onClick={toBottom} title="맨 아래로 내려가요">↓ LATEST</button>
           </Presence>
         </main>
+      )}
+      {panelShown.item && (
+        <div className={`panel-slot ${panelShown.leaving ? 'leaving' : ''}`}>
+      <BesideContext.Provider value={side}>
+      {panelShown.item.changes ? (
+        <WorktreePanel
+          projectId={project.id}
+          conversationId={conversationId}
+          refreshKey={`${state.status}:${state.items.length}`}
+          onClose={() => setShowChanges(false)}
+          onDiscarded={(next) => {
+            setShowChanges(false)
+            onSelectConversation(next)
+            forgetTerminals(conversationId)
+          }}
+        />
+      ) : panelShown.item.tool ? (
+        <ToolPanelView
+          key={panelShown.item.tool.kind === 'artifact' ? `artifact:${panelShown.item.tool.url}` : panelShown.item.tool.kind}
+          panel={panelShown.item.tool}
+          projectId={project.id}
+          conversationId={conversationId}
+          items={state.items}
+          busy={busy || state.status === 'queued' || !!state.compacting}
+          onClose={() => {
+            setTool(null)
+            requestAnimationFrame(() => inputRef.current?.focus())
+          }}
+          onRewound={(text) => {
+            if (text) setDraft((d) => (d.trim() ? `${text}\n\n${d}` : text))
+          }}
+          onOpenConversation={onSelectConversation}
+          onRunInTerminal={(cmd) => void runInTerminal(project.id, conversationId, cmd)}
+          onInsert={(text) => insertAtCaret(text)}
+          onJumpToTool={jumpToTool}
+          root={root}
+        />
+      ) : panelShown.item.detail ? (
+        <TaskDetail
+          key={panelShown.item.detail.kind === 'task' ? panelShown.item.detail.taskId : panelShown.item.detail.toolUseId}
+          target={panelShown.item.detail}
+          state={state}
+          projectId={project.id}
+          conversationId={conversationId}
+          root={root}
+          onClose={() => changeDetail(null, () => setDetail(null))}
+          onStopTask={(taskId) => window.api.stopTask(project.id, conversationId, taskId)}
+        />
+      ) : null}
+      </BesideContext.Provider>
+        </div>
       )}
         {(state.task || background.length > 0 || artifacts.length > 0) && (
           <StatusPanel
@@ -1351,6 +1371,9 @@ interface PanelProps {
   onTools: () => void
   onStopTask: (taskId: string) => Promise<void>
 }
+
+/** 대화 칸(상태 패널 포함)이 이 폭 이상이면 펼친 화면을 기록 옆에 둔다. 1920 창에서 사이드바를 빼면 넘고, 1280 창·분할한 반쪽은 못 넘는다 */
+const SIDE_PANEL_MIN = 1400
 
 const detailKey = (t: DetailTarget): string => (t.kind === 'task' ? `task:${t.taskId}` : `agent:${t.toolUseId}`)
 /** 상태 패널에서 그 세부 내용의 줄 (모핑의 한쪽) */

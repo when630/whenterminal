@@ -204,6 +204,48 @@ const Draw = (() => {
     return png()
   }
 
+  /**
+   * 앱 창 키: 위에 WINDOW, 가운데 창 그림(앞에 떠 있으면 흰 창, 다른 창 뒤면 외곽선, 트레이면 아래 막대만), 아래에 누르면 할 일.
+   * w: { visible, focused } (예전 앱이라 모르면 undefined → 트레이로 본다)
+   */
+  function windowKey(w) {
+    clear(K)
+    const visible = !!(w && w.visible)
+    const front = visible && !!w.focused
+    ctx.textAlign = 'center'
+    font(800, 24)
+    ctx.fillStyle = front ? W : DIM
+    ctx.fillText(front ? 'SHOWN' : visible ? 'BEHIND' : 'TRAY', SIZE / 2, 42)
+    ctx.fillStyle = '#2a2a2a'
+    ctx.fillRect(16, 58, SIZE - 32, 3)
+    const x = 40
+    const y = 76
+    const w0 = SIZE - 80
+    const h = 64
+    if (front) {
+      ctx.fillStyle = W
+      ctx.fillRect(x, y, w0, h)
+      ctx.fillStyle = R
+      ctx.fillRect(x, y, w0, 10)
+    } else if (visible) {
+      ctx.strokeStyle = W
+      ctx.lineWidth = 5
+      ctx.strokeRect(x + 3, y + 3, w0 - 6, h - 6)
+    } else {
+      ctx.strokeStyle = '#3a3a3a'
+      ctx.lineWidth = 4
+      ctx.setLineDash([10, 8])
+      ctx.strokeRect(x + 2, y + 2, w0 - 4, h - 4)
+      ctx.setLineDash([])
+      ctx.fillStyle = W
+      ctx.fillRect(x + 16, y + h + 6, w0 - 32, 6)
+    }
+    font(700, 19)
+    ctx.fillStyle = DIM
+    ctx.fillText(front ? '누르면 숨겨요' : '누르면 열어요', SIZE / 2, 182)
+    return png()
+  }
+
   /** 앱에 연결하지 못함 */
   function offline() {
     clear(K)
@@ -318,5 +360,5 @@ const Draw = (() => {
     return png()
   }
 
-  return { conversation, overflow, empty, offline, usage, usageOne, split, SIZE }
+  return { conversation, overflow, empty, offline, usage, usageOne, split, windowKey, SIZE }
 })()

@@ -540,6 +540,13 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     if (wasPanel.current && !panelOpen) requestAnimationFrame(focusComposer)
     wasPanel.current = panelOpen
   }, [panelOpen, focusComposer])
+  // 나가는 패널이 다 빠진 뒤에도 한 번 더: 나가는 동안 패널 안(커밋 목록 등)이 포커스를 다시 쥐었다가 함께 사라지면 포커스가 body로 떨어진다
+  const panelGone = !panelShown.item
+  const hadPanelItem = useRef(false)
+  useEffect(() => {
+    if (hadPanelItem.current && panelGone && (!document.activeElement || document.activeElement === document.body)) requestAnimationFrame(focusComposer)
+    hadPanelItem.current = !panelGone
+  }, [panelGone, focusComposer])
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>WHENTERMINAL</title>
+  <link rel="stylesheet" href="../libs/css/uspi.css">
+  <style>.note { color: #9a9a9a; font-size: 12px; line-height: 1.5; padding: 4px 0 0; }</style>
+</head>
+<body>
+  <div class="uspi-wrapper hidden">
+    <div class="note">누르면 WHENTERMINAL 창을 띄우고, 앞에 떠 있을 때 누르면 트레이로 숨겨요. 전역 호출 키와 같아요. 키에 지금 창이 앞에 있는지(SHOWN), 다른 창 뒤에 있는지(BEHIND), 트레이에 있는지(TRAY)가 보여요.</div>
+  </div>
+  <script src="../libs/js/constants.js"></script>
+  <script src="../libs/js/eventEmitter.js"></script>
+  <script src="../libs/js/timers.js"></script>
+  <script src="../libs/js/utils.js"></script>
+  <script src="../libs/js/ulanziApi.js"></script>
+  <script>
+    $UD.connect()
+    $UD.onConnected(() => document.querySelector('.uspi-wrapper').classList.remove('hidden'))
+  </script>
+</body>
+</html>

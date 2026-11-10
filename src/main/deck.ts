@@ -8,6 +8,7 @@ import { openConversations, type AgentEventEnvelope, type AgentStatus, type Proj
 //   POST /open?project=&conversation=   창을 열고 그 대화로 옮긴다 (둘 다 없으면 창만)
 //   POST /home            창을 열고 홈 화면으로
 //   POST /split           창을 열고 분할 켜기·끄기 (홈이면 마지막 대화를 열고 나눈다)
+//   POST /window          창 보이기·숨기기 (전역 호출 키와 같다: 앞에 떠 있으면 트레이로, 아니면 띄운다)
 //   POST /usage/refresh   사용량을 새로 받는다
 
 export const DECK_PORT = 37630
@@ -24,11 +25,18 @@ export interface DeckConversation {
   model: string | null
 }
 
+export interface DeckWindow {
+  visible: boolean
+  focused: boolean
+}
+
 export interface DeckState {
   conversations: DeckConversation[]
   usage: UsageInfo | null
   /** 분할창 (렌더러가 알려 준 것, 아직 모르면 null) */
   split: SplitInfo | null
+  /** 앱 창: 보이는지(최소화·트레이가 아님), 앞에 떠서 포커스가 있는지 (있으면 키를 누를 때 숨긴다) */
+  window: DeckWindow
   at: number
 }
 
@@ -46,6 +54,7 @@ export class DeckBridge {
   private background = new Map<string, number>()
   private usage: UsageInfo | null = null
   private split: SplitInfo | null = null
+  private window: DeckWindow = { visible: false, focused: false }
   private pushTimer: ReturnType<typeof setTimeout> | null = null
   private heartbeat: ReturnType<typeof setInterval> | null = null
   private poll: ReturnType<typeof setInterval> | null = null
@@ -58,6 +67,7 @@ export class DeckBridge {
     private readonly refreshUsage: () => void,
     private readonly goHome: () => void,
     private readonly toggleSplit: () => void,
+    private readonly toggleWindow: () => void,
   ) {}
 
   start(): void {
@@ -97,6 +107,12 @@ export class DeckBridge {
     if (e.event.kind !== 'status') return
     if (this.status.get(e.conversationId) === e.event.status) return
     this.status.set(e.conversationId, e.event.status)
+    this.changed()
+  }
+
+  setWindow(w: DeckWindow): void {
+    if (w.visible === this.window.visible && w.focused === this.window.focused) return
+    this.window = w
     this.changed()
   }
 
@@ -146,7 +162,7 @@ export class DeckBridge {
         })
       }
     }
-    return { conversations, usage: this.usage, split: this.split, at: Date.now() }
+    return { conversations, usage: this.usage, split: this.split, window: this.window, at: Date.now() }
   }
 
   private handle(req: IncomingMessage, res: ServerResponse): void {
@@ -183,6 +199,11 @@ export class DeckBridge {
     }
     if (req.method === 'POST' && url.pathname === '/home') {
       this.goHome()
+      res.writeHead(204).end()
+      return
+    }
+    if (req.method === 'POST' && url.pathname === '/window') {
+      this.toggleWindow()
       res.writeHead(204).end()
       return
     }

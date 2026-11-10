@@ -207,6 +207,7 @@ function bootstrap(): void {
       showWindow()
       send(IPC.toggleSplit, null)
     },
+    () => toggleWindow(),
   )
   deck.start()
   ipcMain.on(IPC.splitState, (_e, info: SplitInfo) => deck.setSplit(info))
@@ -617,6 +618,10 @@ function bootstrap(): void {
   // 메뉴 단축키는 모두 Cmd 기반이라 앱의 Ctrl/Alt 단축키와 겹치지 않는다
   Menu.setApplicationMenu(isMac ? buildMacMenu() : null)
   createWindow()
+  // 스트림덱 창 키: 창이 보이는지·앞에 있는지를 키 그림에 (포커스가 옮겨 갈 때마다)
+  const reportWindow = (): void => deck.setWindow({ visible: !!win?.isVisible() && !win.isMinimized(), focused: !!win?.isFocused() })
+  for (const ev of ['show', 'hide', 'minimize', 'restore', 'focus', 'blur'] as const) win?.on(ev as 'show', reportWindow)
+  reportWindow()
   createTray()
   updater.start()
 

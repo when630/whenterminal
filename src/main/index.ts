@@ -195,19 +195,22 @@ function bootstrap(): void {
   const deck = new DeckBridge(
     () => store.list(),
     (projectId, conversationId) => {
-      showWindow()
+      showFromBackground()
       if (projectId) send(IPC.navigate, { projectId, conversationId })
     },
     () => void refreshUsage(),
     () => {
-      showWindow()
+      showFromBackground()
       send(IPC.goHome, null)
     },
     () => {
-      showWindow()
+      showFromBackground()
       send(IPC.toggleSplit, null)
     },
-    () => toggleWindow(),
+    () => {
+      if (win?.isVisible() && !win.isMinimized() && win.isFocused()) hideWindow()
+      else showFromBackground()
+    },
   )
   deck.start()
   ipcMain.on(IPC.splitState, (_e, info: SplitInfo) => deck.setSplit(info))
@@ -707,7 +710,7 @@ function createWindow(): void {
     sendShown(false)
     // 작업 표시줄 버튼이 없으면 최소화한 창은 화면 구석의 작은 막대로 남으므로 트레이로 숨긴다 (다시 열면 showWindow가 restore).
     // 최소화하면서 Windows가 이미 다음 창을 활성화했으므로 숨기기만 한다
-    if (!isMac && settingsStore.get().hideTaskbar && win?.isVisible()) win.hide()
+    if (!isMac && !forcingFront && settingsStore.get().hideTaskbar && win?.isVisible()) win.hide()
   })
   win.on('show', () => sendShown(!win?.isMinimized()))
   win.on('restore', () => sendShown(!!win?.isVisible()))
@@ -801,6 +804,27 @@ function hideWindow(): void {
   }
   win.blur()
   win.hide()
+}
+
+/** showFromBackground가 최소화·복원하는 동안 (minimize의 트레이 숨김을 건너뛴다) */
+let forcingFront = false
+
+/**
+ * 다른 프로세스의 요청(스트림덱 통로)으로 창을 앞으로. Windows는 포커스를 가진 앱이 따로 있으면
+ * 백그라운드 프로세스의 show()·focus()를 막는다(포커스 가로채기 방지: 맨 앞 창은 그대로, 작업 표시줄만 깜빡임).
+ * 전역 호출 키·트레이는 Windows가 그 순간 활성화 권한을 주므로 showWindow로 충분하다.
+ * 최소화했다가 복원하면 Windows가 활성화를 허용한다 (show·focus·setAlwaysOnTop은 실패, 이것만 맨 앞이 됐다)
+ */
+function showFromBackground(): void {
+  if (!win) return
+  if (isMac) return showWindow()
+  // minimize 이벤트는 나중에 올 수 있어 잠시 더 들고 있는다
+  forcingFront = true
+  setTimeout(() => (forcingFront = false), 600)
+  if (!win.isVisible()) win.show()
+  win.minimize()
+  win.restore()
+  win.focus()
 }
 
 function toggleWindow(): void {

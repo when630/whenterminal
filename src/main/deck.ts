@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
-import { openConversations, type AgentEventEnvelope, type AgentStatus, type Project, type UsageInfo } from '@shared/types'
+import { openConversations, type AgentEventEnvelope, type AgentStatus, type Project, type SplitInfo, type UsageInfo } from '@shared/types'
 
 // 스트림덱(Ulanzi 등) 플러그인이 대화 상태·사용량을 읽어 가는 로컬 HTTP 통로.
 // 127.0.0.1에서만 듣고, 다른 사이트의 페이지가 읽지 못하게 Host·Origin을 확인한다.
@@ -7,6 +7,7 @@ import { openConversations, type AgentEventEnvelope, type AgentStatus, type Proj
 //   GET  /events          상태가 바뀔 때마다 SSE로 (처음 연결하면 바로 한 번)
 //   POST /open?project=&conversation=   창을 열고 그 대화로 옮긴다 (둘 다 없으면 창만)
 //   POST /home            창을 열고 홈 화면으로
+//   POST /split           창을 열고 분할 켜기·끄기 (홈이면 마지막 대화를 열고 나눈다)
 //   POST /usage/refresh   사용량을 새로 받는다
 
 export const DECK_PORT = 37630
@@ -26,6 +27,8 @@ export interface DeckConversation {
 export interface DeckState {
   conversations: DeckConversation[]
   usage: UsageInfo | null
+  /** 분할창 (렌더러가 알려 준 것, 아직 모르면 null) */
+  split: SplitInfo | null
   at: number
 }
 
@@ -42,6 +45,7 @@ export class DeckBridge {
   /** 대화별 살아 있는 백그라운드 작업 수 (background 이벤트가 목록 전체를 바꿔치기로 보낸다) */
   private background = new Map<string, number>()
   private usage: UsageInfo | null = null
+  private split: SplitInfo | null = null
   private pushTimer: ReturnType<typeof setTimeout> | null = null
   private heartbeat: ReturnType<typeof setInterval> | null = null
   private poll: ReturnType<typeof setInterval> | null = null
@@ -53,6 +57,7 @@ export class DeckBridge {
     private readonly open: (projectId: string, conversationId: string) => void,
     private readonly refreshUsage: () => void,
     private readonly goHome: () => void,
+    private readonly toggleSplit: () => void,
   ) {}
 
   start(): void {
@@ -92,6 +97,11 @@ export class DeckBridge {
     if (e.event.kind !== 'status') return
     if (this.status.get(e.conversationId) === e.event.status) return
     this.status.set(e.conversationId, e.event.status)
+    this.changed()
+  }
+
+  setSplit(s: SplitInfo | null): void {
+    this.split = s
     this.changed()
   }
 
@@ -136,7 +146,7 @@ export class DeckBridge {
         })
       }
     }
-    return { conversations, usage: this.usage, at: Date.now() }
+    return { conversations, usage: this.usage, split: this.split, at: Date.now() }
   }
 
   private handle(req: IncomingMessage, res: ServerResponse): void {
@@ -173,6 +183,11 @@ export class DeckBridge {
     }
     if (req.method === 'POST' && url.pathname === '/home') {
       this.goHome()
+      res.writeHead(204).end()
+      return
+    }
+    if (req.method === 'POST' && url.pathname === '/split') {
+      this.toggleSplit()
       res.writeHead(204).end()
       return
     }

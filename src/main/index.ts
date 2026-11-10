@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { release } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cwdOf, IPC, MAX_PROJECTS, type Conversation, type DeniedCall, type ModelOption, type StoredTask, type UsageInfo, type AgentEventEnvelope, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRuleSource, type RateLimitInfo, type RewindScope, type ShellResult, type TerminalShell, type EffortLevel, type GitDiffTarget } from '@shared/types'
+import { cwdOf, IPC, MAX_PROJECTS, type Conversation, type DeniedCall, type ModelOption, type StoredTask, type UsageInfo, type SplitInfo, type AgentEventEnvelope, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRuleSource, type RateLimitInfo, type RewindScope, type ShellResult, type TerminalShell, type EffortLevel, type GitDiffTarget } from '@shared/types'
 import { limitAllowed, worstLimit } from '@shared/usage'
 import { newConversationId, ProjectStore } from './store'
 import { memoryFiles, permissionsInfo, setPermissionRule } from './agent/config'
@@ -203,8 +203,13 @@ function bootstrap(): void {
       showWindow()
       send(IPC.goHome, null)
     },
+    () => {
+      showWindow()
+      send(IPC.toggleSplit, null)
+    },
   )
   deck.start()
+  ipcMain.on(IPC.splitState, (_e, info: SplitInfo) => deck.setSplit(info))
   app.on('will-quit', () => deck.stop())
 
   const notifier = new Notifier(store, () => win, () => settingsStore.get(), (projectId, conversationId, terminal) => {

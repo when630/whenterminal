@@ -107,6 +107,7 @@
   - 메인 `main/git-view.ts`: 대화 폴더(`cwdOf`) 기준. `gitOverview`(for-each-ref·worktree list), `gitLog`(`--date-order`, 300개씩 `skip`), `gitDiff`(커밋은 첫 부모와, 첫 커밋은 빈 트리와 / 커밋 안 한 변경은 HEAD와 + 새 파일), `gitCheckout`·`gitCommit`(실패하면 git 메시지 그대로). `core.quotepath=false`·`maxBuffer` 64MB. 다른 작업 공간의 변경은 그 저장소의 `worktree list`에 있는 폴더만
   - 갈래 선은 렌더러 `layoutGraph`가 커밋의 부모로 그린다(`--graph` 글자 대신 SVG, 칸은 옮기지 않고 빈 칸을 다시 씀 → 더 읽어도 앞 그림이 그대로). 줄 높이 `ROW_H`와 CSS `.git-row` 높이가 같아야 선이 이어진다. 폭은 목록에서 가장 넓은 줄에 맞춘다
   - 키: 칸은 `role="listbox"`(diff 칸은 `data-focus-stay`, focus.ts `OWN`)라 포커스가 입력창으로 끌려가지 않고, App의 키(Esc 중단·Ctrl+B 돌아가기 …)는 그대로 받는다. H/L 칸, J/K 줄(diff 칸은 스크롤), Enter 다음 칸, Ctrl+D/U 반 쪽. 저장소를 읽어 칸이 그려지면 커밋 칸에 포커스
+- 펼친 화면을 기록 옆 칸에(Chat `wide`·`.chat-body.beside`): 대화 칸(상태 패널 포함)이 `SIDE_PANEL_MIN`(1400px, ResizeObserver) 이상이면 git·CHANGES·세부 내용·명령 화면을 기록 자리 대신 기록 오른쪽 칸에 둔다(기록 1fr : 화면 1.3fr : 상태 패널). 좁으면 예전처럼 기록 자리를 대신하고, 폭이 바뀌면 그때그때 오간다. 옆 칸일 때 `jumpToTool`·`scrollBottom`은 화면을 닫지 않는다. 클래스 이름 `side`는 사이드바(`.side`)와 겹쳐 스킨 규칙이 대화 칸에 걸리므로 `beside`. 칸 폭은 스킨이 `.chat-body.open`을 다시 정하는 곳(glass·tui·zen)에도 같이 적을 것. 분할창(대화 두 개 나란히)의 첫 단계
 - 대화 검색(`SearchOverlay.tsx`, 키맵 `search` 기본 `Ctrl+Shift+F`): 모든 프로젝트의 열린 대화를 세션 기록(`readHistory`, 끝 400개)에서 찾는다(`agent/search.ts`, 기록 파일 `lastModified`가 같으면 캐시). 띄어 쓴 말이 모두 들어간 내 메시지·답변·도구 호출. 고르면 그 대화를 열고 `jump`로 그 메시지까지 스크롤·강조. 무엇을 찾을지와 몇 번째로 맞았는지(`ordinal`)는 메인·렌더러가 `@shared/search`의 같은 함수로 센다
 - macOS도 지원한다 (`isMac` 분기, `src/main/index.ts`)
   - 단축키는 macOS에서도 Ctrl 기반 그대로. Cmd로 바꾸지 말 것. 화면의 Alt 표기만 `⌥`로 바꾼다 (`ALT_LABEL`)

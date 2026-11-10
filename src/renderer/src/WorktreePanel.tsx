@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Presence } from './motion'
 import type { WorktreeChanges } from '@shared/types'
+import { useBackLabel } from './beside'
 
 interface Props {
   projectId: string
@@ -33,6 +34,7 @@ export function splitDiff(diff: string): { path: string; lines: string[] }[] {
  * 합치기는 커밋 안 한 변경을 대화 제목으로 커밋하고 프로젝트의 현재 브랜치에 --no-ff로 병합한다
  */
 export function WorktreePanel({ projectId, conversationId, refreshKey, onClose, onDiscarded }: Props): React.JSX.Element {
+  const backLabel = useBackLabel()
   const [data, setData] = useState<WorktreeChanges | null | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -90,7 +92,7 @@ export function WorktreePanel({ projectId, conversationId, refreshKey, onClose, 
             REFRESH
           </button>
           <button type="button" className="btn ghost" onClick={onClose}>
-            BACK TO CHAT
+            {backLabel}
           </button>
         </div>
       </header>

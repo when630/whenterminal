@@ -6,6 +6,7 @@ import { ARTIFACT_PARTITION, MODE_LABEL } from '@shared/types'
 import { artifactsOf, isRunningTool, relPath as relPathOf, summarizeInput as summarizeInputOf, type TranscriptItem } from './state'
 import { elapsed, useNow } from './time'
 import { GitPanel } from './GitPanel'
+import { useBackLabel } from './beside'
 
 // 대화 기록 자리에 펼치는 명령 화면들 (CLI의 /rewind /resume /mcp /agents /permissions /hooks /memory /status).
 // 모양은 작업 공간 CHANGES(WorktreePanel)와 같다: 머리줄 + 본문
@@ -86,6 +87,7 @@ export function ToolPanelView(props: Props): React.JSX.Element {
 }
 
 function Frame({ title, sub, actions, message, onClose, children }: { title: string; sub?: string; actions?: React.ReactNode; message?: { ok: boolean; text: string } | null; onClose: () => void; children: React.ReactNode }): React.JSX.Element {
+  const backLabel = useBackLabel()
   return (
     <section className="wt-panel td" aria-label={title}>
       <header className="wt-head">
@@ -96,7 +98,7 @@ function Frame({ title, sub, actions, message, onClose, children }: { title: str
         <div className="wt-actions">
           {actions}
           <button type="button" className="btn ghost" onClick={onClose}>
-            BACK TO CHAT
+            {backLabel}
           </button>
         </div>
       </header>

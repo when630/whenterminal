@@ -6,6 +6,7 @@
 //  - 사용량: 키 설정에서 고른 한도(요약·5시간·주간·모델별 주간). 자동이면 놓은 사용량 키 수로 나눈다. 누르면 새로 받는다
 //  - 홈: 누르면 창을 열고 홈 화면으로 (그림은 고정 아이콘)
 //  - 분할: 지금 분할창 상태(두 창의 프로젝트 글자, 키를 받는 창은 흰 칸). 누르면 창을 열고 분할 켜기·끄기
+//  - 창: 앱 창이 앞에 떠 있는지·트레이에 있는지. 누르면 띄우거나 트레이로 숨긴다 (전역 호출 키와 같다)
 
 const BASE = 'http://127.0.0.1:37630'
 const PLUGIN = 'com.ulanzi.ulanzistudio.whenterminal'
@@ -13,6 +14,7 @@ const CONV = `${PLUGIN}.conversation`
 const USAGE = `${PLUGIN}.usage`
 const HOME = `${PLUGIN}.home`
 const SPLIT = `${PLUGIN}.split`
+const WINDOW = `${PLUGIN}.window`
 const PRIORITY = { waiting_approval: 6, error: 5, running: 4, queued: 3, stopped: 2, done: 1, idle: 0 }
 /** 백그라운드 작업이 돌면 턴이 끝났어도 실행 중으로 본다 */
 const busy = (c) => c.status === 'running' || (c.background > 0 && c.status !== 'waiting_approval' && c.status !== 'error')
@@ -32,7 +34,7 @@ let offlineTimer = null
 $UD.connect(PLUGIN)
 
 function kindOf(uuid) {
-  return uuid === USAGE ? 'usage' : uuid === HOME ? 'home' : uuid === SPLIT ? 'split' : 'conv'
+  return uuid === USAGE ? 'usage' : uuid === HOME ? 'home' : uuid === SPLIT ? 'split' : uuid === WINDOW ? 'window' : 'conv'
 }
 
 /** 키 위치 'col_row' → 정렬 값. 모르는 형식이면 뒤로 */
@@ -150,6 +152,7 @@ function render() {
   })
   for (const [ctx, k] of keys) {
     if (k.kind === 'split') send(ctx, Draw.split(state.split, letters))
+    if (k.kind === 'window') send(ctx, Draw.windowKey(state.window))
   }
   for (const [ctx, k] of keys) {
     if (k.kind !== 'conv') continue
@@ -242,6 +245,10 @@ $UD.onRun((jsn) => {
   }
   if (k.kind === 'split') {
     post('/split')
+    return
+  }
+  if (k.kind === 'window') {
+    post('/window')
     return
   }
   const c = target.get(jsn.context)

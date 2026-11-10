@@ -5,7 +5,8 @@
     { "Name": "Conversation", "Tooltip": "Shows one conversation per key in placement order. Press to open it" },
     { "Name": "Usage", "Tooltip": "Subscription usage (5h / weekly). Press to refresh" },
     { "Name": "Home", "Tooltip": "Press to open WHENTERMINAL on the home screen" },
-    { "Name": "Split view", "Tooltip": "Shows the split view. Press to turn it on or off" }
+    { "Name": "Split view", "Tooltip": "Shows the split view. Press to turn it on or off" },
+    { "Name": "Window", "Tooltip": "Press to show WHENTERMINAL or hide it to the tray" }
   ],
   "Localization": {}
 }

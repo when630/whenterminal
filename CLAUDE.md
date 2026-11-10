@@ -112,7 +112,9 @@
   - 대화를 띄우는 길은 모두 `showChat`: 옆 창에 이미 떠 있는 대화면 두 창을 맞바꿔 그 창을 활성으로(같은 대화가 두 창에 뜨지 않음). ⌥A~L은 그 프로젝트가 옆 창에 있으면 그 창으로. 옆 창을 누르면(`onActivate`, mousedown capture) 먼저 활성으로 바뀌고 누른 것은 활성 창의 것으로 처리된다. 활성을 잃은 창은 쥔 포커스를 놓는다(남으면 새 활성 창의 Y/A/N이 그 입력창 글자로 먹는다)
   - 키맵 `splitToggle`(Ctrl+Alt+V, 켤 때 옆 창은 바로 앞에 본 대화 → 같은 프로젝트의 다른 탭 → 다른 프로젝트에서 최근 대화, 없으면 사이드바 안내)·`paneLeft`/`paneRight`(Ctrl+Alt+H/L). 탭·사이드바 대화 줄 Shift+클릭은 옆 창에 연다(`openBeside`)
   - 표시: 활성 창 `.pane-active`(프로젝트 글자 칸 반전), 옆 창 `.pane-idle`(글자 칸 흐리게·포스터는 외곽선 글자, 이름 흐리게, 상태 패널 접음), 옆 창에 확인 요청이면 `.pane-ask`(창 둘레 신호색)이고 활성 창에는 그 프로젝트의 NEEDS YOU 배지를 띄우지 않는다(`besideProjectId`). 옆 창의 탭은 `.tab.elsewhere`, 사이드바 `.nav/.thread.pane-other`. 두 창이 같은 폴더(작업 공간 포함, `folderOf`)면 둘 다 `SAME FOLDER`. soft는 반쪽 폭에서 모드 다섯 칸 대신 지금 모드 하나. 반쪽 폭은 `SIDE_PANEL_MIN`을 못 넘어 펼친 화면은 기록 자리를 대신한다
-  - 대화를 닫거나 프로젝트를 닫으면 분할을 푼다(보고 있던 프로젝트를 닫으면 옆 창의 대화가 남는다). `split.spec.ts`
+  - 대화를 닫거나 프로젝트를 닫으면 분할을 푼다(보고 있던 프로젝트를 닫으면 옆 창의 대화가 남는다). `split.spec.ts`(창 크기를 1920으로 키워서 돈다)
+  - 폭: 대화 영역(`.content`, ResizeObserver)이 `SPLIT_MIN`(1120px) 이상일 때만 나눈다(`roomy`). 1280 창은 못 넘어 켜지 않고 안내하고, 분할 중에 좁아지면 활성 창만 그렸다가 넓히면 옆 창이 돌아온다(`beside`는 그대로). 두 창 사이 `.split-handle`을 끌면 왼쪽 몫 `--split`(stage style, localStorage `wt-split-ratio`)이 바뀌고 더블클릭은 반반. 끄는 동안은 style만 바꾸고 놓을 때 저장. 한 창은 `PANE_MIN`(CSS `min-width` 480px) 아래로 줄지 않는다
+  - 명령 팔레트 `SPLIT` 묶음: 열린 탭마다 `Open beside · 제목`(활성·옆 창의 대화와 좁은 창에서는 뺀다)
 - 대화창 여러 개 대비(분할창 준비): Chat 안의 요소는 문서 전체가 아니라 `screenRef`(`.screen[data-conversation-id]`)에서 찾고, App도 대화창을 `chatScreenOf(대화 ID)`로 찾는다(모핑 card·ask). Chat `active`(기본 true)가 아니면 입력창 포커스·확인 요청 때 blur·`useRefocus`에 응하지 않고 입력창 `id="composer-input"`도 달지 않는다. `panelRef`는 받은 창만 채운다(GIT 버튼은 자기 `control`). 터미널은 보이는 서랍을 `shownConversations`(Set)로 든다. 새로 `document.querySelector`로 대화창 안을 찾지 말 것
 - 대화 검색(`SearchOverlay.tsx`, 키맵 `search` 기본 `Ctrl+Shift+F`): 모든 프로젝트의 열린 대화를 세션 기록(`readHistory`, 끝 400개)에서 찾는다(`agent/search.ts`, 기록 파일 `lastModified`가 같으면 캐시). 띄어 쓴 말이 모두 들어간 내 메시지·답변·도구 호출. 고르면 그 대화를 열고 `jump`로 그 메시지까지 스크롤·강조. 무엇을 찾을지와 몇 번째로 맞았는지(`ordinal`)는 메인·렌더러가 `@shared/search`의 같은 함수로 센다
 - macOS도 지원한다 (`isMac` 분기, `src/main/index.ts`)

@@ -594,7 +594,13 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .stage > .screen { flex: 1; height: auto; }
 /* 분할창(App besidePane): 대화창 둘을 나란히. 키를 받는 창(pane-active)은 프로젝트 글자 칸을 반전, 옆 창(pane-idle)은 흐리게 */
 .stage.split { flex-direction: row; }
-.stage.split > .screen { flex: 1 1 0; min-width: 0; position: relative; }
+.stage.split { position: relative; }
+.stage.split > .screen { flex: 1 1 0; min-width: 480px; position: relative; }
+/* 폭은 왼쪽 창의 몫(--split, 경계를 끌어 바꿈). 한 창은 480px 아래로 줄지 않는다 */
+.stage.split > .screen:first-child { flex-grow: var(--split, 0.5); }
+.stage.split > .screen:nth-child(2) { flex-grow: calc(1 - var(--split, 0.5)); }
+.split-handle { position: absolute; top: 0; bottom: 0; left: calc(var(--split, 0.5) * 100%); z-index: 40; width: 10px; margin-left: -5px; cursor: col-resize; touch-action: none; transition: background var(--t-fast) var(--ease-io); }
+.split-handle:hover, .split-handle.dragging { background: color-mix(in srgb, var(--ink) 14%, transparent); }
 .stage.split > .screen + .screen { border-left: var(--rule-thick); }
 .screen.pane-active .tb-key { background: var(--sel-bg); color: var(--sel-fg); padding: 6px 8px 2px; }
 /* 옆 창의 글자 칸은 스킨이 칠한 바탕보다 앞선다 (스킨 규칙 :root[data-skin] .tb-key를 넘는 우선순위) */

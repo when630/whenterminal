@@ -39,6 +39,22 @@ export function App(): React.JSX.Element {
   const besideRef = useRef(beside)
   besideRef.current = beside
   useEffect(() => saveSplit(beside, besideLeft), [beside, besideLeft])
+  // 대화 영역이 SPLIT_MIN 이상일 때만 나눈다. 분할 중에 좁아지면 활성 창만 보이고, 넓히면 옆 창이 돌아온다
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [roomy, setRoomy] = useState(true)
+  useLayoutEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setRoomy(e.contentRect.width >= SPLIT_MIN))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  // 왼쪽 창의 몫 (경계를 끌어 바꾼다, 더블클릭이면 반반)
+  const [splitRatio, setSplitRatio] = useState(loadRatio)
+  const changeRatio = (r: number): void => {
+    setSplitRatio(r)
+    saveRatio(r)
+  }
   // 마지막으로 본 대화와 그 앞의 대화 (분할을 켤 때 옆 창 후보, 홈에서 돌아올 때)
   const lastChat = useRef<Pane | null>(null)
   const prevChat = useRef<Pane | null>(null)
@@ -196,10 +212,10 @@ export function App(): React.JSX.Element {
   // 보고 있는 대화의 보고서는 읽은 것으로 처리
   const viewing = view.screen === 'chat' ? view.conversationId : null
   const besidePane = useMemo(() => {
-    if (view.screen !== 'chat' || !beside || beside.conversationId === view.conversationId) return null
+    if (view.screen !== 'chat' || !roomy || !beside || beside.conversationId === view.conversationId) return null
     const project = projects.find((p) => p.id === beside.projectId)
     return project && openConversations(project).some((c) => c.id === beside.conversationId) ? { pane: beside, project } : null
-  }, [view, beside, projects])
+  }, [view, beside, projects, roomy])
   const besideViewing = besidePane?.pane.conversationId ?? null
   useEffect(() => {
     for (const id of [viewing, besideViewing]) if (id && convs[id]?.task?.unread) patchTask(id, { unread: false })
@@ -418,6 +434,7 @@ export function App(): React.JSX.Element {
     const v = viewRef.current
     if (v.screen !== 'chat') return openChat(projectId, conversationId)
     if (v.conversationId === conversationId) return
+    if (!roomy) return showFlash('창이 좁아서 나눌 수 없어요. 창을 넓혀 주세요.')
     const conv = projects.find((p) => p.id === projectId)?.conversations.find((c) => c.id === conversationId)
     if (conv?.closedAt) void window.api.reopenConversation(projectId, conversationId)
     afterMorph(() => setBeside({ projectId, conversationId }))
@@ -427,6 +444,7 @@ export function App(): React.JSX.Element {
     const v = viewRef.current
     if (v.screen !== 'chat') return
     if (besidePane) return afterMorph(() => setBeside(null))
+    if (!roomy) return showFlash('창이 좁아서 나눌 수 없어요. 창을 넓혀 주세요.')
     const isOpen = (pid: string, cid: string): boolean => cid !== v.conversationId && projects.some((p) => p.id === pid && openConversations(p).some((c) => c.id === cid))
     const here = projects.find((p) => p.id === v.projectId)
     const recent = projects
@@ -440,6 +458,32 @@ export function App(): React.JSX.Element {
       setBesideLeft(false)
       setBeside({ projectId: pick.projectId, conversationId: pick.conversationId })
     })
+  }
+  /** 두 창 사이 경계를 끌어 폭을 바꾼다. 끄는 동안은 화면만 바꾸고 놓을 때 저장한다 */
+  const startResize = (e: React.PointerEvent<HTMLSpanElement>): void => {
+    const handle = e.currentTarget
+    const stage = handle.parentElement
+    if (!stage || e.button !== 0) return
+    e.preventDefault()
+    handle.setPointerCapture(e.pointerId)
+    handle.classList.add('dragging')
+    const rect = stage.getBoundingClientRect()
+    const min = Math.min(0.45, PANE_MIN / rect.width)
+    let r = splitRatio
+    const move = (ev: PointerEvent): void => {
+      r = Math.min(1 - min, Math.max(min, (ev.clientX - rect.left) / rect.width))
+      stage.style.setProperty('--split', String(r))
+    }
+    const up = (): void => {
+      handle.classList.remove('dragging')
+      handle.removeEventListener('pointermove', move)
+      handle.removeEventListener('pointerup', up)
+      handle.removeEventListener('pointercancel', up)
+      changeRatio(r)
+    }
+    handle.addEventListener('pointermove', move)
+    handle.addEventListener('pointerup', up)
+    handle.addEventListener('pointercancel', up)
   }
   /** 분할창에서 그 쪽 창을 활성으로 */
   const focusPane = (left: boolean): void => {
@@ -729,6 +773,15 @@ export function App(): React.JSX.Element {
         out.push({ id: `tab:${c.id}`, group: 'TAB', label: c.title, note: p.name, mark: HOME_ROW[i], keywords: c.tag ? `#${c.tag}` : undefined, run: () => openChat(p.id, c.id) })
       }
     })
+    // 옆 창에 열기 (대화창에서, 나눌 수 있는 폭일 때). 이미 옆 창에 떠 있는 대화는 뺀다
+    if (view.screen === 'chat' && roomy) {
+      projects.forEach((p, i) => {
+        for (const c of openConversations(p)) {
+          if (c.id === view.conversationId || c.id === besidePane?.pane.conversationId) continue
+          out.push({ id: `beside:${c.id}`, group: 'SPLIT', label: `Open beside · ${c.title}`, note: p.name, mark: HOME_ROW[i], keywords: 'split 분할 옆 창', run: () => openBeside(p.id, c.id) })
+        }
+      })
+    }
     projects.forEach((p, i) => out.push({ id: `project:${p.id}`, group: 'PROJECT', label: p.name, note: p.path, mark: HOME_ROW[i], keys: `alt ${HOME_ROW[i]}`, run: () => openProject(i) }))
     const save = (next: Settings): void => void window.api.setSettings(next).then((r) => setSettings(r.settings))
     for (const s of SKINS) {
@@ -756,7 +809,7 @@ export function App(): React.JSX.Element {
       }
     }
     return out
-  }, [paletteOpen, view, projects, settings, km, openChat, openProject, accounts, showFlash])
+  }, [paletteOpen, view, projects, settings, km, openChat, openProject, accounts, showFlash, roomy, besidePane]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 분할창이면 활성 창을 옮겨도(다른 프로젝트여도) 화면을 다시 만들지 않는다
   const stageKey = view.screen === 'chat' ? (besidePane ? 'chat:split' : `chat:${view.projectId}`) : view.screen
@@ -833,7 +886,7 @@ export function App(): React.JSX.Element {
         away={settings.away}
         onToggleAway={toggleAway}
       />
-      <div className="content">
+      <div className="content" ref={contentRef}>
         {/* 명령 센터 (ide 스킨만, 나머지는 숨김): 창 위 가운데 찾기 칸. 누르면 명령 팔레트 */}
         <div className="cmd-bar">
           <button type="button" className="cmd-center" onClick={() => setPaletteOpen(true)}>
@@ -842,7 +895,7 @@ export function App(): React.JSX.Element {
           </button>
         </div>
         <Ticker running={all.running} reports={all.reports} background={background} />
-        <div className={`stage ${stageQuiet ? 'quiet' : ''} ${besidePane ? 'split' : ''}`} key={stageKey}>
+        <div className={`stage ${stageQuiet ? 'quiet' : ''} ${besidePane ? 'split' : ''}`} key={stageKey} style={besidePane ? ({ '--split': splitRatio } as React.CSSProperties) : undefined}>
           {view.screen === 'settings' ? (
             <SettingsScreen settings={settings} activeHotkey={hotkey} update={update} onClose={closeSettings} onSaved={(next, hk) => { setSettings(next); if (hk !== undefined) setHotkey(hk) }} />
           ) : view.screen === 'chat' && chatProject ? (
@@ -850,6 +903,9 @@ export function App(): React.JSX.Element {
               {besidePane && besideLeft && renderChat(besidePane.project, besidePane.pane.conversationId, false)}
               {renderChat(chatProject, view.conversationId, true)}
               {besidePane && !besideLeft && renderChat(besidePane.project, besidePane.pane.conversationId, false)}
+              {besidePane && (
+                <span className="split-handle" role="separator" aria-orientation="vertical" aria-label="두 창의 폭" title="끌어서 두 창의 폭을 바꿔요. 더블클릭하면 반반으로" onPointerDown={startResize} onDoubleClick={() => changeRatio(0.5)} />
+              )}
             </>
           ) : (
             <Home
@@ -938,6 +994,27 @@ interface Pane {
 }
 
 const SPLIT_KEY = 'wt-split'
+const RATIO_KEY = 'wt-split-ratio'
+/** 분할창을 펼치는 대화 영역 폭 (창 하나 560px). 1280 창은 사이드바를 빼면 못 넘는다 */
+const SPLIT_MIN = 1120
+/** 경계를 끌 때 한 창의 최소 폭 */
+const PANE_MIN = 480
+function loadRatio(): number {
+  try {
+    const n = Number(localStorage.getItem(RATIO_KEY))
+    return n >= 0.2 && n <= 0.8 ? n : 0.5
+  } catch {
+    return 0.5
+  }
+}
+function saveRatio(r: number): void {
+  try {
+    if (Math.abs(r - 0.5) < 0.005) localStorage.removeItem(RATIO_KEY)
+    else localStorage.setItem(RATIO_KEY, r.toFixed(3))
+  } catch {
+    // 저장 못 해도 지금 화면은 그대로
+  }
+}
 /** 분할창 상태 (앱을 다시 켜도 되살린다). 저장소를 못 쓰면 분할 없이 시작 */
 function loadSplit(): { pane: Pane; left: boolean } | null {
   try {

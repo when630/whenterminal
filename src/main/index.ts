@@ -818,6 +818,9 @@ let forcingFront = false
 function showFromBackground(): void {
   if (!win) return
   if (isMac) return showWindow()
+  // 이미 앞에 떠서 포커스가 있으면 그대로 둔다 (덱으로 대화·프로젝트를 바꾸는 흔한 경우).
+  // 최소화했다가 바로 복원하면 Chromium이 버린 화면을 다시 그리지 못해 내용이 빈 채로 남을 때가 있었다
+  if (win.isVisible() && !win.isMinimized() && win.isFocused()) return
   // minimize 이벤트는 나중에 올 수 있어 잠시 더 들고 있는다
   forcingFront = true
   setTimeout(() => (forcingFront = false), 600)
@@ -825,6 +828,14 @@ function showFromBackground(): void {
   win.minimize()
   win.restore()
   win.focus()
+  // 복원한 뒤 다시 그리게 하고, 렌더러에도 다시 보인다고 알린다 (restore 이벤트를 놓치면 반복 애니메이션·시계가 멈춘 채로 남는다)
+  for (const ms of [50, 300]) {
+    setTimeout(() => {
+      if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return
+      win.webContents.invalidate()
+      win.webContents.send(IPC.windowShown, true)
+    }, ms)
+  }
 }
 
 function toggleWindow(): void {

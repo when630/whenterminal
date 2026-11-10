@@ -47,7 +47,10 @@ interface Props {
   onSelectConversation: (conversationId: string) => void
   onRespond: (projectId: string, conversationId: string, requestId: string, decision: PermissionDecision, extra?: PermissionExtra) => void
   /** App의 전역 키 처리가 오른쪽 패널 세부 내용을 다루는 손잡이 (Chat이 그릴 때마다 갱신) */
-  panelRef: React.MutableRefObject<PanelControl | null>
+  /** App이 키 처리로 이 대화창을 다룰 통로. 분할창에서는 활성 창만 받는다 */
+  panelRef?: React.MutableRefObject<PanelControl | null>
+  /** 키·포커스를 받는 창인지 (분할창). 하나만 띄울 때는 늘 true */
+  active?: boolean
   /** 대화 검색에서 고른 메시지: 이 대화에서 검색어가 맞은 ordinal번째 항목으로 스크롤한다 */
   jump?: { query: string; ordinal: number; nonce: number } | null
   /** 열자마자 펼칠 명령 화면 (홈 보고서의 TOOLS에서 왔을 때) */
@@ -85,12 +88,14 @@ export interface PanelControl {
   command: (name: string) => void
 }
 
-export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onRespond, panelRef, jump, openPanel, away, suggestions }: Props): React.JSX.Element {
+export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onRespond, panelRef, jump, openPanel, away, suggestions, active = true }: Props): React.JSX.Element {
   const state = convs[conversationId] ?? emptyConversation()
   const km = useKeymap()
   // 쓰던 글은 대화마다 남는다 (탭을 옮기거나 앱을 껐다 켜도)
   const [draft, setDraft] = useDraft(conversationId)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  // 이 대화창의 뿌리. 화면 안의 요소는 문서 전체가 아니라 여기서 찾는다 (분할창에서 옆 창과 섞이지 않게)
+  const screenRef = useRef<HTMLDivElement>(null)
   // 입력창은 한 줄로 시작해 글이 늘면 따라 커진다 (최대 높이는 CSS max-height)
   useLayoutEffect(() => {
     const el = inputRef.current
@@ -251,6 +256,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const caretPlaced = useRef<string | null>(null)
   const lastTyped = useRef(0)
   useEffect(() => {
+    // 활성 창이 아니면 포커스를 건드리지 않는다 (옆 창의 입력창·Y/A/N을 빼앗지 않게)
+    if (!active) return
     const el = inputRef.current
     if (pending) {
       if (!stillTyping(el, lastTyped.current)) el?.blur()
@@ -264,13 +271,13 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       el.setSelectionRange(end, end)
       setCaret(end)
     }
-  }, [pending?.requestId, conversationId])
+  }, [pending?.requestId, conversationId, active])
   // 포커스는 늘 입력창으로: 패널·세부 화면·덮개를 닫거나 버튼을 누른 뒤에도 (focus.ts). 확인 요청이 떠 있으면 Y/A/N을 위해 비워 둔다
   const focusComposer = useCallback((): void => {
-    if (state.permissions.length) return
+    if (!active || state.permissions.length) return
     const el = inputRef.current
     if (el && document.activeElement !== el && !document.activeElement?.closest('[data-terminal], [data-keys-own]')) el.focus({ preventScroll: true })
-  }, [state.permissions.length])
+  }, [state.permissions.length, active])
   useRefocus(focusComposer)
 
   const conv = project.conversations.find((c) => c.id === conversationId)
@@ -495,10 +502,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     }
     const slot = (): Element | null => bodyRef.current?.querySelector(':scope > .panel-slot') ?? null
     if (plain) afterMorph(run)
-    else if (next && !panelShown.item) morph('detail', detailRow(next), run, slot, true)
+    else if (next && !panelShown.item) morph('detail', detailRow(screenRef.current, next), run, slot, true)
     else if (!next && panelShown.item?.detail && !panelShown.leaving) {
       const was = panelShown.item.detail
-      morph('detail', slot(), run, () => detailRow(was))
+      morph('detail', slot(), run, () => detailRow(screenRef.current, was))
     } else afterMorph(run)
   }
   /** 지금 보이는 세부 내용, 아직 그리지 않은 바뀜이 있으면 그 결과 */
@@ -581,7 +588,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     ...background.map((b): DetailTarget => ({ kind: 'task', taskId: b.id })),
   ]
   const shownTask = detail?.kind === 'task' ? background.find((b) => b.id === detail.taskId) : undefined
-  panelRef.current = {
+  const control: PanelControl = {
     step: (dir) => {
       const cur = detailNow()
       if (targets.length === 0 && !cur) return
@@ -632,6 +639,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       setEffort(rows[(rows.indexOf(conv?.effort ?? null) + 1) % rows.length])
     },
   }
+  if (panelRef) panelRef.current = control
   const attach = useAttach({ inputRef, setValue: setDraft, scope: conversationId, root, onCaret: setCaret })
   // 보낸 글 기록: 입력창이 비었거나 첫 줄에서 ↑를 누르면 앞서 보낸 글을 되살린다 (CLI처럼)
   const history = usePromptHistory(conversationId)
@@ -826,7 +834,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   }
 
   return (
-    <div className="screen" onClick={(e) => refocusAfterClick(e, () => (document.querySelector('.permission') ? null : inputRef.current))}>
+    <div className="screen" ref={screenRef} data-conversation-id={conversationId} onClick={(e) => refocusAfterClick(e, () => (screenRef.current?.querySelector('.permission') ? null : inputRef.current))}>
       <header className="topbar">
         <div className="tb-proj">
           <span className="tb-key" aria-hidden="true">{HOME_ROW[projectIndex] ?? ''}</span>
@@ -852,7 +860,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             </span>
           ))}
           {branch && (
-            <button type="button" className={`tb-btn ${tool?.kind === 'git' ? 'on' : ''}`} onClick={() => panelRef.current?.git()} title="브랜치·커밋 기록·diff를 봐요 (/git)">
+            <button type="button" className={`tb-btn ${tool?.kind === 'git' ? 'on' : ''}`} onClick={() => control.git()} title="브랜치·커밋 기록·diff를 봐요 (/git)">
               GIT
             </button>
           )}
@@ -1220,9 +1228,9 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
         </div>
         <span className="composer-prompt" aria-hidden="true">&gt;</span>
         <div className="composer-body">
-          <label htmlFor="composer-input" className="sr-only">메시지</label>
+          <label htmlFor={active ? 'composer-input' : undefined} className="sr-only">메시지</label>
           <textarea
-            id="composer-input"
+            id={active ? 'composer-input' : undefined}
             ref={inputRef}
             value={draft}
             // 메뉴가 열려 있으면 전역 단축키(Esc 중단, Ctrl+K 등)가 이 키를 가로채지 않게 표시
@@ -1377,7 +1385,7 @@ const SIDE_PANEL_MIN = 1400
 
 const detailKey = (t: DetailTarget): string => (t.kind === 'task' ? `task:${t.taskId}` : `agent:${t.toolUseId}`)
 /** 상태 패널에서 그 세부 내용의 줄 (모핑의 한쪽) */
-const detailRow = (t: DetailTarget): Element | null => document.querySelector(`.status-panel [data-detail="${CSS.escape(detailKey(t))}"]`)
+const detailRow = (root: Element | null, t: DetailTarget): Element | null => (root ?? document).querySelector(`.status-panel [data-detail="${CSS.escape(detailKey(t))}"]`)
 
 const sameTarget = (a: DetailTarget, b: DetailTarget): boolean =>
   a.kind === 'task' ? b.kind === 'task' && a.taskId === b.taskId : b.kind === 'agent' && a.toolUseId === b.toolUseId

@@ -16,9 +16,20 @@ async function emit(app: import('@playwright/test').ElectronApplication, project
   }, { projectId, conversationId, event })
 }
 
+/** 창 크기 (기본 1280×820은 분할하기에 좁다) */
+async function size(app: import('@playwright/test').ElectronApplication, win: import('@playwright/test').Page, w: number, h: number): Promise<void> {
+  await app.evaluate(({ BrowserWindow }, [w, h]) => {
+    const b = BrowserWindow.getAllWindows()[0]
+    b.unmaximize()
+    b.setSize(w, h)
+  }, [w, h])
+  await expect.poll(() => win.evaluate(() => innerWidth)).toBe(w)
+}
+
 test('분할창: 켜면 바로 앞에 본 대화가 옆 창에, 키로 창을 옮기고, 옆 창의 확인 요청은 테두리로, Shift+클릭은 옆 창에 연다', async ({ app, win }) => {
   const screens = win.locator('.stage > .screen')
   const pane = (id: string): import('@playwright/test').Locator => win.locator(`.stage > .screen[data-conversation-id="${id}"]`)
+  await size(app, win, 1920, 1080)
 
   await win.keyboard.press('Alt+a')
   await expect(pane('c1')).toBeVisible()
@@ -78,10 +89,59 @@ test('분할창: 켜면 바로 앞에 본 대화가 옆 창에, 키로 창을 �
   await expect.poll(() => win.evaluate(() => document.activeElement?.id)).toBe('composer-input')
 })
 
+test('분할창: 좁은 창에서는 나누지 않고, 분할 중에 좁아지면 활성 창만, 넓히면 돌아온다. 경계를 끌어 폭을 바꾸고 팔레트로 옆 창에 연다', async ({ app, win }) => {
+  const screens = win.locator('.stage > .screen')
+  const pane = (id: string): import('@playwright/test').Locator => win.locator(`.stage > .screen[data-conversation-id="${id}"]`)
+
+  // 1280 창: 켜지 않고 안내
+  await win.keyboard.press('Alt+a')
+  await expect(pane('c1')).toBeVisible()
+  await win.keyboard.press('Control+Alt+v')
+  await expect(win.locator('.side-flash')).toContainText('창이 좁아서')
+  await expect(screens).toHaveCount(1)
+
+  // 넓히면 나뉜다. 다시 좁히면 활성 창만, 넓히면 옆 창이 돌아온다
+  await size(app, win, 1920, 1080)
+  // 폭 판정(ResizeObserver)은 창 크기가 바뀐 뒤 한 박자 늦게 갱신된다. 그 전에 누르면 아직 좁다는 안내만 나온다
+  await expect(async () => {
+    await win.keyboard.press('Control+Alt+v')
+    await expect(screens).toHaveCount(2, { timeout: 1000 })
+  }).toPass()
+  await size(app, win, 1280, 820)
+  await expect(screens).toHaveCount(1)
+  await expect(pane('c1')).toBeVisible()
+  await size(app, win, 1920, 1080)
+  await expect(screens).toHaveCount(2)
+
+  // 경계를 오른쪽으로 끌면 왼쪽 창이 넓어지고, 한 창은 480px 아래로 줄지 않는다
+  const handle = win.locator('.split-handle')
+  const hb = (await handle.boundingBox())!
+  const y = hb.y + hb.height / 2
+  await win.mouse.move(hb.x + hb.width / 2, y)
+  await win.mouse.down()
+  await win.mouse.move(1900, y, { steps: 6 })
+  await win.mouse.up()
+  const left = (await screens.nth(0).boundingBox())!
+  const right = (await screens.nth(1).boundingBox())!
+  expect(left.width).toBeGreaterThan(right.width)
+  expect(right.width).toBeGreaterThanOrEqual(479)
+  // 더블클릭하면 반반
+  await handle.dblclick()
+  await expect.poll(async () => Math.round((await screens.nth(0).boundingBox())!.width - (await screens.nth(1).boundingBox())!.width)).toBeLessThan(8)
+
+  // 팔레트: Open beside · 셋 → 옆 창에 c3
+  await win.keyboard.press('Control+Shift+p')
+  await win.keyboard.type('Open beside 셋')
+  await win.keyboard.press('Enter')
+  await expect(pane('c3')).toHaveClass(/pane-idle/)
+  await expect(pane('c1')).toHaveClass(/pane-active/)
+})
+
 test.describe('대화가 하나뿐일 때', () => {
   test.use({ seed: { projects: [{ name: 'solo' }] } })
 
-  test('분할창: 옆 창에 띄울 대화가 없으면 나누지 않고 안내한다', async ({ win }) => {
+  test('분할창: 옆 창에 띄울 대화가 없으면 나누지 않고 안내한다', async ({ app, win }) => {
+    await size(app, win, 1920, 1080)
     await win.keyboard.press('Alt+a')
     await expect(win.locator('.stage > .screen')).toHaveCount(1)
     await win.keyboard.press('Control+Alt+v')

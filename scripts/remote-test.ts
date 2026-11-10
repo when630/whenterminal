@@ -64,9 +64,10 @@ try {
   ok = false
 } finally {
   session.dispose()
-  // 끝난 CLI가 잠시 폴더를 잡고 있다 (Windows)
+  // 끝난 CLI가 잠시 폴더를 잡고 있다 (Windows). close()는 CLI를 비동기로 끝내므로 잠깐 기다렸다가 지운다
+  await new Promise((r) => setTimeout(r, 2000))
   try {
-    rmSync(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
+    rmSync(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 })
   } catch {
     console.log(`임시 폴더를 지우지 못했어요: ${cwd}`)
   }

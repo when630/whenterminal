@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { expect, makeEnv, quit, test } from './fixtures'
+import { expect, makeEnv, quit, removeRoot, test } from './fixtures'
 
 /**
  * 구독 계정 오가기: 가짜 설정 폴더(CLAUDE_CONFIG_DIR)에 로그인 두 개를 차례로 흉내 내고, 앱이 둘 다 보관했다가 바꿔 끼우는지 본다.
@@ -46,5 +46,6 @@ test('로그인한 계정을 보관하고 명령 팔레트에서 바꿔 끼운�
     expect(errors).toEqual([])
   } finally {
     await quit(app)
+    removeRoot(env.root)
   }
 })

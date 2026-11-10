@@ -11,6 +11,11 @@ interface Props {
   convs: ConversationMap
   activeProjectId: string | null
   activeConversationId: string | null
+  /** 분할창: 옆(비활성) 창에 떠 있는 프로젝트·대화. 외곽선으로 표시한다 */
+  besideProjectId?: string | null
+  besideConversationId?: string | null
+  /** 대화 줄을 Shift+클릭: 옆 창에 연다 */
+  onOpenBeside?: (projectId: string, conversationId: string) => void
   unreadTotal: number
   usage: UsageInfo | null
   update: UpdateState | null
@@ -98,6 +103,7 @@ export function Sidebar(props: Props): React.JSX.Element {
         const i = projects.indexOf(p)
         const status = projectStatus(p, convs)
         const on = p.id === activeProjectId
+        const beside = !on && p.id === props.besideProjectId
         const unread = p.conversations.filter((c) => convs[c.id]?.task?.unread).length
         const live = p.conversations.map((c) => convs[c.id]).find((s) => s && isActive(s.status) && s.task)
         const progress = live?.task ? Math.min(1, (live.task.stage + 0.5) / STAGES.length) : 0
@@ -137,7 +143,7 @@ export function Sidebar(props: Props): React.JSX.Element {
                 setOver(null)
               }}
             >
-            <button type="button" className={`nav ${on ? 'on' : ''}`} onClick={() => props.onOpenProject(i)} title={`${p.path} · 끌어서 순서를 바꿀 수 있어요`}>
+            <button type="button" className={`nav ${on ? 'on' : ''} ${beside ? 'pane-other' : ''}`} onClick={() => props.onOpenProject(i)} title={`${p.path} · 끌어서 순서를 바꿀 수 있어요`}>
               <span className="nav-key">{HOME_ROW[i] ?? ''}</span>
               <span className="nav-name">{p.name}</span>
               {/* 읽지 않은 수·상태 표시 묶음. 기본은 display: contents라 배치가 그대로이고 스킨이 따로 놓을 수 있다 */}
@@ -174,8 +180,8 @@ export function Sidebar(props: Props): React.JSX.Element {
                     <button
                       type="button"
                       key={c.id}
-                      className={`thread ${c.id === activeConversationId ? 'on' : ''}`}
-                      onClick={() => props.onOpenConversation(p.id, c.id)}
+                      className={`thread ${c.id === activeConversationId ? 'on' : ''} ${c.id === props.besideConversationId ? 'pane-other' : ''}`}
+                      onClick={(e) => (e.shiftKey && props.onOpenBeside ? props.onOpenBeside(p.id, c.id) : props.onOpenConversation(p.id, c.id))}
                     >
                       <span className="nav-name">{c.title}</span>
                       <CtxPct percent={convs[c.id]?.context?.percent ?? c.contextPercent} />

@@ -592,6 +592,22 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 /* 화면 전환 (App의 .stage는 화면이 바뀔 때마다 새로 붙는다) */
 .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; animation: screen-in 0.38s var(--ease-out) both; }
 .stage > .screen { flex: 1; height: auto; }
+/* 분할창(App besidePane): 대화창 둘을 나란히. 키를 받는 창(pane-active)은 프로젝트 글자 칸을 반전, 옆 창(pane-idle)은 흐리게 */
+.stage.split { flex-direction: row; }
+.stage.split > .screen { flex: 1 1 0; min-width: 0; position: relative; }
+.stage.split > .screen + .screen { border-left: var(--rule-thick); }
+.screen.pane-active .tb-key { background: var(--sel-bg); color: var(--sel-fg); padding: 6px 8px 2px; }
+/* 옆 창의 글자 칸은 스킨이 칠한 바탕보다 앞선다 (스킨 규칙 :root[data-skin] .tb-key를 넘는 우선순위) */
+:root .stage.split > .screen.pane-idle .tb-key { background: transparent; color: var(--gray-2); padding: 6px 8px 2px; box-shadow: inset 0 0 0 2px var(--gray-3); }
+.screen.pane-idle .tb-name { opacity: 0.6; }
+:root:not([data-skin]) .stage.split > .screen.pane-idle .tb-key { color: transparent; -webkit-text-stroke: 2px var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+/* 옆 창에 확인 요청: 창 둘레를 신호색으로 (그 창의 NEEDS YOU 배지 대신) */
+.screen.pane-ask::after { content: ''; position: absolute; inset: 0; z-index: 30; border: 4px solid var(--signal); pointer-events: none; }
+/* 옆 창은 상태 패널을 접어 기록 칸을 넓힌다 */
+.stage.split > .screen.pane-idle .chat-body.open { grid-template-columns: minmax(0, 1fr) 0px; }
+.stage.split > .screen.pane-idle .status-panel { visibility: hidden; }
+/* 옆 창에 떠 있는 탭·사이드바 줄: 외곽선 (누르면 그 창으로) */
+.tab.elsewhere, .nav.pane-other, .thread.pane-other { box-shadow: inset 0 0 0 2px var(--ink); }
 @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
 /* 모핑으로 들어온 화면(App stageQuiet)은 등장 움직임 없이. 모핑이 이어 준다 */
 .stage.quiet { animation: none; }

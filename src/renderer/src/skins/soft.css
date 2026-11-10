@@ -529,6 +529,8 @@
 :root[data-skin='soft'] .meta-mode:hover { background: var(--fill-2); }
 /* 모드: 누르면 다음 모드 버튼 대신 다섯 칸 세그먼트 (회색 줄 위 고른 칸만 흰 thumb). 바로 고른다 */
 :root[data-skin='soft'] .meta-mode { display: none; }
+:root[data-skin='soft'] .stage.split .meta-mode { display: flex; }
+:root[data-skin='soft'] .stage.split .mode-seg { display: none; }
 :root[data-skin='soft'] .mode-seg { display: flex; flex: none; align-self: center; gap: 2px; height: 28px; padding: 2px; border-radius: 8px; background: var(--fill); }
 :root[data-skin='soft'] .mode-seg button {
   display: block; height: 24px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--gray);

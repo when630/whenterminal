@@ -223,7 +223,7 @@ export function App(): React.JSX.Element {
       if (panel) setOpenPanel({ conversationId, panel, nonce: Date.now() })
     }
     // 홈에서 열면 그 대화의 카드(펼친 보고서)가 커지며 대화창이 된다
-    if (viewRef.current.screen === 'home') morph('card', homeCardOf(conversationId, openReportId === conversationId), open, () => document.querySelector('.stage > .screen'))
+    if (viewRef.current.screen === 'home') morph('card', homeCardOf(conversationId, openReportId === conversationId), open, () => chatScreenOf(conversationId))
     else afterMorph(open)
   }, [projects, openReportId])
 
@@ -250,7 +250,8 @@ export function App(): React.JSX.Element {
     const v = viewRef.current
     const toolUseId = convsRef.current[conversationId]?.permissions.find((p) => p.requestId === requestId)?.toolUseId
     if (v.screen === 'chat' && v.conversationId === conversationId) {
-      morph('ask', document.querySelector('.stage .transcript > .permission:not(.leaving)'), resolve, () => (toolUseId ? document.querySelector(`.stage .transcript [data-tool-id="${CSS.escape(toolUseId)}"]`) : null))
+      const screen = chatScreenOf(conversationId)
+      morph('ask', screen?.querySelector('.transcript > .permission:not(.leaving)') ?? null, resolve, () => (toolUseId ? (chatScreenOf(conversationId)?.querySelector(`.transcript [data-tool-id="${CSS.escape(toolUseId)}"]`) ?? null) : null))
     } else afterMorph(resolve)
   }, [])
 
@@ -363,7 +364,7 @@ export function App(): React.JSX.Element {
     // 대화창이 그 대화의 홈 카드로 줄어든다
     if (view.screen === 'chat') {
       const id = view.conversationId
-      morph('card', document.querySelector('.stage > .screen'), go, () => homeCardOf(id))
+      morph('card', chatScreenOf(id), go, () => homeCardOf(id))
     } else afterMorph(go)
   }
   const goHomeRef = useRef(goHome)
@@ -818,6 +819,11 @@ export function App(): React.JSX.Element {
     </div>
     </KeymapContext.Provider>
   )
+}
+
+/** 그 대화의 대화창 (분할창이면 여러 개 중 그 대화의 것) */
+function chatScreenOf(conversationId: string): Element | null {
+  return document.querySelector(`.stage .screen[data-conversation-id="${CSS.escape(conversationId)}"]`)
 }
 
 /** 홈에서 그 대화를 나타내는 것: 펼친 보고서(sheet) → 진행 띠·쉬는 줄 → 보고서 카드 */

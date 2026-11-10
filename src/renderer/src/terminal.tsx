@@ -77,8 +77,8 @@ const entries = new Map<string, Entry>()
 const listeners = new Set<() => void>()
 // 키 처리(xterm 안)는 React 밖이라 지금 키 맵을 여기에 둔다
 let keymap: Keymap = DEFAULT_KEYMAP
-/** 지금 화면에 붙어 있는 서랍의 대화 */
-let shownConversation: string | null = null
+/** 지금 화면에 붙어 있는 서랍의 대화 (분할창이면 여럿) */
+const shownConversations = new Set<string>()
 /** 경로 링크를 눌렀을 때 입력창에 넣는 곳 (대화별, 서랍이 등록한다) */
 const pathSinks = new Map<string, (path: string) => void>()
 
@@ -265,7 +265,7 @@ const duration = (ms: number): string => {
 
 function looking(conversationId: string, termId: string): boolean {
   const ui = getUi(conversationId)
-  return document.hasFocus() && shownConversation === conversationId && ui.open && ui.expanded && ui.active === termId
+  return document.hasFocus() && shownConversations.has(conversationId) && ui.open && ui.expanded && ui.active === termId
 }
 
 function commandDone(termId: string, e: Entry, text: string, ms: number): void {
@@ -741,7 +741,7 @@ export function TerminalDrawer({ projectId, conversationId, onSend, onPath }: Dr
   useEffect(() => {
     const host = hostRef.current
     if (!ui.open || !host || !active) return
-    shownConversation = conversationId
+    shownConversations.add(conversationId)
     const e = entryOf(projectId, conversationId, active)
     if (e.el.parentElement !== host) host.appendChild(e.el)
     if (!e.opened) {
@@ -769,7 +769,7 @@ export function TerminalDrawer({ projectId, conversationId, onSend, onPath }: Dr
       ro.disconnect()
       sel.dispose()
       if (e.el.parentElement === host) host.removeChild(e.el)
-      if (shownConversation === conversationId) shownConversation = null
+      shownConversations.delete(conversationId)
     }
   }, [conversationId, ui.open, ui.expanded, active]) // eslint-disable-line react-hooks/exhaustive-deps
 

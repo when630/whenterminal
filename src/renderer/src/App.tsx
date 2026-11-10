@@ -128,6 +128,7 @@ export function App(): React.JSX.Element {
       window.api.onSettingsChanged(setSettings),
       window.api.onOpenSettings(() => openSettingsRef.current()),
       window.api.onGoHome(() => goHomeRef.current()),
+      window.api.onToggleSplit(() => deckSplitRef.current()),
       window.api.onNavigate(({ projectId, conversationId, terminal }) => {
         // 질문 창의 알림은 그 창을 연다
         if (projectId === QUICK_PROJECT_ID) return setQuickOpen(true)
@@ -459,6 +460,31 @@ export function App(): React.JSX.Element {
       setBeside({ projectId: pick.projectId, conversationId: pick.conversationId })
     })
   }
+  /** 스트림덱 분할 키: 대화창이면 켜기·끄기, 홈·설정이면 마지막으로 본 대화를 열고 (옆 창이 없었으면) 나눈다 */
+  const deckSplit = (): void => {
+    if (viewRef.current.screen === 'chat') return toggleSplit()
+    const last = lastChat.current
+    const open = last && projects.some((p) => p.id === last.projectId && openConversations(p).some((c) => c.id === last.conversationId))
+    if (!last || !open) return showFlash('먼저 대화를 하나 열어 주세요.')
+    const had = !!besideRef.current
+    afterMorph(() => showChat(last))
+    // 대화창이 그려진 뒤에 (그때의 toggleSplit이 대화창 기준으로 판단한다)
+    if (!had) setTimeout(() => deckSplitRef.current(), 60)
+  }
+  const deckSplitRef = useRef(deckSplit)
+  deckSplitRef.current = deckSplit
+  // 분할 상태를 메인에 알린다 (스트림덱 분할 키 그림)
+  useEffect(() => {
+    const panes =
+      besidePane && view.screen === 'chat'
+        ? [
+            { projectId: view.projectId, conversationId: view.conversationId, active: true },
+            { projectId: besidePane.pane.projectId, conversationId: besidePane.pane.conversationId, active: false },
+          ]
+        : []
+    if (besideLeft) panes.reverse()
+    window.api.setSplitState({ on: panes.length > 0, roomy, panes })
+  }, [besidePane, besideLeft, roomy, view])
   /** 두 창 사이 경계를 끌어 폭을 바꾼다. 끄는 동안은 화면만 바꾸고 놓을 때 저장한다 */
   const startResize = (e: React.PointerEvent<HTMLSpanElement>): void => {
     const handle = e.currentTarget

@@ -4,7 +4,8 @@
   "Actions": [
     { "Name": "대화 상태", "Tooltip": "놓은 순서대로 대화를 하나씩 보여 준다. 누르면 그 대화를 연다" },
     { "Name": "사용량", "Tooltip": "구독 사용량(5시간·주간). 누르면 새로 받는다" },
-    { "Name": "홈", "Tooltip": "누르면 WHENTERMINAL 창을 열고 홈 화면으로 간다" }
+    { "Name": "홈", "Tooltip": "누르면 WHENTERMINAL 창을 열고 홈 화면으로 간다" },
+    { "Name": "분할", "Tooltip": "분할창 상태를 보여 준다. 누르면 창을 열고 분할을 켜거나 끈다" }
   ],
   "Localization": {}
 }

@@ -530,6 +530,14 @@ export interface UpdateState {
   checkedAt?: number
 }
 
+/** 분할창 상태 (스트림덱 키용). panes는 왼쪽부터, 분할이 아니면 빈 배열 */
+export interface SplitInfo {
+  on: boolean
+  /** 나눌 수 있는 폭인지 (좁으면 켜지 않는다) */
+  roomy: boolean
+  panes: { projectId: string; conversationId: string; active: boolean }[]
+}
+
 export interface UsageInfo {
   /** 'pro' | 'max' | 'team' … API 키면 null */
   plan: string | null
@@ -798,6 +806,9 @@ export const IPC = {
   guestKey: 'app:guest-key',
   navigate: 'app:navigate',
   goHome: 'app:go-home',
+  // 스트림덱 분할 키: 메인 → 렌더러 (켜기·끄기), 렌더러 → 메인 (지금 분할 상태)
+  toggleSplit: 'app:toggle-split',
+  splitState: 'app:split-state',
   setBadge: 'app:set-badge',
   // 메인 → 렌더러
   event: 'agent:event',
@@ -1006,6 +1017,10 @@ export interface WhenTerminalApi {
   onNavigate(cb: (to: { projectId: string; conversationId: string; terminal?: string }) => void): () => void
   /** 스트림덱 홈 키: 홈 화면으로 */
   onGoHome(cb: () => void): () => void
+  /** 스트림덱 분할 키: 분할 켜기·끄기 (홈이면 마지막 대화를 열고 나눈다) */
+  onToggleSplit(cb: () => void): () => void
+  /** 지금 분할 상태를 메인에 알린다 (스트림덱 키 그림용) */
+  setSplitState(info: SplitInfo): void
   /** Dock 배지·트레이 툴팁: 확인 대기 수와 새 보고 수 */
   setBadge(waiting: number, unread: number): void
   onEvent(cb: (e: AgentEventEnvelope) => void): () => void

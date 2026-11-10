@@ -5,12 +5,14 @@
 //    키를 더 놓으면 그만큼 더 보이고, 대화가 키보다 많으면 마지막 키가 '+남은 수'가 된다. 설정에서 순번을 고정할 수 있다
 //  - 사용량: 키 설정에서 고른 한도(요약·5시간·주간·모델별 주간). 자동이면 놓은 사용량 키 수로 나눈다. 누르면 새로 받는다
 //  - 홈: 누르면 창을 열고 홈 화면으로 (그림은 고정 아이콘)
+//  - 분할: 지금 분할창 상태(두 창의 프로젝트 글자, 키를 받는 창은 흰 칸). 누르면 창을 열고 분할 켜기·끄기
 
 const BASE = 'http://127.0.0.1:37630'
 const PLUGIN = 'com.ulanzi.ulanzistudio.whenterminal'
 const CONV = `${PLUGIN}.conversation`
 const USAGE = `${PLUGIN}.usage`
 const HOME = `${PLUGIN}.home`
+const SPLIT = `${PLUGIN}.split`
 const PRIORITY = { waiting_approval: 6, error: 5, running: 4, queued: 3, stopped: 2, done: 1, idle: 0 }
 /** 백그라운드 작업이 돌면 턴이 끝났어도 실행 중으로 본다 */
 const busy = (c) => c.status === 'running' || (c.background > 0 && c.status !== 'waiting_approval' && c.status !== 'error')
@@ -30,7 +32,7 @@ let offlineTimer = null
 $UD.connect(PLUGIN)
 
 function kindOf(uuid) {
-  return uuid === USAGE ? 'usage' : uuid === HOME ? 'home' : 'conv'
+  return uuid === USAGE ? 'usage' : uuid === HOME ? 'home' : uuid === SPLIT ? 'split' : 'conv'
 }
 
 /** 키 위치 'col_row' → 정렬 값. 모르는 형식이면 뒤로 */
@@ -147,6 +149,9 @@ function render() {
     else one(ctx, windows[i], 'USAGE')
   })
   for (const [ctx, k] of keys) {
+    if (k.kind === 'split') send(ctx, Draw.split(state.split, letters))
+  }
+  for (const [ctx, k] of keys) {
     if (k.kind !== 'conv') continue
     const n = map.get(ctx)
     // 대화가 키보다 많다: 마지막 순번 키가 남은 대화를 모아 보여 준다
@@ -233,6 +238,10 @@ $UD.onRun((jsn) => {
   }
   if (k.kind === 'home') {
     post('/home')
+    return
+  }
+  if (k.kind === 'split') {
+    post('/split')
     return
   }
   const c = target.get(jsn.context)

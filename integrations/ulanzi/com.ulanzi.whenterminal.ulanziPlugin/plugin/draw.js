@@ -155,6 +155,55 @@ const Draw = (() => {
     return png()
   }
 
+  /**
+   * 분할창: 창 두 칸을 그린다. 켜져 있으면 칸마다 그 대화의 프로젝트 글자(키를 받는 창은 흰 칸·검은 글자),
+   * 꺼져 있으면 한 칸에 OFF. 앱 창이 좁아 나눌 수 없으면 흐리게 NARROW
+   * info: { on, roomy, panes: [{ conversationId, active }] } | null (앱이 아직 안 알려 줌), letters: 대화 ID → 'A' · 'S2'
+   */
+  function split(info, letters) {
+    clear(K)
+    const on = !!(info && info.on && info.panes.length === 2)
+    const narrow = !!info && !info.roomy && !on
+    ctx.textAlign = 'center'
+    font(800, 24)
+    ctx.fillStyle = on ? W : DIM
+    ctx.fillText('SPLIT', SIZE / 2, 42)
+    ctx.fillStyle = '#2a2a2a'
+    ctx.fillRect(16, 58, SIZE - 32, 3)
+    const top = 74
+    const h = 82
+    if (on) {
+      const gap = 8
+      const w = (SIZE - 32 - gap) / 2
+      info.panes.forEach((p, i) => {
+        const x = 16 + i * (w + gap)
+        if (p.active) {
+          ctx.fillStyle = W
+          ctx.fillRect(x, top, w, h)
+        } else {
+          ctx.strokeStyle = DIM
+          ctx.lineWidth = 4
+          ctx.strokeRect(x + 2, top + 2, w - 4, h - 4)
+        }
+        const letter = letters.get(p.conversationId) || '?'
+        font(900, letter.length > 1 ? 40 : 56)
+        ctx.fillStyle = p.active ? K : W
+        ctx.fillText(fit(letter, w - 12), x + w / 2, top + h / 2 + (letter.length > 1 ? 14 : 20))
+      })
+    } else {
+      ctx.strokeStyle = narrow ? '#3a3a3a' : DIM
+      ctx.lineWidth = 4
+      ctx.strokeRect(18, top + 2, SIZE - 36, h - 4)
+      font(800, 26)
+      ctx.fillStyle = narrow ? '#4a4a4a' : DIM
+      ctx.fillText(narrow ? 'NARROW' : 'OFF', SIZE / 2, top + h / 2 + 9)
+    }
+    font(700, 19)
+    ctx.fillStyle = DIM
+    ctx.fillText(on ? '누르면 하나로' : narrow ? '창이 좁아요' : '누르면 나눠요', SIZE / 2, 182)
+    return png()
+  }
+
   /** 앱에 연결하지 못함 */
   function offline() {
     clear(K)
@@ -269,5 +318,5 @@ const Draw = (() => {
     return png()
   }
 
-  return { conversation, overflow, empty, offline, usage, usageOne, SIZE }
+  return { conversation, overflow, empty, offline, usage, usageOne, split, SIZE }
 })()

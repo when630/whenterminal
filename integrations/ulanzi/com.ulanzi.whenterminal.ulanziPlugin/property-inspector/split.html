@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>WHENTERMINAL</title>
+  <link rel="stylesheet" href="../libs/css/uspi.css">
+  <style>.note { color: #9a9a9a; font-size: 12px; line-height: 1.5; padding: 4px 0 0; }</style>
+</head>
+<body>
+  <div class="uspi-wrapper hidden">
+    <div class="note">키에 분할창 상태가 보여요. 두 칸에 프로젝트 글자가 있고, 키를 받는 창은 흰 칸이에요. 누르면 WHENTERMINAL 창을 열고 분할을 켜거나 꺼요. 홈 화면이면 마지막으로 본 대화를 열고 나눠요. 앱 창이 좁으면 나눌 수 없어요.</div>
+  </div>
+  <script src="../libs/js/constants.js"></script>
+  <script src="../libs/js/eventEmitter.js"></script>
+  <script src="../libs/js/timers.js"></script>
+  <script src="../libs/js/utils.js"></script>
+  <script src="../libs/js/ulanziApi.js"></script>
+  <script>
+    $UD.connect()
+    $UD.onConnected(() => document.querySelector('.uspi-wrapper').classList.remove('hidden'))
+  </script>
+</body>
+</html>

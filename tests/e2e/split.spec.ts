@@ -149,3 +149,38 @@ test.describe('대화가 하나뿐일 때', () => {
     await expect(win.locator('.stage > .screen')).toHaveCount(1)
   })
 })
+
+test('스트림덱 분할 키: 통로가 보낸 켜기·끄기를 받고(홈이면 마지막 대화를 열고 나눔), 분할 상태를 메인에 알린다', async ({ app, win }) => {
+  const screens = win.locator('.stage > .screen')
+  await size(app, win, 1920, 1080)
+  // 렌더러가 메인에 보내는 분할 상태를 받아 둔다 (main/index.ts는 이걸 deck.setSplit으로 넘긴다)
+  await app.evaluate(({ ipcMain }) => {
+    const g = globalThis as unknown as { __split: unknown }
+    g.__split = null
+    ipcMain.on('app:split-state', (_e, info) => {
+      g.__split = info
+    })
+  })
+  const split = (): Promise<unknown> => app.evaluate(() => (globalThis as unknown as { __split: unknown }).__split)
+  // 통로의 POST /split이 하는 일: 창을 띄우고 렌더러에 분할 켜기·끄기
+  const press = (): Promise<void> => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('app:toggle-split', null))
+
+  // 아직 연 대화가 없으면 안내만
+  await press()
+  await expect(win.locator('.side-flash')).toContainText('먼저 대화를 하나 열어 주세요')
+
+  // c1 → c3를 본 뒤 홈에서 누르면 c3를 열고 c1을 옆 창에
+  await win.keyboard.press('Alt+a')
+  await win.keyboard.press('Alt+s')
+  await expect(win.locator('.stage > .screen[data-conversation-id="c3"]')).toBeVisible()
+  await win.keyboard.press('Control+h')
+  await expect(screens).toHaveCount(0)
+  await press()
+  await expect(screens).toHaveCount(2)
+  await expect.poll(split).toMatchObject({ on: true, roomy: true, panes: [{ conversationId: 'c3', active: true }, { conversationId: 'c1', active: false }] })
+
+  // 대화창에서 누르면 끈다
+  await press()
+  await expect(screens).toHaveCount(1)
+  await expect.poll(split).toMatchObject({ on: false, panes: [] })
+})

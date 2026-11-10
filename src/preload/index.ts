@@ -99,6 +99,8 @@ const api: WhenTerminalApi = {
   onOpenSettings: (cb) => subscribe(IPC.openSettings, () => cb()),
   onNavigate: (cb) => subscribe(IPC.navigate, cb),
   onGoHome: (cb) => subscribe(IPC.goHome, () => cb()),
+  onToggleSplit: (cb) => subscribe(IPC.toggleSplit, () => cb()),
+  setSplitState: (info) => ipcRenderer.send(IPC.splitState, info),
   onGuestKey: (cb) => subscribe(IPC.guestKey, cb),
   setBadge: (waiting, unread) => ipcRenderer.send(IPC.setBadge, waiting, unread),
   onEvent: (cb) => subscribe(IPC.event, cb),

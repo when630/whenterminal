@@ -11,6 +11,7 @@ export type ActionId =
   | 'nextConversation' | 'prevConversation' | 'closeConversation' | 'closeProject' | 'clear' | 'compact' | 'cycleMode'
   | 'panelNext' | 'panelPrev' | 'panelBack' | 'stopTask' | 'renameConversation' | 'newConversation' | 'terminal'
   | 'terminalNew' | 'terminalNext' | 'terminalPrev' | 'terminalClose' | 'terminalFind' | 'cycleEffort' | 'rewind' | 'scrollBottom' | 'away' | 'files' | 'projectUp' | 'projectDown' | 'palette' | 'git' | 'sendAfter'
+  | 'splitToggle' | 'paneLeft' | 'paneRight'
 
 export type ActionScope = 'system' | 'anywhere' | 'home' | 'chat' | 'approval'
 
@@ -57,6 +58,9 @@ export const ACTIONS: ActionDef[] = [
   { id: 'newConversation', label: 'New tab', scope: 'chat', default: 'Ctrl+Shift+T' },
   { id: 'files', label: 'Find & read project files', scope: 'chat', default: 'Ctrl+P' },
   { id: 'git', label: 'Git: branches, commits & diffs', scope: 'chat', default: 'Ctrl+G' },
+  { id: 'splitToggle', label: 'Split view: open / close', scope: 'chat', default: 'Ctrl+Alt+V' },
+  { id: 'paneLeft', label: 'Split view: focus left pane', scope: 'chat', default: 'Ctrl+Alt+H' },
+  { id: 'paneRight', label: 'Split view: focus right pane', scope: 'chat', default: 'Ctrl+Alt+L' },
   { id: 'terminal', label: 'Terminal: open / focus / fold', scope: 'chat', default: 'Ctrl+T' },
   { id: 'terminalNew', label: 'Terminal: new tab', scope: 'chat', default: 'Ctrl+Alt+T' },
   { id: 'terminalNext', label: 'Terminal: next tab', scope: 'chat', default: 'Ctrl+Alt+J' },

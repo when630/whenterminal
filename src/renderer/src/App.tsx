@@ -33,6 +33,19 @@ export function App(): React.JSX.Element {
   viewRef.current = view
   const convsRef = useRef(convs)
   convsRef.current = convs
+  // 분할창(최대 둘): 옆(비활성) 창에 띄운 대화와 그 창이 왼쪽인지. 키·포커스는 활성 창(view)만 받는다. 다시 켜면 되살린다
+  const [beside, setBeside] = useState<Pane | null>(() => loadSplit()?.pane ?? null)
+  const [besideLeft, setBesideLeft] = useState(() => loadSplit()?.left ?? false)
+  const besideRef = useRef(beside)
+  besideRef.current = beside
+  useEffect(() => saveSplit(beside, besideLeft), [beside, besideLeft])
+  // 마지막으로 본 대화와 그 앞의 대화 (분할을 켤 때 옆 창 후보, 홈에서 돌아올 때)
+  const lastChat = useRef<Pane | null>(null)
+  const prevChat = useRef<Pane | null>(null)
+  if (view.screen === 'chat' && lastChat.current?.conversationId !== view.conversationId) {
+    prevChat.current = lastChat.current
+    lastChat.current = { projectId: view.projectId, conversationId: view.conversationId }
+  }
   const [settings, setSettings] = useState<Settings>(window.api.initialSettings)
   const km = useMemo(() => effectiveKeymap(settings), [settings])
   const [usage, setUsage] = useState<UsageInfo | null>(null)
@@ -182,9 +195,15 @@ export function App(): React.JSX.Element {
 
   // 보고 있는 대화의 보고서는 읽은 것으로 처리
   const viewing = view.screen === 'chat' ? view.conversationId : null
+  const besidePane = useMemo(() => {
+    if (view.screen !== 'chat' || !beside || beside.conversationId === view.conversationId) return null
+    const project = projects.find((p) => p.id === beside.projectId)
+    return project && openConversations(project).some((c) => c.id === beside.conversationId) ? { pane: beside, project } : null
+  }, [view, beside, projects])
+  const besideViewing = besidePane?.pane.conversationId ?? null
   useEffect(() => {
-    if (viewing && convs[viewing]?.task?.unread) patchTask(viewing, { unread: false })
-  }, [viewing, convs, patchTask])
+    for (const id of [viewing, besideViewing]) if (id && convs[id]?.task?.unread) patchTask(id, { unread: false })
+  }, [viewing, besideViewing, convs, patchTask])
 
   // 다른 화면에서 Ctrl+K를 누르면 홈으로 온 뒤 작업 지시창에 포커스
   useEffect(() => {
@@ -211,6 +230,18 @@ export function App(): React.JSX.Element {
 
   // 대화를 열면서 바로 펼칠 명령 화면 (홈 보고서의 TOOLS)
   const [openPanel, setOpenPanel] = useState<{ conversationId: string; panel: ToolPanel; nonce: number } | null>(null)
+  /** 활성 창에 그 대화를 띄운다. 옆 창에 이미 떠 있으면 두 창을 맞바꿔 그 창을 활성으로 (같은 대화가 두 창에 뜨지 않게) */
+  const showChat = useCallback((target: Pane) => {
+    const v = viewRef.current
+    const cur = v.screen === 'chat' ? { projectId: v.projectId, conversationId: v.conversationId } : lastChat.current
+    const b = besideRef.current
+    if (b && b.conversationId === target.conversationId) {
+      setBeside(cur && cur.conversationId !== target.conversationId ? cur : null)
+      setBesideLeft((l) => !l)
+    }
+    setView({ screen: 'chat', projectId: target.projectId, conversationId: target.conversationId })
+  }, [])
+
   const openChat = useCallback((projectId: string, conversationId: string, panel?: ToolPanel) => {
     // 닫힌 대화의 보고서에서 '대화 열기'를 누르면 그 대화를 다시 탭으로
     const conv = projects.find((p) => p.id === projectId)?.conversations.find((c) => c.id === conversationId)
@@ -219,13 +250,13 @@ export function App(): React.JSX.Element {
     const open = (): void => {
       setOpenReportId(null)
       if (i >= 0) setDispatchIndex(i)
-      setView({ screen: 'chat', projectId, conversationId })
+      showChat({ projectId, conversationId })
       if (panel) setOpenPanel({ conversationId, panel, nonce: Date.now() })
     }
     // 홈에서 열면 그 대화의 카드(펼친 보고서)가 커지며 대화창이 된다
     if (viewRef.current.screen === 'home') morph('card', homeCardOf(conversationId, openReportId === conversationId), open, () => chatScreenOf(conversationId))
     else afterMorph(open)
-  }, [projects, openReportId])
+  }, [projects, openReportId, showChat])
 
   const openChatRef = useRef(openChat)
   openChatRef.current = openChat
@@ -237,9 +268,13 @@ export function App(): React.JSX.Element {
   const openProject = useCallback(
     (index: number) => {
       const p = projects[index]
-      if (p) openChat(p.id, mostUrgentConversation(p, convs))
+      if (!p) return
+      const v = viewRef.current
+      const b = besideRef.current
+      if (v.screen === 'chat' && v.projectId !== p.id && b?.projectId === p.id) return afterMorph(() => showChat(b))
+      openChat(p.id, mostUrgentConversation(p, convs))
     },
-    [projects, convs, openChat],
+    [projects, convs, openChat, showChat],
   )
 
   const respond = useCallback((projectId: string, conversationId: string, requestId: string, decision: PermissionDecision, extra?: PermissionExtra) => {
@@ -322,6 +357,8 @@ export function App(): React.JSX.Element {
       return { ...prev, [conversationId]: { status: busy ? 'stopped' : s.status, mode: s.mode, model: s.model, items: [], permissions: [], updatedAt: s.updatedAt, task, finishedTask: s.finishedTask } }
     })
     setView((v) => (v.screen === 'chat' && v.conversationId === conversationId ? { screen: 'chat', projectId, conversationId: next } : v))
+    // 옆 창의 대화를 닫았거나, 닫은 자리를 이어받은 대화가 옆 창의 것이면 분할을 푼다
+    setBeside((b) => (b && (b.conversationId === conversationId || b.conversationId === next) ? null : b))
   }, [])
 
   const requestClose = useCallback((projectId: string, conversationId: string) => {
@@ -335,7 +372,12 @@ export function App(): React.JSX.Element {
     ids.forEach(forgetTerminals)
     setConvs((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => !ids.has(id))))
     setOpenReportId(null)
-    setView((v) => (v.screen === 'chat' && v.projectId === projectId ? { screen: 'home' } : v))
+    // 보고 있던 프로젝트를 닫으면 옆 창의 대화를 하나로 띄우고, 없으면 홈으로
+    const b = besideRef.current
+    const keep = b && b.projectId !== projectId ? b : null
+    const wasHere = viewRef.current.screen === 'chat' && viewRef.current.projectId === projectId
+    setView((v) => (v.screen === 'chat' && v.projectId === projectId ? (keep ? { screen: 'chat', ...keep } : { screen: 'home' }) : v))
+    if (wasHere || b?.projectId === projectId) setBeside(null)
   }, [projects])
 
   /** 프로젝트 순서 바꾸기: 화면은 바로 바꾸고 메인에 저장한다 (메인이 보내는 목록으로 다시 맞춰진다) */
@@ -370,7 +412,41 @@ export function App(): React.JSX.Element {
   const goHomeRef = useRef(goHome)
   goHomeRef.current = goHome
   // 탭 이동은 하루에 수없이 하는 키 동작이라 모핑하지 않는다 (탭 색만 --t-fast로 바뀐다)
-  const selectConversation = (projectId: string, conversationId: string): void => afterMorph(() => setView({ screen: 'chat', projectId, conversationId }))
+  const selectConversation = (projectId: string, conversationId: string): void => afterMorph(() => showChat({ projectId, conversationId }))
+  /** 옆 창에 연다 (탭·사이드바 대화 줄 Shift+클릭). 대화창이 아니면 그냥 연다 */
+  const openBeside = (projectId: string, conversationId: string): void => {
+    const v = viewRef.current
+    if (v.screen !== 'chat') return openChat(projectId, conversationId)
+    if (v.conversationId === conversationId) return
+    const conv = projects.find((p) => p.id === projectId)?.conversations.find((c) => c.id === conversationId)
+    if (conv?.closedAt) void window.api.reopenConversation(projectId, conversationId)
+    afterMorph(() => setBeside({ projectId, conversationId }))
+  }
+  /** 분할 켜기·끄기. 켤 때 옆 창에는 바로 앞에 본 대화 → 같은 프로젝트의 다른 탭 → 다른 프로젝트에서 최근에 쓴 대화 */
+  const toggleSplit = (): void => {
+    const v = viewRef.current
+    if (v.screen !== 'chat') return
+    if (besidePane) return afterMorph(() => setBeside(null))
+    const isOpen = (pid: string, cid: string): boolean => cid !== v.conversationId && projects.some((p) => p.id === pid && openConversations(p).some((c) => c.id === cid))
+    const here = projects.find((p) => p.id === v.projectId)
+    const recent = projects
+      .filter((p) => p.id !== v.projectId)
+      .flatMap((p) => openConversations(p).map((c) => ({ projectId: p.id, conversationId: c.id, at: convs[c.id]?.updatedAt || c.lastTask?.finishedAt || 0 })))
+      .sort((a, b) => b.at - a.at)
+    const cands: (Pane | null)[] = [prevChat.current, ...(here ? openConversations(here).map((c) => ({ projectId: here.id, conversationId: c.id })) : []), ...recent]
+    const pick = cands.find((c): c is Pane => !!c && isOpen(c.projectId, c.conversationId))
+    if (!pick) return showFlash('옆 창에 띄울 대화가 없어요. 탭을 하나 더 열어 주세요.')
+    afterMorph(() => {
+      setBesideLeft(false)
+      setBeside({ projectId: pick.projectId, conversationId: pick.conversationId })
+    })
+  }
+  /** 분할창에서 그 쪽 창을 활성으로 */
+  const focusPane = (left: boolean): void => {
+    if (!besidePane || besideLeft !== left) return
+    const target = besidePane.pane
+    afterMorph(() => showChat(target))
+  }
   // 설정은 어느 화면에서든 열고, 닫으면 원래 화면으로 돌아간다
   const openSettings = (): void => setView((v) => (v.screen === 'settings' ? v : { screen: 'settings', back: v }))
   const closeSettings = (): void => setView((v) => (v.screen === 'settings' ? v.back : v))
@@ -402,7 +478,7 @@ export function App(): React.JSX.Element {
     if (own && !(e.key === 'Escape' && own.dataset.passEsc === 'true')) return
     // 터미널에 포커스가 있으면 키는 셸 몫이다 (Esc·Ctrl+C·Ctrl+L·Ctrl+K …). 앱을 오가는 키 몇 개만 앱이 받는다
     if ((e.target as HTMLElement | null)?.closest?.('[data-terminal]')) {
-      const app = (['terminal', 'terminalNew', 'terminalNext', 'terminalPrev', 'terminalClose', 'goHome', 'help', 'palette', 'search', 'nextConversation', 'prevConversation', 'newConversation', 'openSettings'] as ActionId[]).some((id) => matches(e, km[id]))
+      const app = (['terminal', 'terminalNew', 'terminalNext', 'terminalPrev', 'terminalClose', 'goHome', 'help', 'palette', 'search', 'nextConversation', 'prevConversation', 'newConversation', 'openSettings', 'splitToggle', 'paneLeft', 'paneRight'] as ActionId[]).some((id) => matches(e, km[id]))
       if (!app && projectIndexFromKey(e, physicalCode(e)) === null) return
       // 셸에는 가지 않게
       e.stopPropagation()
@@ -577,9 +653,11 @@ export function App(): React.JSX.Element {
     if (is('scrollBottom')) return take(() => chatPanelRef.current?.scrollBottom())
     if (is('files')) return take(() => chatPanelRef.current?.files())
     if (is('git')) return take(() => chatPanelRef.current?.git())
+    if (is('splitToggle')) return take(toggleSplit)
+    if (is('paneLeft') || is('paneRight')) return take(() => focusPane(is('paneLeft')))
     // 새 탭: 탭 줄의 +와 같다 (설정에 따라 작업 공간을 만든다)
     if (is('newConversation')) {
-      return take(() => void window.api.addConversation(projectId).then((c) => setView({ screen: 'chat', projectId, conversationId: c.id })))
+      return take(() => void window.api.addConversation(projectId).then((c) => showChat({ projectId, conversationId: c.id })))
     }
     if (is('clear')) return take(() => requestClear(projectId, conversationId))
     if (is('cycleMode')) {
@@ -680,7 +758,48 @@ export function App(): React.JSX.Element {
     return out
   }, [paletteOpen, view, projects, settings, km, openChat, openProject, accounts, showFlash])
 
-  const stageKey = view.screen === 'chat' ? `chat:${view.projectId}` : view.screen
+  // 분할창이면 활성 창을 옮겨도(다른 프로젝트여도) 화면을 다시 만들지 않는다
+  const stageKey = view.screen === 'chat' ? (besidePane ? 'chat:split' : `chat:${view.projectId}`) : view.screen
+  /** 대화창 하나. 분할창이면 창 자리(left·right)를 key로 해서 활성 창을 옮겨도 각 창이 그대로 남는다 */
+  const renderChat = (project: Project, conversationId: string, active: boolean): React.JSX.Element => {
+    const split = !!besidePane
+    const slot = active === besideLeft ? 'right' : 'left'
+    const other = !split ? null : active ? besidePane.pane : view.screen === 'chat' ? { projectId: view.projectId, conversationId: view.conversationId } : null
+    const otherProject = other ? projects.find((p) => p.id === other.projectId) : undefined
+    const same = !!other && !!otherProject && folderOf(otherProject, other.conversationId) === folderOf(project, conversationId)
+    return (
+      <Chat
+        key={slot}
+        project={project}
+        projects={projects}
+        conversationId={conversationId}
+        convs={convs}
+        mode={modeOf(project.id, conversationId)}
+        usage={usage}
+        clearArmed={armed?.kind === 'clear' && armed.id === conversationId}
+        closeArmedId={armed?.kind === 'close' ? armed.id : null}
+        projectArmed={armed?.kind === 'project' && armed.id === project.id}
+        onClearRequest={() => requestClear(project.id, conversationId)}
+        onCloseRequest={(id) => requestClose(project.id, id)}
+        onClose={(id) => void closeConversation(project.id, id)}
+        onSelectConversation={(id) => selectConversation(project.id, id)}
+        onRespond={respond}
+        panelRef={active ? chatPanelRef : undefined}
+        jump={jump?.conversationId === conversationId ? jump : null}
+        openPanel={openPanel?.conversationId === conversationId ? openPanel : null}
+        away={settings.away}
+        suggestions={settings.promptSuggestions}
+        active={active}
+        elsewhereId={other?.conversationId ?? null}
+        besideProjectId={other?.projectId ?? null}
+        sameFolder={same}
+        paneClass={split ? `pane-${active ? 'active' : 'idle'}${!active && convs[conversationId]?.permissions.length ? ' pane-ask' : ''}` : ''}
+        // 옆 창을 누르면 먼저 그 창을 활성으로 (누른 버튼·탭은 활성 창의 것으로 처리된다)
+        onActivate={split && !active ? () => showChat({ projectId: project.id, conversationId }) : undefined}
+        onOpenBeside={(id) => openBeside(project.id, id)}
+      />
+    )
+  }
   // 모핑으로 들어온 화면은 등장 움직임(screen-in)을 건너뛴다. 처음 그릴 때 정해 그 화면 동안 그대로
   const stageQuiet = useMemo(() => isMorphing(), [stageKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -692,6 +811,9 @@ export function App(): React.JSX.Element {
         convs={convs}
         activeProjectId={chatProject?.id ?? null}
         activeConversationId={view.screen === 'chat' ? view.conversationId : null}
+        besideProjectId={besidePane?.pane.projectId ?? null}
+        besideConversationId={besidePane?.pane.conversationId ?? null}
+        onOpenBeside={openBeside}
         unreadTotal={unreadTotal}
         usage={usage}
         update={update}
@@ -720,31 +842,15 @@ export function App(): React.JSX.Element {
           </button>
         </div>
         <Ticker running={all.running} reports={all.reports} background={background} />
-        <div className={`stage ${stageQuiet ? 'quiet' : ''}`} key={stageKey}>
+        <div className={`stage ${stageQuiet ? 'quiet' : ''} ${besidePane ? 'split' : ''}`} key={stageKey}>
           {view.screen === 'settings' ? (
             <SettingsScreen settings={settings} activeHotkey={hotkey} update={update} onClose={closeSettings} onSaved={(next, hk) => { setSettings(next); if (hk !== undefined) setHotkey(hk) }} />
           ) : view.screen === 'chat' && chatProject ? (
-            <Chat
-              project={chatProject}
-              projects={projects}
-              conversationId={view.conversationId}
-              convs={convs}
-              mode={modeOf(view.projectId, view.conversationId)}
-              usage={usage}
-              clearArmed={armed?.kind === 'clear' && armed.id === view.conversationId}
-              closeArmedId={armed?.kind === 'close' ? armed.id : null}
-              projectArmed={armed?.kind === 'project' && armed.id === chatProject.id}
-              onClearRequest={() => requestClear(chatProject.id, view.conversationId)}
-              onCloseRequest={(id) => requestClose(chatProject.id, id)}
-              onClose={(id) => void closeConversation(chatProject.id, id)}
-              onSelectConversation={(conversationId) => selectConversation(chatProject.id, conversationId)}
-              onRespond={respond}
-              panelRef={chatPanelRef}
-              jump={jump?.conversationId === view.conversationId ? jump : null}
-              openPanel={openPanel?.conversationId === view.conversationId ? openPanel : null}
-              away={settings.away}
-              suggestions={settings.promptSuggestions}
-            />
+            <>
+              {besidePane && besideLeft && renderChat(besidePane.project, besidePane.pane.conversationId, false)}
+              {renderChat(chatProject, view.conversationId, true)}
+              {besidePane && !besideLeft && renderChat(besidePane.project, besidePane.pane.conversationId, false)}
+            </>
           ) : (
             <Home
               projects={projects}
@@ -819,6 +925,35 @@ export function App(): React.JSX.Element {
     </div>
     </KeymapContext.Provider>
   )
+}
+
+/** 대화가 쓰는 폴더 (작업 공간이면 그 폴더). 분할창의 SAME FOLDER 비교용 */
+function folderOf(p: Project, conversationId: string): string {
+  return (p.conversations.find((c) => c.id === conversationId)?.worktree?.path ?? p.path).replace(/[\\/]+$/, '').toLowerCase()
+}
+
+interface Pane {
+  projectId: string
+  conversationId: string
+}
+
+const SPLIT_KEY = 'wt-split'
+/** 분할창 상태 (앱을 다시 켜도 되살린다). 저장소를 못 쓰면 분할 없이 시작 */
+function loadSplit(): { pane: Pane; left: boolean } | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(SPLIT_KEY) ?? 'null') as { pane?: Pane; left?: boolean } | null
+    return v?.pane?.projectId && v.pane.conversationId ? { pane: v.pane, left: !!v.left } : null
+  } catch {
+    return null
+  }
+}
+function saveSplit(pane: Pane | null, left: boolean): void {
+  try {
+    if (pane) localStorage.setItem(SPLIT_KEY, JSON.stringify({ pane, left }))
+    else localStorage.removeItem(SPLIT_KEY)
+  } catch {
+    // 저장 못 해도 지금 화면은 그대로
+  }
 }
 
 /** 그 대화의 대화창 (분할창이면 여러 개 중 그 대화의 것) */

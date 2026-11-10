@@ -46,11 +46,21 @@ interface Props {
   onClose: (conversationId: string) => void
   onSelectConversation: (conversationId: string) => void
   onRespond: (projectId: string, conversationId: string, requestId: string, decision: PermissionDecision, extra?: PermissionExtra) => void
-  /** App의 전역 키 처리가 오른쪽 패널 세부 내용을 다루는 손잡이 (Chat이 그릴 때마다 갱신) */
   /** App이 키 처리로 이 대화창을 다룰 통로. 분할창에서는 활성 창만 받는다 */
   panelRef?: React.MutableRefObject<PanelControl | null>
   /** 키·포커스를 받는 창인지 (분할창). 하나만 띄울 때는 늘 true */
   active?: boolean
+  /** 분할창: 옆 창에 떠 있는 대화(탭 줄에 외곽선, 누르면 그 창으로)·프로젝트(NEEDS YOU 배지를 띄우지 않음) */
+  elsewhereId?: string | null
+  besideProjectId?: string | null
+  /** 분할창: 옆 창이 같은 폴더를 쓴다 (같은 파일을 함께 고칠 수 있음) */
+  sameFolder?: boolean
+  /** 분할창에서 이 창의 표시 (pane-active·pane-idle·pane-ask) */
+  paneClass?: string
+  /** 탭을 Shift+클릭: 옆 창에 연다 */
+  onOpenBeside?: (conversationId: string) => void
+  /** 분할창의 옆 창을 누르면 그 창을 활성으로 (누른 것의 처리보다 먼저) */
+  onActivate?: () => void
   /** 대화 검색에서 고른 메시지: 이 대화에서 검색어가 맞은 ordinal번째 항목으로 스크롤한다 */
   jump?: { query: string; ordinal: number; nonce: number } | null
   /** 열자마자 펼칠 명령 화면 (홈 보고서의 TOOLS에서 왔을 때) */
@@ -88,7 +98,7 @@ export interface PanelControl {
   command: (name: string) => void
 }
 
-export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onRespond, panelRef, jump, openPanel, away, suggestions, active = true }: Props): React.JSX.Element {
+export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onRespond, panelRef, jump, openPanel, away, suggestions, active = true, elsewhereId = null, besideProjectId = null, sameFolder = false, paneClass = '', onOpenBeside, onActivate }: Props): React.JSX.Element {
   const state = convs[conversationId] ?? emptyConversation()
   const km = useKeymap()
   // 쓰던 글은 대화마다 남는다 (탭을 옮기거나 앱을 껐다 켜도)
@@ -151,7 +161,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
 
   // 다른 프로젝트의 승인 대기 (우측 상단 배지). 사라질 때 잠시 남아 나간다
   const otherWaiting = projects
-    .map((p, i) => ({ p, i, n: p.id === project.id ? 0 : p.conversations.filter((c) => convs[c.id]?.status === 'waiting_approval').length }))
+    .map((p, i) => ({ p, i, n: p.id === project.id || p.id === besideProjectId ? 0 : p.conversations.filter((c) => convs[c.id]?.status === 'waiting_approval').length }))
     .filter((x) => x.n > 0)
   const otherBadges = usePresenceList(otherWaiting, (x) => x.p.id)
   // 이 대화의 것만 잠시 남긴다 (다른 대화로 옮기면 잔상 없이)
@@ -256,8 +266,13 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const caretPlaced = useRef<string | null>(null)
   const lastTyped = useRef(0)
   useEffect(() => {
-    // 활성 창이 아니면 포커스를 건드리지 않는다 (옆 창의 입력창·Y/A/N을 빼앗지 않게)
-    if (!active) return
+    // 활성 창이 아니면 포커스를 건드리지 않는다 (옆 창의 입력창·Y/A/N을 빼앗지 않게).
+    // 방금 활성을 잃었으면 쥐고 있던 포커스를 놓는다 (남아 있으면 새 활성 창의 Y/A/N이 이 입력창의 글자로 먹는다)
+    if (!active) {
+      const a = document.activeElement
+      if (a instanceof HTMLElement && screenRef.current?.contains(a)) a.blur()
+      return
+    }
     const el = inputRef.current
     if (pending) {
       if (!stillTyping(el, lastTyped.current)) el?.blur()
@@ -834,7 +849,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   }
 
   return (
-    <div className="screen" ref={screenRef} data-conversation-id={conversationId} onClick={(e) => refocusAfterClick(e, () => (screenRef.current?.querySelector('.permission') ? null : inputRef.current))}>
+    <div className={`screen ${paneClass}`} ref={screenRef} onMouseDownCapture={onActivate} data-conversation-id={conversationId} onClick={(e) => refocusAfterClick(e, () => (screenRef.current?.querySelector('.permission') ? null : inputRef.current))}>
       <header className="topbar">
         <div className="tb-proj">
           <span className="tb-key" aria-hidden="true">{HOME_ROW[projectIndex] ?? ''}</span>
@@ -850,6 +865,11 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               </span>
             ) : (
               <span>{project.path}</span>
+            )}
+            {sameFolder && (
+              <span className="wt-tag same-folder" title="옆 창과 같은 폴더를 써요. 두 대화가 같은 파일을 함께 고칠 수 있어요">
+                SAME FOLDER
+              </span>
             )}
           </span>
         </div>
@@ -941,10 +961,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 ) : (
                 <button
                   type="button"
-                  className={`tab ${c.id === conversationId ? 'active' : ''}`}
+                  className={`tab ${c.id === conversationId ? 'active' : ''} ${c.id === elsewhereId ? 'elsewhere' : ''}`}
                   // 선택한 탭이 가려져 있으면 보이는 곳까지 부드럽게 끌어온다
                   ref={c.id === conversationId ? (el) => { el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }) } : undefined}
-                  onClick={() => onSelectConversation(c.id)}
+                  onClick={(e) => (e.shiftKey && onOpenBeside ? onOpenBeside(c.id) : onSelectConversation(c.id))}
                   onDoubleClick={() => setEditingId(c.id)}
                   title={`${c.title} · ${STATUS_LABEL[st]}\n더블클릭하면 이름을 바꿔요`}
                 >

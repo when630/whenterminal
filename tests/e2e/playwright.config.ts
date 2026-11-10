@@ -4,6 +4,8 @@ import { defineConfig } from '@playwright/test'
 // 키 입력은 OS가 아니라 창에 바로 보내므로 서로 섞이지 않는다. 4개부터는 CPU를 나눠 쓰느라 더 빨라지지 않는다
 export default defineConfig({
   testDir: '.',
+  // 맨 끝에 테스트가 남긴 멈춘 프로세스·임시 폴더를 치운다
+  globalSetup: './global-setup.ts',
   timeout: 90_000,
   expect: { timeout: 15_000 },
   workers: 3,

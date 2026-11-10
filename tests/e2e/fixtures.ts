@@ -1,6 +1,6 @@
 import { test as base, _electron, type ElectronApplication, type Page } from '@playwright/test'
 import { execSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -82,18 +82,27 @@ export async function quit(app: ElectronApplication): Promise<void> {
   await Promise.race([app.close().catch(() => {}), new Promise((r) => setTimeout(r, 3000))])
 }
 
+/**
+ * 테스트의 임시 폴더를 지운다 (`makeEnv`를 직접 부른 테스트는 `quit` 뒤에 이것도 부를 것).
+ * 끝낸 프로세스의 파일 잠금이 잠깐 남을 수 있다. 임시 폴더라 끝내 못 지워도 테스트 실패로 치지 않는다
+ */
+export function removeRoot(root: string): void {
+  try {
+    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+  } catch {
+    // 부모를 잃고 멈춘 자식 프로세스가 폴더를 잡고 있다. 적어 두면 맨 끝에 그 프로세스를 끝내고 지운다 (global-setup.ts)
+    const list = process.env.WT_E2E_LEFTOVER
+    if (list) appendFileSync(list, `${root}\n`)
+  }
+}
+
 /** 테스트 하나 = 앱 하나. 끝나면 닫고 임시 폴더를 지운다. 화면 오류가 있으면 실패 */
 export const test = base.extend<{ seed: Seed; env: Env; app: ElectronApplication; win: Page }>({
   seed: [{ projects: [{ name: 'alpha' }] }, { option: true }],
   env: async ({ seed }, use) => {
     const env = makeEnv(seed)
     await use(env)
-    // 끝낸 프로세스의 파일 잠금이 잠깐 남을 수 있다. 임시 폴더라 끝내 못 지워도 테스트 실패로 치지 않는다
-    try {
-      rmSync(env.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
-    } catch {
-      // OS가 나중에 정리
-    }
+    removeRoot(env.root)
   },
   app: async ({ env }, use) => {
     const { app, errors } = await env.launch()

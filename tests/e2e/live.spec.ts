@@ -1,6 +1,27 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { Page } from '@playwright/test'
 import { expect, test } from './fixtures'
+
+/**
+ * 작업이 끝날 때까지 확인 요청이 올 때마다 Y로 허용한다. 같은 지시라도 모델이 도구를 몇 번 쓸지는 그때그때 다르다
+ * (Edit 한 번일 때도, Bash로 확인하고 고쳐 두 번 물을 때도 있다). Y가 승인으로 먹지 않으면 승인창이 남아 실패한다
+ */
+async function allowUntilDone(win: Page, timeout: number): Promise<void> {
+  const done = win.locator('.badge-done')
+  // 답한 승인창은 나가는 동안(leaving) 잠시 남는다
+  const ask = win.locator('.permission:not(.leaving)')
+  const until = Date.now() + timeout
+  while (!(await done.isVisible())) {
+    if (Date.now() > until) throw new Error(`작업이 ${timeout / 1000}초 안에 끝나지 않았어요`)
+    if (await ask.isVisible()) {
+      await win.keyboard.press('y')
+      await expect(ask).toHaveCount(0)
+    } else {
+      await win.waitForTimeout(200)
+    }
+  }
+}
 
 // @live: 모델을 실제로 부른다 (구독 사용량을 조금 씀). npm run test:e2e:live
 test.describe('@live', () => {
@@ -17,8 +38,7 @@ test.describe('@live', () => {
     await expect(win.locator('.chat-body.open .status-panel.waiting')).toBeVisible()
     await win.waitForTimeout(800)
     await win.screenshot({ path: test.info().outputPath('panel-waiting.png') })
-    await win.keyboard.press('y')
-    await expect(win.locator('.badge-done')).toBeVisible({ timeout: 120_000 })
+    await allowUntilDone(win, 180_000)
     expect(readFileSync(join(env.path('alpha'), 'notes.txt'), 'utf8')).toContain('bye')
     await win.keyboard.press('Control+KeyH')
     await expect(win.locator('.rep')).toHaveCount(1)

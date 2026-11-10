@@ -12,7 +12,7 @@
 - `npm run test:e2e:live` — 모델을 실제로 부르는 `@live` 테스트 (승인 흐름·대기열·컴팩트·클리어). 구독 사용량을 조금 씀
   - 테스트마다 임시 사용자 데이터·프로젝트를 만든다(`tests/e2e/fixtures.ts`의 `seed`). 실제 데이터는 건드리지 않음
   - 파일 3개를 함께 돌린다(`workers: 3`, 파일 안의 테스트는 차례로). 일부만: `npm run test:e2e -- terminal`(파일 이름), `-- -g "검색"`(테스트 이름)
-  - 끝난 앱은 정상 종료를 기다리지 않고 프로세스 트리째 끝낸다(`quit`). 시간을 기다리는 동작은 테스트에서 줄여 쓴다(예: 터미널 명령 끝남 기준 `window.__termLongMs`)
+  - 끝난 앱은 정상 종료를 기다리지 않고 프로세스 트리째 끝낸다(`quit`). 그 순간 CLI가 띄우던 자식(rg 모드 claude.exe·git)은 일시 중단 상태로 부모만 잃고 남아 임시 폴더를 잡으므로, 못 지운 폴더는 적어 두었다가(`removeRoot` → `WT_E2E_LEFTOVER`) 맨 끝에 `global-setup.ts`가 그런 프로세스를 끝내고 지운다. `makeEnv`를 직접 부른 테스트는 `quit` 뒤에 `removeRoot`도 부를 것. 시간을 기다리는 동작은 테스트에서 줄여 쓴다(예: 터미널 명령 끝남 기준 `window.__termLongMs`)
 - `npm run test:session` — `AgentSession` 통합 테스트 (권한 요청→허용→파일 생성). 구독 사용량을 조금 씀
 - `npm run test:steer` — 실행 중에 보낸 메시지 통합 테스트 (haiku): 지금 턴에 끼워 넣기(folded·같은 작업)·Esc로 함께 멈춤(새 턴 없음)·끝난 뒤 보내기(after). 짧은 모델 호출 3번
 - `npm run test:spare` — CLI 미리 띄우기 통합 테스트 (스페어 claim으로 답 받기, 프로젝트 설정 `model` 때문에 claim이 거절되면 `query()` 폴백). 짧은 모델 호출 2번

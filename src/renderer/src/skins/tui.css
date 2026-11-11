@@ -729,7 +729,7 @@
 :root[data-skin='tui'] .crash-title { color: var(--signal-ink); font: 700 16px/1.4 var(--mono); }
 
 /* 굴러가는 숫자 칸: 한 줄 높이에 맞춘다 (1em이면 고정폭 글꼴에서 위가 잘린다) */
-:root[data-skin='tui'] .nav-away-side .roll.num, :root[data-skin='tui'] .sp-n .roll.num { height: 20px; vertical-align: top; }
+:root[data-skin='tui'] .nav-away-side .roll.num, :root[data-skin='tui'] .sp-n .roll.num, :root[data-skin='tui'] .tgroup-n .roll.num { height: 20px; vertical-align: top; }
 :root[data-skin='tui'] .ctx b .roll.num { height: 1.3em; vertical-align: top; }
 
 /* EFFORT 단계: ▮▮▮▯▯ */

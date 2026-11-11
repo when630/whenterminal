@@ -89,7 +89,7 @@
 :root[data-skin='soft'] :is(
   .side-label > span, :is(.nav-home, .nav-away, .nav-help, .nav-settings, .nav-update) .nav-name, .usage-head > span:first-child, .uw-label, .usage-plan,
   .ctx-label, .tb-btn, .effort-v, .meta-mode .meta-v, .meta-k, [class*='badge-'], .mode-seg button,
-  .tool-st, .tool-sub, .tsum-k, .tgroup-k, .hook-k, .thinking-k, .memory-k, .divider-k, .md-pre .copy-btn, .tool-run, .tool-copy, .tool-more,
+  .tool-st, .tool-sub, .tool-hook, .tgroup-more, .tsum-k, .tgroup-k, .hook-k, .thinking-k, .memory-k, .divider-k, .md-pre .copy-btn, .tool-run, .tool-copy, .tool-more,
   .permission-actions button, .msg-acts button,
   .sp-k, .sp-word .roll > span, .sp-meter em, .sp-stats dt, .sp-bg-row b, .sp-bg-x, .to-bottom button,
   .col-h, .hh-label, .stage-word .roll > span, .rep-h, .tagbar-k, .chip.ok,
@@ -99,7 +99,7 @@
 :root[data-skin='soft'] :is(
   .side-label > span, :is(.nav-home, .nav-away, .nav-help, .nav-settings, .nav-update) .nav-name, .usage-head > span:first-child, .uw-label, .usage-plan,
   .ctx-label, .tb-btn, .effort-v, .meta-mode .meta-v, .meta-k, [class*='badge-'], .mode-seg button,
-  .tool-st, .tool-sub, .tsum-k, .tgroup-k, .hook-k, .thinking-k, .memory-k, .divider-k, .md-pre .copy-btn, .tool-run, .tool-copy, .tool-more,
+  .tool-st, .tool-sub, .tool-hook, .tgroup-more, .tsum-k, .tgroup-k, .hook-k, .thinking-k, .memory-k, .divider-k, .md-pre .copy-btn, .tool-run, .tool-copy, .tool-more,
   .permission-actions button, .msg-acts button,
   .sp-k, .sp-word .roll > span, .sp-meter em, .sp-stats dt, .sp-bg-row b, .sp-bg-x, .to-bottom button,
   .col-h, .hh-label, .stage-word .roll > span, .rep-h, .tagbar-k, .chip.ok,
@@ -628,7 +628,7 @@
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / 15px no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / 15px no-repeat;
 }
-:root[data-skin='soft'] .tool.error :is(.tool-st, .tool-name), :root[data-skin='soft'] .tgroup.error .tool-st, :root[data-skin='soft'] .hook.error > summary .tool-st { color: var(--signal-ink); }
+:root[data-skin='soft'] .tool.error :is(.tool-st, .tool-name), :root[data-skin='soft'] .tgroup.error > summary .tool-st, :root[data-skin='soft'] .hook.error > summary .tool-st { color: var(--signal-ink); }
 :root[data-skin='soft'] .tool[open] > summary { background-color: transparent; color: var(--ink); }
 /* 펼친 본문: 흰 면 안쪽 칸 */
 :root[data-skin='soft'] .tool-body { margin: 0 14px 12px 44px; padding: 8px 12px 12px; border-radius: 8px; background: var(--card); color: var(--ink); box-shadow: var(--ring); }
@@ -919,3 +919,6 @@
 /* 맨 아래로 버튼 */
 :root[data-skin='soft'] .to-bottom button { border: 0; border-radius: 999px; background: var(--card); color: var(--ink); font: 500 12px/1 var(--font); box-shadow: var(--float); }
 :root[data-skin='soft'] .to-bottom button:hover { background: var(--wash); color: var(--ink); }
+
+/* 활동 묶음의 +n EARLIER 줄: 이 스킨의 묶음 머리줄과 같은 들여쓰기 */
+:root[data-skin='soft'] .tgroup-more { padding-left: 14px; padding-right: 14px; }

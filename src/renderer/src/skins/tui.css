@@ -521,7 +521,7 @@
 :root[data-skin='tui'] .tgroup-s { font-size: 12.5px; }
 :root[data-skin='tui'] .tgroup-body { padding-left: 3ch; box-shadow: none; }
 :root[data-skin='tui'] .tgroup-body > .tool:first-child { border-top: 0; }
-:root[data-skin='tui'] .tgroup.error .tool-st { color: var(--signal-ink); }
+:root[data-skin='tui'] .tgroup.error > summary .tool-st { color: var(--signal-ink); }
 :root[data-skin='tui'] .tsum { gap: 1ch; padding: 1px 14px 1px calc(14px + 2ch); font-size: 12.5px; font-weight: 500; }
 :root[data-skin='tui'] .memory { border-top: 0; }
 :root[data-skin='tui'] .memory > summary { gap: 1ch; padding: 0 14px 0 calc(14px + 2ch); }
@@ -745,3 +745,6 @@
 /* 맨 아래로 버튼 */
 :root[data-skin='tui'] .to-bottom button { padding: 4px 10px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font: 700 12px/1.2 var(--mono); box-shadow: none; }
 :root[data-skin='tui'] .to-bottom button:hover { background: var(--sel-bg); color: var(--sel-fg); border-color: var(--sel-bg); }
+
+/* 활동 묶음의 +n EARLIER 줄: 이 스킨의 묶음 머리줄과 같은 들여쓰기 */
+:root[data-skin='tui'] .tgroup-more { padding-left: 14px; padding-right: 14px; }

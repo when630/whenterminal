@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { refocusAfterClick, stillTyping, useRefocus } from './focus'
 import { ALWAYS_SCOPE_LABEL, ALWAYS_SCOPE_TIP, ELICITATION_TOOL, MODE_CYCLE, MODE_LABEL, openConversations, REFUSAL_TOOL, STATUS_LABEL, type AgentOption, type AskQuestion, type EffortInfo, type EffortLevel, type GitBranch, type UsageInfo, type SlashCommandInfo, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRequest, type Project, type BackgroundTask, type AgentProgress, type RefusalChoice, type SubItem } from '@shared/types'
-import { agentInfo, artifactsOf, describeBackground, emptyConversation, foldSummaries, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ArtifactLink, type ConversationMap, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
+import { activityLabel, agentInfo, artifactsOf, describeBackground, emptyConversation, foldActivity, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ActivityRow, type ArtifactLink, type ConversationMap, type HookItem, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
 import type { GoalInfo, MemoryRecall, RemoteInfo } from '@shared/types'
 import { PANEL_TITLE, ToolPanelView, type ToolPanel } from './panels'
 import { usePromptHistory } from './drafts'
@@ -94,6 +94,8 @@ export interface PanelControl {
   files: () => void
   /** git 화면 (/git) 열고 닫기 */
   git: () => void
+  /** 대화 기록의 활동 묶음을 모두 펼치기 ↔ 평소대로 */
+  expandActivity: () => void
   /** 앱이 직접 처리하는 입력창 명령을 실행한다 (명령 팔레트). 입력창의 글은 그대로 둔다 */
   command: (name: string) => void
 }
@@ -252,8 +254,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       // 요약 묶음 안으로 접힌 도구일 수 있어 순번 대신 data-idx로 찾고, 묶음을 펼친다
       const el = scrollRef.current?.querySelector<HTMLElement>(`[data-idx="${idx}"]`)
       if (!el) return
-      const group = el.parentElement?.closest<HTMLDetailsElement>('details.tgroup')
-      if (group) group.open = true
+      revealInGroup(el)
       el.scrollIntoView({ block: 'center' })
       el.classList.add('hit')
       setTimeout(() => el.classList.remove('hit'), 2400)
@@ -596,8 +597,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     setTimeout(() => {
       const el = scrollRef.current?.querySelector<HTMLDetailsElement>(`[data-tool-id="${toolUseId}"]`)
       if (!el) return
-      const group = el.parentElement?.closest<HTMLDetailsElement>('details.tgroup')
-      if (group) group.open = true
+      revealInGroup(el)
       el.open = true
       el.scrollIntoView({ block: 'center' })
       el.classList.add('hit')
@@ -644,6 +644,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       toBottom()
     },
     git: () => (tool?.kind === 'git' ? setTool(null) : openTool({ kind: 'git' })),
+    expandActivity: () => setExpandAll((v) => !v),
     command: (name) => submit(`/${name}`, true),
     files: () => {
       setBrowseOpen((v) => !v)
@@ -831,8 +832,27 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
 
   const projectIndex = projects.findIndex((p) => p.id === project.id)
   let toolCount = 0
-  // 도구 호출 묶음은 요약 한 줄 아래로 접어 그린다
-  const nodes = useMemo(() => foldSummaries(state.items), [state.items])
+  // 답변 글 사이의 활동(도구·훅·생각·기억)은 한 줄 묶음으로 접어 그린다
+  // 도구 줄이 품는 훅 목록은 내용이 같으면 앞 렌더의 배열을 그대로 준다 (Item이 memo라 새 배열이면 매번 다시 그린다)
+  const hookCache = useRef(new Map<string, HookItem[]>())
+  const nodes = useMemo(() => {
+    const out = foldActivity(state.items)
+    const next = new Map<string, HookItem[]>()
+    const keep = (r: ActivityRow): void => {
+      if (!r.hooks || r.item.type !== 'tool') return
+      const prev = hookCache.current.get(r.item.toolUseId)
+      if (prev && prev.length === r.hooks.length && prev.every((h, i) => h === r.hooks![i])) r.hooks = prev
+      next.set(r.item.toolUseId, r.hooks)
+    }
+    for (const node of out) {
+      if (node.kind === 'item') keep(node)
+      else node.rows.forEach(keep)
+    }
+    hookCache.current = next
+    return out
+  }, [state.items])
+  // 모든 활동 묶음을 펼쳐 다 보기 (키맵 expandActivity). 다시 누르면 평소대로(자동으로 접고 펼침)
+  const [expandAll, setExpandAll] = useState(false)
   // 기록 줄(Item)은 memo라 콜백이 렌더마다 바뀌면 소용이 없다. 늘 같은 함수를 주고 그 안에서 지금 값을 부른다
   const itemActs = useRef({ conversationId, projectId: project.id, editQueued, cancelQueued, openTool })
   itemActs.current = { conversationId, projectId: project.id, editQueued, cancelQueued, openTool }
@@ -1060,12 +1080,13 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               <span className="mono">{project.path}</span>
             </div>
           )}
-          {nodes.map((node) => {
-            const render = (item: TranscriptItem, idx: number): React.JSX.Element => (
+          {nodes.map((node, at) => {
+            const render = ({ item, idx, hooks }: ActivityRow): React.JSX.Element => (
               <Item
                 key={`${conversationId}:${idx}`}
                 idx={idx}
                 item={item}
+                hooks={hooks}
                 n={item.type === 'tool' ? ++toolCount : 0}
                 root={root}
                 enter={idx >= seen.current.count}
@@ -1081,10 +1102,18 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 onToolImages={acts.toolImages}
               />
             )
-            if (node.kind === 'item') return render(node.item, node.idx)
+            if (node.kind === 'item') return render(node)
             return (
-              <ToolGroup key={`${conversationId}:g${node.idx}`} summary={node.summary.summary} tools={node.tools.map((t) => t.item)} enter={node.idx >= seen.current.count}>
-                {node.tools.map((t) => render(t.item, t.idx))}
+              <ToolGroup
+                key={`${conversationId}:g${node.idx}`}
+                rows={node.rows}
+                summaries={node.summaries}
+                // 기록의 마지막 묶음이고 아직 작업 중이면 펼쳐 두고 끝만 보인다. 다음 글이 오거나 끝나면 접힌다
+                live={busy && at === nodes.length - 1}
+                expandAll={expandAll}
+                enter={node.idx >= seen.current.count}
+              >
+                {node.rows.map(render)}
               </ToolGroup>
             )
           })}
@@ -1593,10 +1622,20 @@ interface ItemProps {
   onImage?: (path: string) => Promise<string | null>
   /** 도구 결과에 든 그림들 */
   onToolImages?: (toolUseId: string) => Promise<string[]>
+  /** 이 도구 호출에 걸린 훅 (줄 대신 도구 줄 안에 표시만, 펼치면 출력) */
+  hooks?: HookItem[]
+}
+
+/** 훅의 상태 글자와 스킨용 data-state */
+function hookState(h: HookItem): { text: string; state: string } {
+  if (h.running) return { text: 'RUNNING', state: 'run' }
+  if (h.outcome === 'error') return { text: `ERROR${h.exitCode ? ` ${h.exitCode}` : ''}`, state: 'error' }
+  if (h.outcome === 'cancelled') return { text: 'CANCELLED', state: 'stopped' }
+  return { text: 'OK', state: 'done' }
 }
 
 /** 대화 기록 한 줄. memo: 다른 대화·다른 줄의 이벤트로 기록 전체를 다시 그리지 않는다 */
-export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand, onImage, onToolImages }: ItemProps): React.JSX.Element {
+export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand, onImage, onToolImages, hooks }: ItemProps): React.JSX.Element {
   const e = enter ? ' enter' : ''
   const [opened, onToggle] = useOpened()
   // 차례를 기다리던 글이 보내지면 EDIT/CANCEL은 잠시 남아 나간다
@@ -1648,14 +1687,14 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
     case 'memory':
       return <MemoryItem recall={item.recall} enter={enter} idx={di} />
     case 'hook': {
-      const st = item.running ? 'RUNNING' : item.outcome === 'error' ? `ERROR${item.exitCode ? ` ${item.exitCode}` : ''}` : item.outcome === 'cancelled' ? 'CANCELLED' : 'OK'
+      const st = hookState(item)
       return (
         <details className={`hook ${item.outcome === 'error' ? 'error' : ''}${e}`} data-idx={di}>
           <summary>
             <span className="hook-k">HOOK</span>
             <span className="hook-ev">{item.event}</span>
             <span className="hook-name" title={item.name}>{item.name}</span>
-            <span className={`tool-st ${item.running ? 'run' : ''}`} data-state={item.running ? 'run' : item.outcome === 'error' ? 'error' : item.outcome === 'cancelled' ? 'stopped' : 'done'}>{st}</span>
+            <span className={`tool-st ${item.running ? 'run' : ''}`} data-state={st.state}>{st.text}</span>
           </summary>
           {item.output ? <pre className="hook-out">{item.output}</pre> : <div className="hook-out muted">출력이 없어요</div>}
         </details>
@@ -1668,6 +1707,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
       // 하위 에이전트: 그 안에서 한 일을 펼쳐 볼 수 있게 한다
       const sub = isAgentTool(item.name) ? subs?.[item.toolUseId] : undefined
       const subTools = progress?.[item.toolUseId]?.tools ?? sub?.filter((i) => i.type === 'tool').length ?? 0
+      const hookErrors = hooks?.filter((h) => h.outcome === 'error').length ?? 0
       return (
         <details className={`tool ${item.isError ? 'error' : ''}${e}`} data-tool-id={item.toolUseId} data-idx={di} onToggle={onToggle}>
           <summary>
@@ -1676,6 +1716,13 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
             <span className="tool-arg">
               {relPath(summarizeInput(item.input), root)}
               {sub && <span className="tool-sub"> · {subTools} TOOLS</span>}
+              {/* 이 호출에 걸린 훅: 줄을 따로 두지 않고 표시만. 오류 난 훅만 신호색 */}
+              {!!hooks?.length && (
+                <span className={`tool-hook ${hookErrors ? 'error' : ''}`} title={hooks.map((h) => `${h.name} · ${hookState(h).text}`).join('\n')}>
+                  {' · '}
+                  {hookErrors ? `HOOK ERROR ${hookErrors}` : `HOOK ${hooks.length}`}
+                </span>
+              )}
             </span>
             <span className={`tool-st ${isRunningTool(item) ? 'run' : ''}`} data-state={state}>{status}</span>
           </summary>
@@ -1707,6 +1754,26 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
             {!!item.images && onToolImages && <ToolImages key={item.toolUseId} count={item.images} load={() => onToolImages(item.toolUseId)} />}
             {/* 그림만 든 결과는 OUTPUT에 '[image]'만 남으므로 그리지 않는다 */}
             {item.result !== undefined && !(item.images && onToolImages && /^(\[image\]\s*)+$/.test(item.result)) && <ToolOutput toolUseId={item.toolUseId} text={item.result} truncated={item.truncated} onExpand={onExpand} />}
+            {!!hooks?.length && (
+              <>
+                <h5>HOOKS · {hooks.length}</h5>
+                <div className="tool-hooks">
+                  {hooks.map((h) => {
+                    const st = hookState(h)
+                    return (
+                      <div key={h.hookId} className={`tool-hooks-row ${h.outcome === 'error' ? 'error' : ''}`}>
+                        <div className="tool-hooks-head">
+                          <span className="hook-ev">{h.event}</span>
+                          <span className="hook-name" title={h.name}>{h.name}</span>
+                          <span className={`tool-st ${h.running ? 'run' : ''}`} data-state={st.state}>{st.text}</span>
+                        </div>
+                        {h.output && <pre>{h.output}</pre>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
             </>
             )}
           </div>
@@ -1790,22 +1857,108 @@ function Thinking({ text, streaming, enter, idx }: { text: string; streaming: bo
   )
 }
 
-/** 도구 호출 묶음: CLI가 만든 한 줄 요약 아래로 접는다. 도는 중이거나 오류가 있으면 펼쳐 둔다 */
-function ToolGroup({ summary, tools, enter, children }: { summary: string; tools: ToolItem[]; enter: boolean; children: React.ReactNode }): React.JSX.Element {
-  const running = tools.some(isRunningTool)
-  const errors = tools.filter((t) => t.isError).length
-  const [open, setOpen] = useState(running || errors > 0)
+/** 도는 중인 묶음에서 끝에서부터 이만큼만 보인다 (앞은 +n으로 접는다). styles.css .tgroup.trim의 nth-last-child(n+4)와 같이 바꿀 것 */
+const ACTIVITY_TAIL = 3
+
+/** 도는 묶음에서 앞에 있어도 숨기지 않는 줄: 도는 도구·훅·생각, 오류. styles.css .tgroup.trim 규칙과 같은 기준 */
+function rowKeep(r: ActivityRow): boolean {
+  const it = r.item
+  if (it.type === 'tool') return !!it.isError || !!r.hooks?.some((h) => h.outcome === 'error') || isRunningTool(it)
+  if (it.type === 'hook') return it.running || it.outcome === 'error'
+  if (it.type === 'thinking') return it.streaming
+  return false
+}
+
+/** 줄이 아직 도는 중인지 (도구·훅·생각) */
+function rowRunning(r: ActivityRow): boolean {
+  const it = r.item
+  if (it.type === 'tool') return isRunningTool(it) || !!r.hooks?.some((h) => h.running)
+  if (it.type === 'hook') return it.running
+  if (it.type === 'thinking') return it.streaming
+  return false
+}
+/** 줄의 오류 수 (도구 오류 + 오류 난 훅) */
+function rowErrors(r: ActivityRow): number {
+  const it = r.item
+  const hooks = r.hooks?.filter((h) => h.outcome === 'error').length ?? 0
+  if (it.type === 'tool') return (it.isError ? 1 : 0) + hooks
+  if (it.type === 'hook') return it.outcome === 'error' ? 1 : 0
+  return 0
+}
+
+/**
+ * 활동 묶음: 답변 글과 글 사이의 도구·훅·생각·기억을 한 줄로 접는다 (foldActivity).
+ * - 도는 묶음(live: 기록의 마지막이고 작업 중)은 펼쳐 두고 끝의 몇 줄만 보인다. 앞은 +n EARLIER로
+ * - 다음 글이 오거나 작업이 끝나면 접힌다. 오류가 있으면 펼친 채로
+ * - 직접 펼치거나 접으면 그대로 둔다. expandAll(키맵 expandActivity)이면 모두 펼치고 다 보인다
+ * 앞 줄은 빼지 않고 CSS로만 숨긴다(.trim): 검색·도구 목록에서 그 줄로 갈 때 찾을 수 있게 (data-reveal을 달고 펼친다)
+ */
+function ToolGroup({ rows, summaries, live, expandAll, enter, children }: { rows: ActivityRow[]; summaries: string[]; live: boolean; expandAll: boolean; enter: boolean; children: React.ReactNode }): React.JSX.Element {
+  const running = rows.some(rowRunning)
+  const errors = rows.reduce((n, r) => n + rowErrors(r), 0)
+  const stopped = !running && rows.some((r) => r.item.type === 'tool' && r.item.stopped)
+  const tools = rows.filter((r) => r.item.type === 'tool').length
+  const auto = live || errors > 0
+  const [open, setOpen] = useState(expandAll || auto)
+  const [showAll, setShowAll] = useState(false)
+  // 사람이 직접 펼치거나 접었으면 자동으로 바꾸지 않는다
+  const touched = useRef(false)
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) return
+    touched.current = false
+    setOpen(expandAll || auto)
+    setShowAll(false)
+  }, [expandAll]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (first.current) return
+    if (!touched.current && !expandAll) setOpen(auto)
+  }, [auto]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    first.current = false
+  }, [])
+  // 도는 동안 끝의 몇 줄만: 도는 줄·오류 줄은 앞에 있어도 보인다
+  const trim = live && !expandAll && !showAll
+  const hidden = trim ? rows.filter((r, i) => i < rows.length - ACTIVITY_TAIL && !rowKeep(r)).length : 0
+  const summary = summaries.at(-1)
+  const label = summary ?? activityLabel(rows)
+  const st = running ? { text: 'RUNNING', state: 'run' } : errors ? { text: `ERROR ${errors}`, state: 'error' } : stopped ? { text: 'STOPPED', state: 'stopped' } : { text: 'DONE', state: 'done' }
   return (
-    <details className={`tgroup ${errors ? 'error' : ''}${enter ? ' enter' : ''}`} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+    <details
+      className={`tgroup ${errors ? 'error' : ''}${hidden ? ' trim' : ''}${enter ? ' enter' : ''}`}
+      open={open}
+      onToggle={(e) => {
+        // React가 open을 바꿔 생긴 toggle은 상태와 같다. 다르면 사람이 누른 것(또는 찾아가기)
+        if (e.currentTarget.open !== open) {
+          touched.current = true
+          setOpen(e.currentTarget.open)
+        }
+      }}
+    >
       <summary>
-        <span className="tgroup-n"><Roll text={String(tools.length)} className="num" /></span>
-        <span className="tgroup-k">TOOLS</span>
-        <span className="tgroup-s" title={summary}>{summary}</span>
-        <span className={`tool-st ${running ? 'run' : ''}`} data-state={running ? 'run' : errors ? 'error' : 'done'}>{running ? 'RUNNING' : errors ? `ERROR ${errors}` : 'DONE'}</span>
+        <span className="tgroup-n"><Roll text={String(tools || rows.length)} className="num" /></span>
+        <span className="tgroup-k">{tools ? 'TOOLS' : 'STEPS'}</span>
+        <span className="tgroup-s" title={summaries.length ? summaries.join('\n') : label}>{label}</span>
+        <span className={`tool-st ${running ? 'run' : ''}`} data-state={st.state}>{st.text}</span>
       </summary>
-      <div className="tgroup-body">{children}</div>
+      <div className="tgroup-body">
+        {hidden > 0 && (
+          <button type="button" className="tgroup-more" onClick={() => setShowAll(true)} title="이 묶음의 앞 단계도 모두 보여요">
+            +{hidden} EARLIER
+          </button>
+        )}
+        {children}
+      </div>
     </details>
   )
+}
+
+/** 활동 묶음 안에 숨은 줄로 찾아갈 때: 묶음을 펼치고 앞 줄 숨김을 푼다 */
+function revealInGroup(el: Element): void {
+  const group = el.parentElement?.closest<HTMLDetailsElement>('details.tgroup')
+  if (!group) return
+  group.dataset.reveal = '1'
+  group.open = true
 }
 
 /** 이번 턴에 들어간 기억 (memory_recall). 접힌 채로 파일 이름만, 펼치면 경로·내용 */

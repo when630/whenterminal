@@ -155,7 +155,7 @@
   - 도구에 딸린 훅(`TOOL_HOOKS`: PreToolUse·PostToolUse·PermissionRequest …)은 앞 도구 줄 안으로(`ActivityRow.hooks` → `Item` `hooks`, 줄에는 ` · HOOK n`, 오류면 신호색 `HOOK ERROR n`, 펼치면 HOOKS 출력). 나머지 훅(SessionStart·Stop …)은 따로 한 줄. 훅 배열은 `hookCache`로 같은 내용이면 앞 배열을 줘 memo를 지킨다
   - 도는 묶음(`live`: 기록의 마지막 묶음이고 `busy`)은 펼쳐 두고 끝 3줄(`ACTIVITY_TAIL`)만, 앞은 `+n EARLIER`. 도는 줄·오류 줄은 앞에 있어도 보인다(`rowKeep`, CSS `.tgroup.trim`의 nth-last-child와 같은 기준). 앞 줄은 빼지 않고 CSS로만 숨겨 검색·도구 목록 점프가 찾고 `revealInGroup`(data-reveal)으로 푼다
   - 다음 글이 오거나 작업이 끝나면 접힌다. 오류가 있으면 펼친 채로. 사람이 직접 펼치거나 접으면 그대로 둔다(`touched`). 접힌 묶음은 낮고 흐리게. 키맵 `expandActivity`(기본 `Ctrl+Shift+D`)는 모두 펼치기 ↔ 평소대로
-  - 상태는 평평하게 두므로 검색 점프는 순번이 아니라 `data-idx`. 묶음의 키는 첫 줄의 자리라 묶음이 자라도 그대로다(줄 하나에서 둘로 넘어갈 때만 다시 그린다)
+  - 상태는 평평하게 두므로 검색 점프는 순번이 아니라 `data-idx`. 묶음의 키는 첫 줄의 자리라 묶음이 자라도 그대로다(줄 하나에서 둘로 넘어갈 때만 다시 그린다. 그때 펼쳐 둔 도구·훅·생각·기억 줄은 `useOpened(key)`(opened.ts)가 기억해 둔 펼침 상태로 되살린다)
 - 목표(`/goal 조건`, CLI 명령): `command` IPC → 세션 `command()`가 작업으로 치지 않고 보낸다(`quietCommand`). 모델 턴이 열리면(`message_start`·답) `promoteCommand`로 작업으로 올린다. 상태는 SDK 메시지 유니온 밖의 `active_goal` → `goal` 이벤트 → 상단 `GOAL · n` 배지·홈 카드, 못 미침·달성은 구분선
 - 태그(`/tag 이름`, `/tag clear`): `Conversation.tag` + SDK `tagSession`. 홈 TAGS 줄로 거른다(App이 거른 목록으로 키 이동, 배지·전광판은 전체)
 - 작업 공간(OPEN-002, `main/worktree.ts`): 탭 +로 만든 대화만 git worktree(`wt/<id>`). 위치는 설정 `worktreeDir`(기본 `.claude/worktrees`, Claude Code와 같은 관례): 상대 경로면 프로젝트 폴더 기준 `<폴더>/<id>`, 절대 경로면 `<폴더>/<프로젝트>-<id>`. 저장소 안이면 `.git/info/exclude`에 적어 git이 새 파일로 보지 않게 한다(`ignoreInRepo`, .gitignore는 안 건드림). 이미 만든 것은 저장된 절대 경로(`Conversation.worktree.path`) 그대로. 세션·기록·peek의 폴더는 `cwdOf()`. 닫을 때 깨끗하면 정리

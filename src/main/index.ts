@@ -8,7 +8,7 @@ import { limitAllowed, worstLimit } from '@shared/usage'
 import { newConversationId, ProjectStore } from './store'
 import { memoryFiles, permissionsInfo, setPermissionRule } from './agent/config'
 import { exportMarkdown } from './agent/history'
-import { loginCommand } from './executable'
+import { loginCommand, watchClaudeExecutable } from './executable'
 import { AccountStore } from './accounts'
 import { branchOf, createWorktree, discardWorktree, isGitRepo, mergeWorktree, worktreeChanges } from './worktree'
 import { listChildren, searchFiles } from './files'
@@ -598,6 +598,9 @@ function bootstrap(): void {
     send(IPC.accountsChanged, accounts.accounts())
   })
   accounts.start()
+  // claude 업데이트: 떠 있는 CLI는 옛 버전이므로 쉬는 것부터 새로 띄운다
+  const stopCliWatch = watchClaudeExecutable(() => manager.reloadCli())
+  app.on('before-quit', stopCliWatch)
   ipcMain.handle(IPC.accounts, () => accounts.accounts())
   ipcMain.handle(IPC.switchAccount, (_e, id: string) => {
     // 파일을 바꾸기 전에 쉬는 CLI부터 내린다 (옛 토큰을 갱신해 다시 써 넣지 않게)

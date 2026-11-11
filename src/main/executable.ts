@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, unwatchFile, watchFile, type Stats } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, sep } from 'node:path'
@@ -39,6 +39,38 @@ function globalBinary(): string | undefined {
     return out.split(/\r?\n/).map((l) => l.trim()).find(Boolean)
   } catch {
     return undefined
+  }
+}
+
+const WATCH_MS = 5000
+const SETTLE_MS = 3000
+
+/**
+ * 전역 claude가 바뀌면(업데이트·새로 설치) onChange. 떠 있는 CLI는 띄울 때의 바이너리로 계속 돌기 때문에
+ * 새 버전은 다시 띄운 프로세스부터 쓴다. 바뀐 뒤 SETTLE_MS 잠잠하면 한 번 알린다 (설치 관리자가 옮기고 쓰는 동안 여러 번 바뀐다)
+ */
+export function watchClaudeExecutable(onChange: () => void): () => void {
+  const isWin = process.platform === 'win32'
+  const name = isWin ? 'claude.exe' : 'claude'
+  const home = homedir()
+  // 지금 쓰는 것 + 설치 관리자 자리 (처음엔 없다가 나중에 설치해도 알아채게)
+  const paths = [...new Set([claudeExecutable(), join(home, '.local', 'bin', name), join(home, '.claude', 'local', name)].filter((p): p is string => !!p))]
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const listener = (cur: Stats, prev: Stats): void => {
+    if (cur.mtimeMs === prev.mtimeMs && cur.size === prev.size && cur.ino === prev.ino) return
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      // 경로를 다시 찾는다 (새로 설치했으면 번들 대신 전역으로)
+      cached = null
+      console.log('Claude Code 실행 파일이 바뀜, 떠 있는 CLI를 새로 띄움')
+      claudeExecutable()
+      onChange()
+    }, SETTLE_MS)
+  }
+  for (const p of paths) watchFile(p, { interval: WATCH_MS, persistent: false }, listener)
+  return () => {
+    clearTimeout(timer)
+    for (const p of paths) unwatchFile(p, listener)
   }
 }
 

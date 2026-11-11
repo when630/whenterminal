@@ -18,7 +18,7 @@ export const BUDGET_BY_LEVEL: Partial<Record<LimitLevel, number>> = { 80: 150_00
 
 /** 한도가 풀린 직후 바로 보내면 아직 거절될 수 있어 조금 기다린다 */
 const HOLD_MARGIN_MS = 5_000
-import { commandsFor, remember, withProbe } from './commands'
+import { clearCommandCache, commandsFor, remember, withProbe } from './commands'
 import { SpareKeeper } from './spare'
 import { fullToolResult, readHistory, toolImages } from './history'
 import { readTaskOutput } from './task-output'
@@ -228,7 +228,7 @@ export class AgentManager {
     return busy >= limit
   }
 
-  /** 로그인 계정이 바뀐 뒤 아직 옛 계정으로 떠 있는 세션 (쉬게 되면 다시 띄운다) */
+  /** 로그인 계정·CLI 버전이 바뀐 뒤 아직 옛 것으로 떠 있는 세션 (쉬게 되면 다시 띄운다) */
   private staleAuth = new Set<string>()
 
   /**
@@ -236,8 +236,21 @@ export class AgentManager {
    * 미리 띄운 것은 버리고, 쉬는 세션은 바로·도는 세션은 끝나면 프로세스를 끝내 다음 메시지가 새 계정으로 이어 열게 한다
    */
   reloadAuth(): void {
-    this.spare.dispose()
     this.account = null
+    this.restartCli()
+  }
+
+  /**
+   * 전역 claude가 업데이트됐다. 떠 있는 CLI는 띄울 때의 옛 버전으로 계속 돌고(쉬는 세션은 끝없이),
+   * Windows에서는 그 프로세스들이 실행 파일을 잡고 있다. 계정이 바뀔 때와 같이 쉬는 것부터 내려 다음 메시지가 새 버전으로 이어 열게 한다
+   */
+  reloadCli(): void {
+    clearCommandCache()
+    this.restartCli()
+  }
+
+  private restartCli(): void {
+    this.spare.dispose()
     this.models = null
     for (const id of this.sessions.keys()) this.staleAuth.add(id)
     this.recycleStale()

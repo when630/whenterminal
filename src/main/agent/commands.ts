@@ -21,6 +21,11 @@ export function remember(cwd: string, list: SlashCommand[]): SlashCommandInfo[] 
   return info
 }
 
+/** CLI 버전이 바뀌면 명령 목록도 바뀔 수 있다 */
+export function clearCommandCache(): void {
+  cache.clear()
+}
+
 /**
  * 살아 있는 세션이 없을 때: 메시지를 보내지 않은 채 CLI만 띄워 초기화 응답에서 명령 목록을 받고 바로 닫는다.
  * 모델을 부르지 않으므로 구독 사용량은 쓰지 않는다.

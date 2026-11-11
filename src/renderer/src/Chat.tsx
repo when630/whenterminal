@@ -1637,7 +1637,8 @@ function hookState(h: HookItem): { text: string; state: string } {
 /** 대화 기록 한 줄. memo: 다른 대화·다른 줄의 이벤트로 기록 전체를 다시 그리지 않는다 */
 export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand, onImage, onToolImages, hooks }: ItemProps): React.JSX.Element {
   const e = enter ? ' enter' : ''
-  const [opened, onToggle] = useOpened()
+  // 펼쳐 둔 도구·훅 줄은 다시 그려져도(활동 묶음이 줄 하나에서 묶음으로 바뀔 때) 펼친 채로
+  const [opened, onToggle, initialOpen] = useOpened(item.type === 'tool' ? `tool:${item.toolUseId}` : item.type === 'hook' ? `hook:${item.hookId}` : undefined)
   // 차례를 기다리던 글이 보내지면 EDIT/CANCEL은 잠시 남아 나간다
   const acts = usePresence(item.type === 'user' && item.pending && item.queuedId ? item.queuedId : null)
   switch (item.type) {
@@ -1672,7 +1673,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
         </div>
       )
     case 'thinking':
-      return <Thinking text={item.text} streaming={item.streaming} enter={enter} idx={di} />
+      return <Thinking text={item.text} streaming={item.streaming} enter={enter} idx={di} openKey={`thinking:${item.at}:${di}`} />
     case 'notice':
       return item.mono ? (
         <pre className={`msg notice output ${item.tone}${e}`} data-idx={di}>{item.text}</pre>
@@ -1685,11 +1686,11 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
       // 묶을 도구가 화면에 없을 때만 따로 그린다 (질문 창 등): 한 줄로
       return <div className={`tsum${e}`} data-idx={di}><span className="tsum-k">TOOLS</span>{item.summary}</div>
     case 'memory':
-      return <MemoryItem recall={item.recall} enter={enter} idx={di} />
+      return <MemoryItem recall={item.recall} enter={enter} idx={di} openKey={`memory:${item.at}:${di}`} />
     case 'hook': {
       const st = hookState(item)
       return (
-        <details className={`hook ${item.outcome === 'error' ? 'error' : ''}${e}`} data-idx={di}>
+        <details className={`hook ${item.outcome === 'error' ? 'error' : ''}${e}`} data-idx={di} open={initialOpen} onToggle={onToggle}>
           <summary>
             <span className="hook-k">HOOK</span>
             <span className="hook-ev">{item.event}</span>
@@ -1709,7 +1710,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
       const subTools = progress?.[item.toolUseId]?.tools ?? sub?.filter((i) => i.type === 'tool').length ?? 0
       const hookErrors = hooks?.filter((h) => h.outcome === 'error').length ?? 0
       return (
-        <details className={`tool ${item.isError ? 'error' : ''}${e}`} data-tool-id={item.toolUseId} data-idx={di} onToggle={onToggle}>
+        <details className={`tool ${item.isError ? 'error' : ''}${e}`} data-tool-id={item.toolUseId} data-idx={di} open={initialOpen} onToggle={onToggle}>
           <summary>
             <span className="tool-n">{String(n).padStart(2, '0')}</span>
             <span className="tool-name">{item.name}</span>
@@ -1843,11 +1844,11 @@ function DividerFold({ head, first, body, enter, idx }: { head: string; first: s
   )
 }
 
-function Thinking({ text, streaming, enter, idx }: { text: string; streaming: boolean; enter: boolean; idx?: number }): React.JSX.Element {
+function Thinking({ text, streaming, enter, idx, openKey }: { text: string; streaming: boolean; enter: boolean; idx?: number; openKey?: string }): React.JSX.Element {
   const first = text.trim().split('\n').find(Boolean) ?? ''
-  const [opened, onToggle] = useOpened()
+  const [opened, onToggle, initialOpen] = useOpened(openKey)
   return (
-    <details className={`thinking ${streaming ? 'streaming' : ''}${enter ? ' enter' : ''}`} data-idx={idx} onToggle={onToggle}>
+    <details className={`thinking ${streaming ? 'streaming' : ''}${enter ? ' enter' : ''}`} data-idx={idx} open={initialOpen} onToggle={onToggle}>
       <summary>
         <span className="thinking-k">{streaming ? 'THINKING' : 'THOUGHT'}</span>
         <span className="thinking-first">{first}</span>
@@ -1962,11 +1963,11 @@ function revealInGroup(el: Element): void {
 }
 
 /** 이번 턴에 들어간 기억 (memory_recall). 접힌 채로 파일 이름만, 펼치면 경로·내용 */
-function MemoryItem({ recall, enter, idx }: { recall: MemoryRecall; enter: boolean; idx?: number }): React.JSX.Element {
+function MemoryItem({ recall, enter, idx, openKey }: { recall: MemoryRecall; enter: boolean; idx?: number; openKey?: string }): React.JSX.Element {
   const name = (p: string): string => (p.startsWith('<synthesis:') ? 'SYNTHESIS' : (p.split(/[\\/]/).pop() ?? p))
-  const [opened, onToggle] = useOpened()
+  const [opened, onToggle, initialOpen] = useOpened(openKey)
   return (
-    <details className={`memory${enter ? ' enter' : ''}`} data-idx={idx} onToggle={onToggle}>
+    <details className={`memory${enter ? ' enter' : ''}`} data-idx={idx} open={initialOpen} onToggle={onToggle}>
       <summary>
         <span className="memory-k">MEMORY</span>
         <span className="memory-n">{recall.memories.length}</span>

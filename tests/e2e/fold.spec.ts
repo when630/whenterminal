@@ -105,6 +105,14 @@ test('답변 글 사이의 도구·훅·생각은 한 줄 묶음으로: 도는 �
   await emit(app, { kind: 'tool_result', toolUseId: 's1', content: 'ok', isError: false })
   await expect(win.locator('.transcript > details.tool[data-tool-id="s1"]')).toBeVisible()
   await expect(win.locator('details.tgroup')).toHaveCount(2)
+  // 펼쳐 둔 줄은 둘째 도구가 와서 묶음이 되어도(다시 그려져도) 펼친 채로
+  await win.locator('[data-tool-id="s1"] > summary').click()
+  await expect(win.locator('[data-tool-id="s1"]')).toHaveAttribute('open', '')
+  await emit(app, { kind: 'tool_use', toolUseId: 's2', name: 'Read', input: { file_path: 'package.json' } })
+  await expect(win.locator('details.tgroup')).toHaveCount(3)
+  await expect(win.locator('details.tgroup [data-tool-id="s1"]')).toHaveAttribute('open', '')
+  await expect(win.locator('[data-tool-id="s1"] .tool-body')).toContainText('OUTPUT')
+  await emit(app, { kind: 'tool_result', toolUseId: 's2', content: 'ok', isError: false })
 
   // Ctrl+Shift+D: 모두 펼치기 ↔ 평소대로
   await win.keyboard.press('Control+Shift+KeyD')

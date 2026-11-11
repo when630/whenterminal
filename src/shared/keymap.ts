@@ -11,7 +11,7 @@ export type ActionId =
   | 'nextConversation' | 'prevConversation' | 'closeConversation' | 'closeProject' | 'clear' | 'compact' | 'cycleMode'
   | 'panelNext' | 'panelPrev' | 'panelBack' | 'stopTask' | 'renameConversation' | 'newConversation' | 'terminal'
   | 'terminalNew' | 'terminalNext' | 'terminalPrev' | 'terminalClose' | 'terminalFind' | 'cycleEffort' | 'rewind' | 'scrollBottom' | 'away' | 'files' | 'projectUp' | 'projectDown' | 'palette' | 'git' | 'sendAfter'
-  | 'splitToggle' | 'paneLeft' | 'paneRight'
+  | 'splitToggle' | 'paneLeft' | 'paneRight' | 'expandActivity'
 
 export type ActionScope = 'system' | 'anywhere' | 'home' | 'chat' | 'approval'
 
@@ -84,6 +84,8 @@ export const ACTIONS: ActionDef[] = [
   { id: 'renameConversation', label: 'Rename tab', scope: 'chat', default: 'Ctrl+Shift+E' },
   { id: 'rewind', label: 'Rewind files / chat', scope: 'chat', default: 'Ctrl+Alt+Z' },
   { id: 'scrollBottom', label: 'Scroll to latest', scope: 'chat', default: 'Ctrl+Shift+G' },
+  // 답변 사이에 접어 둔 도구·훅·생각 묶음을 모두 펼쳐 보기 ↔ 평소대로
+  { id: 'expandActivity', label: 'Expand / fold all tool steps', scope: 'chat', default: 'Ctrl+Shift+D' },
   { id: 'sendAfter', label: 'Send after the current task', scope: 'chat', default: 'Ctrl+Enter' },
 ]
 

@@ -500,7 +500,7 @@
 :root[data-skin='zen'] .tool:not(.error) > summary .tool-st:not(.run) { opacity: 0; transition: opacity var(--t-fast) var(--ease-out); }
 :root[data-skin='zen'] .tool:not(.error) > summary:hover .tool-st:not(.run) { opacity: 1; }
 :root[data-skin='zen'] .tool-st.run { color: var(--ink); }
-:root[data-skin='zen'] .tool.error .tool-st, :root[data-skin='zen'] .tool.error .tool-name, :root[data-skin='zen'] .tgroup.error .tool-st, :root[data-skin='zen'] .hook.error > summary .tool-st, :root[data-skin='zen'] .sub-tool.error .sub-name, :root[data-skin='zen'] .sub-tool.error .sub-st { color: var(--signal-ink); }
+:root[data-skin='zen'] .tool.error .tool-st, :root[data-skin='zen'] .tool.error .tool-name, :root[data-skin='zen'] .tgroup.error > summary .tool-st, :root[data-skin='zen'] .hook.error > summary .tool-st, :root[data-skin='zen'] .sub-tool.error .sub-name, :root[data-skin='zen'] .sub-tool.error .sub-st { color: var(--signal-ink); }
 :root[data-skin='zen'] .tool-body { padding: 6px 0 16px 64px; background: transparent; color: var(--ink); }
 :root[data-skin='zen'] .tool-body h5 { margin: 10px 0 4px; font: 400 12px/1 var(--font); letter-spacing: 0; color: var(--gray); text-transform: lowercase; }
 :root[data-skin='zen'] .tool.hit > summary { background: transparent; color: var(--ink); }
@@ -511,7 +511,7 @@
 :root[data-skin='zen'] .tool-run, :root[data-skin='zen'] .tool-copy, :root[data-skin='zen'] .tool-more, :root[data-skin='zen'] .lw-btn, :root[data-skin='zen'] .sp-bg-x { padding: 0; border: 0; background: transparent; color: var(--gray); font: 400 12px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; text-decoration: none; }
 :root[data-skin='zen'] .tool-run:hover, :root[data-skin='zen'] .tool-copy:hover, :root[data-skin='zen'] .tool-more:hover:not(:disabled), :root[data-skin='zen'] .lw-btn:hover:not(:disabled), :root[data-skin='zen'] .tool-copy.done { background: transparent; color: var(--ink); border-color: transparent; text-decoration: underline; text-underline-offset: 4px; }
 :root[data-skin='zen'] .tool-acts { gap: 20px; }
-:root[data-skin='zen'] .hook-k, :root[data-skin='zen'] .hook-ev, :root[data-skin='zen'] .tgroup-k, :root[data-skin='zen'] .tsum-k, :root[data-skin='zen'] .memory-k, :root[data-skin='zen'] .thinking-k { font: 400 13px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; }
+:root[data-skin='zen'] .hook-k, :root[data-skin='zen'] .hook-ev, :root[data-skin='zen'] .tgroup-k, :root[data-skin='zen'] .tgroup-more, :root[data-skin='zen'] .tsum-k, :root[data-skin='zen'] .memory-k, :root[data-skin='zen'] .thinking-k { font: 400 13px/1.4 var(--font); letter-spacing: 0; text-transform: lowercase; }
 :root[data-skin='zen'] .hook.error > summary { color: var(--ink); }
 :root[data-skin='zen'] .hook-out { margin-left: 64px; padding: 8px 12px; border-radius: 4px; }
 :root[data-skin='zen'] .tgroup-s { font-size: 13px; font-weight: 400; }
@@ -850,3 +850,7 @@
 /* 맨 아래로 버튼: 종이 위의 작은 회색 글자 (그림자·테두리 없이 가장자리만 흐리게) */
 :root[data-skin='zen'] .to-bottom button { padding: 8px 16px; border: 0; border-radius: 999px; background: var(--paper); color: var(--gray); font: 400 12.5px/1 var(--font); letter-spacing: 0; text-transform: lowercase; box-shadow: 0 0 0 1px var(--line), 0 0 24px 12px var(--paper); }
 :root[data-skin='zen'] .to-bottom button:hover { background: var(--paper); color: var(--ink); }
+
+/* 활동 묶음의 +n EARLIER 줄: 이 스킨의 묶음 머리줄과 같은 들여쓰기 */
+:root[data-skin='zen'] .tgroup-more { padding-left: 0; padding-right: 0; }
+:root[data-skin='zen'] .tool-hook { text-transform: lowercase; }

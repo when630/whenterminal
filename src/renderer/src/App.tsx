@@ -721,6 +721,7 @@ export function App(): React.JSX.Element {
     if (is('cycleEffort')) return take(() => chatPanelRef.current?.cycleEffort())
     if (is('rewind')) return take(() => chatPanelRef.current?.rewind())
     if (is('scrollBottom')) return take(() => chatPanelRef.current?.scrollBottom())
+    if (is('expandActivity')) return take(() => chatPanelRef.current?.expandActivity())
     if (is('files')) return take(() => chatPanelRef.current?.files())
     if (is('git')) return take(() => chatPanelRef.current?.git())
     if (is('splitToggle')) return take(toggleSplit)

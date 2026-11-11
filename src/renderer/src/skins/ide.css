@@ -577,3 +577,6 @@
 :root[data-skin='ide'] .quick-meta .meta-k { display: inline; font: 400 11px/1 var(--font); color: var(--gray); }
 :root[data-skin='ide'] .quick-meta > .btn { margin-left: 2px; }
 :root[data-skin='ide'] .quick-ctx.hot .meta-v { color: var(--signal-ink); }
+
+/* 활동 묶음의 +n EARLIER 줄: 이 스킨의 묶음 머리줄과 같은 들여쓰기 */
+:root[data-skin='ide'] .tgroup-more { padding-left: 10px; padding-right: 10px; }

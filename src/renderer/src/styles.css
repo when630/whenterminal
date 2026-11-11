@@ -1405,9 +1405,31 @@ button.pn-row:hover:not(:disabled) .pn-sub, button.pn-row:hover:not(:disabled) .
 .tgroup-n { font: var(--disp-w) 20px/1 var(--disp); letter-spacing: -0.03em; }
 .tgroup-k { font: 600 10.5px/1 var(--disp); letter-spacing: 0.14em; }
 .tgroup-s { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tgroup.error .tool-st { color: var(--signal); }
+.tgroup.error > summary .tool-st { color: var(--signal); }
 .tgroup-body { padding-left: 24px; box-shadow: inset 4px 0 0 var(--wash-2); }
 .tgroup-body > .tool:first-child { border-top: var(--rule); }
+/* 답변 글 사이의 활동 묶음(foldActivity): 접힌 묶음은 낮고 흐리게 (글이 먼저 읽히게). 오류 묶음은 그대로 */
+.tgroup:not([open]):not(.error) > summary { color: var(--gray); }
+.tgroup:not([open]):not(.error) > summary:hover { color: var(--sel-fg); }
+.tgroup:not([open]) > summary { padding-top: 6px; padding-bottom: 6px; }
+.tgroup:not([open]) .tgroup-n { font-size: 15px; }
+.tgroup:not([open]) .tgroup-s { font-weight: 500; }
+/* 도는 묶음은 끝의 3줄만 (Chat ACTIVITY_TAIL·rowKeep과 같은 기준: 도는 줄·오류 줄은 앞에 있어도 보인다). 찾아가기는 data-reveal로 푼다 */
+.tgroup.trim:not([data-reveal]) > .tgroup-body > :nth-last-child(n+4):not(.tgroup-more):not(.error):not(.streaming):not(:has(> summary > .tool-st.run)):not(:has(> summary .tool-hook.error)) { display: none; }
+.tgroup[data-reveal] .tgroup-more { display: none; }
+.tgroup-more { display: block; width: 100%; padding: 6px 28px; border: 0; border-top: var(--rule); background: transparent; color: var(--gray); font: 600 10.5px/1 var(--disp); letter-spacing: 0.14em; text-align: left; cursor: pointer; transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
+.tgroup-more:hover { background: var(--sel-bg); color: var(--sel-fg); }
+/* 도구 줄 안의 훅 표시 (훅은 따로 줄을 두지 않는다). 오류 난 훅만 신호색 */
+.tool-hook { opacity: 0.6; }
+.tool-hook.error { opacity: 1; color: var(--signal); }
+.tool-hooks { display: grid; gap: 6px; }
+.tool-hooks-head { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.tool-hooks-head .hook-name { flex: 1; min-width: 0; }
+.tool-hooks-head .tool-st { font-size: 11.5px; }
+.tool-hooks-row.error .tool-st { color: var(--signal); }
+.tool-hooks-row pre { margin: 4px 0 0; max-height: 200px; overflow: auto; }
+/* poster 밖의 스킨은 글자 신호색을 --signal-ink로 */
+:root[data-skin] .tool-hook.error, :root[data-skin] .tool-hooks-row.error .tool-st { color: var(--signal-ink); }
 .tsum { display: flex; gap: 12px; align-items: baseline; padding: 8px 28px; border-top: var(--rule); font-size: 13px; font-weight: 700; }
 .tsum-k { font: 600 10.5px/1 var(--disp); letter-spacing: 0.14em; }
 

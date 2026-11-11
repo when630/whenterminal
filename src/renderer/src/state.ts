@@ -16,7 +16,7 @@ export type TranscriptItem =
   | { type: 'divider'; text: string; at: number }
   /** 설정의 훅이 도는 것 (살아 있는 세션에서만. 기록 파일에는 남지 않는다) */
   | HookItem
-  /** 도구 호출 묶음의 한 줄 요약. 화면에서는 ids의 도구 항목을 이 줄 아래로 접는다 (foldSummaries) */
+  /** 도구 호출 묶음의 한 줄 요약. 화면에서는 줄로 그리지 않고 그 활동 묶음의 이름으로 쓴다 (foldActivity) */
   | { type: 'summary'; summary: string; ids: string[]; at: number }
   /** 이번 턴에 들어간 기억 (접힌 채로) */
   | { type: 'memory'; recall: MemoryRecall; at: number }
@@ -427,44 +427,80 @@ const hhmm = (ms: number): string => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/** 화면에 그릴 단위: 항목 하나, 또는 요약 한 줄 아래로 접은 도구 묶음. idx는 items에서의 자리 (키·등장 애니메이션용) */
-export type RenderNode =
-  | { kind: 'item'; item: TranscriptItem; idx: number }
-  | { kind: 'group'; summary: Extract<TranscriptItem, { type: 'summary' }>; idx: number; tools: { item: ToolItem; idx: number }[] }
+/** 활동 묶음의 한 줄. 도구 줄은 그 도구에 걸린 훅을 줄 안에 품는다 (hooks) */
+export interface ActivityRow {
+  item: TranscriptItem
+  idx: number
+  hooks?: HookItem[]
+}
 
 /**
- * 도구 호출 묶음 요약(summary)이 가리키는 도구 항목을 그 요약 아래로 접는다. 상태는 평평하게 두고 그릴 때만 묶는다
- * (runningAgents·artifactsOf 같은 계산이 그대로 돌게). 요약이 끝내 안 오면 그대로 그린다
+ * 화면에 그릴 단위: 항목 하나, 또는 글과 글 사이의 활동(도구·훅·생각·기억)을 접은 묶음.
+ * idx는 items에서의 자리 (키·등장 애니메이션용). 묶음의 idx는 첫 줄의 자리라 묶음이 자라도 키가 그대로다
  */
-export function foldSummaries(items: TranscriptItem[]): RenderNode[] {
-  const claimed = new Map<string, number>()
-  items.forEach((it, i) => {
-    if (it.type === 'summary') for (const id of it.ids) claimed.set(id, i)
-  })
-  if (claimed.size === 0) return items.map((item, idx) => ({ kind: 'item', item, idx }))
+export type RenderNode =
+  | ({ kind: 'item' } & ActivityRow)
+  | { kind: 'group'; idx: number; rows: ActivityRow[]; summaries: string[] }
+
+/** 글 사이에 이어지는 활동. 이 밖의 항목(내 메시지·답변·안내·구분선)이 오면 묶음이 끊긴다 */
+const ACTIVITY = new Set<TranscriptItem['type']>(['tool', 'hook', 'thinking', 'summary', 'memory'])
+/** 도구 호출 하나에 딸린 훅 (앞 도구 줄 안으로 넣는다). 나머지(SessionStart·UserPromptSubmit·Stop …)는 따로 한 줄 */
+const TOOL_HOOKS = new Set(['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest', 'PermissionDenied'])
+
+/**
+ * 답변 글과 글 사이에 연달아 나온 활동을 묶음 하나로 접는다. 상태는 평평하게 두고 그릴 때만 묶는다
+ * (runningAgents·artifactsOf 같은 계산이 그대로 돌게). 도구에 딸린 훅은 앞 도구 줄 안으로, CLI의 요약(summary)은
+ * 줄로 그리지 않고 묶음 이름으로 쓴다. 남는 줄이 하나뿐이면 묶지 않고 그 줄을 그대로 그린다
+ */
+export function foldActivity(items: TranscriptItem[]): RenderNode[] {
   const out: RenderNode[] = []
-  const buffered = new Map<number, { item: ToolItem; idx: number }[]>()
+  let run: { rows: ActivityRow[]; summaries: string[]; first: number; summaryIdx: number } | null = null
+  const flush = (): void => {
+    if (!run) return
+    if (run.rows.length >= 2) out.push({ kind: 'group', idx: run.first, rows: run.rows, summaries: run.summaries })
+    else if (run.rows.length === 1) out.push({ kind: 'item', ...run.rows[0] })
+    // 묶을 줄 없이 요약만 왔으면 (질문 창 등) 요약 한 줄
+    else out.push({ kind: 'item', item: items[run.summaryIdx], idx: run.summaryIdx })
+    run = null
+  }
   items.forEach((item, idx) => {
-    if (item.type === 'tool') {
-      const at = claimed.get(item.toolUseId)
-      if (at !== undefined && at > idx) {
-        const list = buffered.get(at) ?? []
-        list.push({ item, idx })
-        buffered.set(at, list)
+    if (!ACTIVITY.has(item.type)) {
+      flush()
+      out.push({ kind: 'item', item, idx })
+      return
+    }
+    run ??= { rows: [], summaries: [], first: idx, summaryIdx: idx }
+    if (item.type === 'summary') {
+      run.summaries.push(item.summary)
+      run.summaryIdx = idx
+      return
+    }
+    if (item.type === 'hook' && TOOL_HOOKS.has(item.event)) {
+      const owner = run.rows.findLast((r) => r.item.type === 'tool')
+      if (owner) {
+        owner.hooks = [...(owner.hooks ?? []), item]
         return
       }
     }
-    if (item.type === 'summary') {
-      const tools = buffered.get(idx) ?? []
-      buffered.delete(idx)
-      if (tools.length) out.push({ kind: 'group', summary: item, idx, tools })
-      return
-    }
-    out.push({ kind: 'item', item, idx })
+    run.rows.push({ item, idx })
   })
-  // 요약이 없는 채 남은 것 (없어야 하지만) 뒤에 그대로
-  for (const list of buffered.values()) for (const t of list) out.push({ kind: 'item', item: t.item, idx: t.idx })
+  flush()
   return out
+}
+
+/** 묶음의 이름 (CLI 요약이 아직 없을 때): 도구 이름별 개수, 도구가 없으면 항목 종류별 */
+export function activityLabel(rows: ActivityRow[]): string {
+  const count = new Map<string, number>()
+  const add = (k: string): void => void count.set(k, (count.get(k) ?? 0) + 1)
+  const tools = rows.filter((r) => r.item.type === 'tool')
+  if (tools.length) {
+    // MCP 도구(mcp__서버__이름)는 이름만
+    for (const r of tools) add((r.item as ToolItem).name.split('__').pop()!.toUpperCase())
+  } else {
+    for (const r of rows) add(r.item.type === 'thinking' ? 'THOUGHT' : r.item.type.toUpperCase())
+  }
+  const parts = [...count].map(([k, n]) => `${k} ${n}`)
+  return parts.length > 4 ? `${parts.slice(0, 4).join(' · ')} · …` : parts.join(' · ')
 }
 
 /** 세션 기록 파일에서 되살린 항목을 화면 항목으로 (등장 애니메이션 없이 그리도록 at은 0) */

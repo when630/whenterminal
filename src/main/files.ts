@@ -57,7 +57,8 @@ async function listAll(cwd: string, all = false): Promise<string[]> {
     files = []
     walk(cwd, '', files, all)
   }
-  files = files.slice(0, MAX_FILES).map((f) => f.replace(/\\/g, '/'))
+  // macOS는 한글 파일 이름을 NFD로 돌려줄 수 있어 입력한 글자(NFC)와 맞추려면 NFC로 바꾼다
+  files = files.slice(0, MAX_FILES).map((f) => f.replace(/\\/g, '/').normalize('NFC'))
   // 폴더도 @로 넣을 수 있게 (CLI처럼). 파일 경로에서 끌어내고 끝에 /를 붙여 구분한다
   const dirs = new Set<string>()
   for (const f of files) {

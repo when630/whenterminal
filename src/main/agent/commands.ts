@@ -3,6 +3,7 @@ import type { SlashCommandInfo } from '@shared/types'
 import { MessageQueue } from './message-queue'
 import { subscriptionEnv } from './session'
 import { claudeExecutable } from '../executable'
+import { whenShellPath } from '../shell-path'
 
 const TTL_MS = 5 * 60_000
 const PROBE_TIMEOUT_MS = 20_000
@@ -49,6 +50,8 @@ async function probe(cwd: string): Promise<SlashCommandInfo[]> {
  * 살아 있는 세션이 없을 때 명령 목록·사용량을 받는 데 쓴다
  */
 export async function withProbe<T>(cwd: string, fn: (q: Query) => Promise<T>, resume?: string, model?: string): Promise<T> {
+  // macOS에서 로그인 셸 PATH를 붙이기 전에 띄우면 MCP 서버·훅이 명령을 못 찾는다
+  await whenShellPath()
   const queue = new MessageQueue()
   const q = query({
     prompt: queue,

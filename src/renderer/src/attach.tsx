@@ -5,10 +5,11 @@ import { useRef, useState, type RefObject } from 'react'
 
 /** 작업 폴더 안이면 '@상대경로', 밖이면 전체 경로. 띄어쓰기가 있으면 따옴표 */
 export function refsFor(paths: string[], root: string): string {
-  const r = root.replace(/\\/g, '/').replace(/\/$/, '')
+  // macOS 경로는 한글이 NFD일 수 있어 NFC로 맞춰 비교한다
+  const r = root.replace(/\\/g, '/').replace(/\/$/, '').normalize('NFC')
   return paths
     .map((raw) => {
-      const p = raw.replace(/\\/g, '/')
+      const p = raw.replace(/\\/g, '/').normalize('NFC')
       const inside = p.toLowerCase().startsWith(r.toLowerCase() + '/')
       const shown = inside ? p.slice(r.length + 1) : raw
       const quoted = /\s/.test(shown) ? `"${shown}"` : shown

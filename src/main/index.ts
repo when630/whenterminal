@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { release } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -25,6 +26,7 @@ import { availableShells, TerminalManager } from './terminal'
 import { fetchUsage, mergeRateLimit, UsageAlerts } from './agent/usage'
 import { Updater } from './updater'
 import { DeckBridge } from './deck'
+import { whenShellPath } from './shell-path'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isMac = process.platform === 'darwin'
@@ -67,14 +69,46 @@ function registerSummon(settings: Settings): string | undefined {
   return undefined
 }
 
-/** 로그인할 때 자동 실행. 개발 실행에서는 Electron 실행 파일이 등록되므로 패키징한 앱에서만 건드린다 */
-function applyLoginItem(s: Settings): void {
-  if (!app.isPackaged) return
+// CLI를 띄우기 전에 끝나 있도록 앱 준비를 기다리지 않고 바로 시작한다 (macOS만, 다른 OS는 바로 끝남)
+const shellPath = whenShellPath()
+
+/**
+ * 로그인할 때 자동 실행. 개발 실행에서는 Electron 실행 파일이 등록되므로 패키징한 앱에서만 건드린다.
+ * macOS가 사용자 허락을 기다리면 그 안내를 돌려준다
+ */
+function applyLoginItem(s: Settings): string | undefined {
+  if (!app.isPackaged) return undefined
   app.setLoginItemSettings({ openAtLogin: s.openAtLogin, args: ['--hidden'] })
+  if (isMac && s.openAtLogin && app.getLoginItemSettings().status === 'requires-approval') {
+    return '시스템 설정 > 일반 > 로그인 항목에서 WHENTERMINAL을 허용해 주세요'
+  }
+  return undefined
+}
+
+/**
+ * macOS 13+의 로그인 항목(SMAppService)은 args를 넘기지 않고 wasOpenedAtLogin도 믿을 수 없다.
+ * 그래서 이 사용자의 loginwindow가 뜬 지 2분 안에 앱이 켜졌으면 로그인 자동 실행으로 본다
+ */
+function launchedAtMacLogin(): boolean {
+  if (app.getLoginItemSettings().wasOpenedAtLogin) return true
+  if (!settingsStore.get().openAtLogin) return false
+  try {
+    // -x만 쓰면 loginwindow가 빠지므로 전체에서 내 uid로 거른다
+    const out = execFileSync('/bin/ps', ['-axo', 'uid=,etime=,comm='], { encoding: 'utf8', timeout: 2000 })
+    const uid = String(process.getuid?.())
+    const line = out.split('\n').map((l) => l.trim()).find((l) => l.startsWith(`${uid} `) && l.endsWith('/loginwindow'))
+    const m = line?.slice(uid.length).trim().match(/^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)\s/)
+    if (!m) return false
+    const [d, h, min, sec] = m.slice(1).map((v) => Number(v ?? 0))
+    const loginAge = ((d * 24 + h) * 60 + min) * 60 + sec
+    return loginAge - process.uptime() < 120
+  } catch {
+    return false
+  }
 }
 
 /** 로그인 자동 실행으로 켜졌으면 창 없이 트레이에만 */
-const startHidden = (): boolean => process.argv.includes('--hidden') || (isMac && app.getLoginItemSettings().wasOpenedAtLogin === true)
+const startHidden = (): boolean => process.argv.includes('--hidden') || (isMac && app.isPackaged && launchedAtMacLogin())
 
 /** 앱 아이콘 파일: 개발 실행은 저장소의 resources/icons, 패키징한 앱은 Resources/icons (extraResources) */
 function iconFile(id: Settings['appIcon']): string {
@@ -143,7 +177,7 @@ function bootstrap(): void {
       if (error) saved = settingsStore.set({ ...saved, keymap: { ...saved.keymap, summon: before.keymap.summon } })
     }
     applyBackdrop(saved)
-    if (saved.openAtLogin !== before.openAtLogin) applyLoginItem(saved)
+    if (saved.openAtLogin !== before.openAtLogin) error ??= applyLoginItem(saved)
     if (saved.hideTaskbar !== before.hideTaskbar && !isMac) win?.setSkipTaskbar(saved.hideTaskbar)
     if (saved.appIcon !== before.appIcon) applyAppIcon(saved)
     // AWAY를 켰으면 기다리던 확인 요청부터 거절해 작업이 이어지게
@@ -335,7 +369,8 @@ function bootstrap(): void {
   ipcMain.handle(IPC.saveTask, (_e, projectId: string, conversationId: string, task: StoredTask) => {
     if (store.saveTask(projectId, conversationId, task)) projectsChanged()
   })
-  ipcMain.handle(IPC.startTask, (_e, projectId: string, text: string, continueId?: string) => {
+  ipcMain.handle(IPC.startTask, async (_e, projectId: string, text: string, continueId?: string) => {
+    await shellPath
     const existing = continueId ? store.getConversation(projectId, continueId) : undefined
     if (existing && !existing.closedAt) {
       manager.send(projectId, existing.id, text)
@@ -346,9 +381,10 @@ function bootstrap(): void {
     manager.send(projectId, conv.id, text)
     return conv.id
   })
-  ipcMain.handle(IPC.send, (_e, projectId: string, conversationId: string, text: string, after?: boolean) =>
-    manager.send(projectId, conversationId, text, undefined, after === true),
-  )
+  ipcMain.handle(IPC.send, async (_e, projectId: string, conversationId: string, text: string, after?: boolean) => {
+    await shellPath
+    manager.send(projectId, conversationId, text, undefined, after === true)
+  })
   ipcMain.handle(IPC.interrupt, (_e, projectId: string, conversationId: string) => manager.interrupt(projectId, conversationId))
   ipcMain.handle(IPC.stopTask, (_e, projectId: string, conversationId: string, taskId: string) => manager.stopTask(projectId, conversationId, taskId))
   ipcMain.handle(IPC.renameConversation, async (_e, projectId: string, conversationId: string, title: string) => {
@@ -607,15 +643,27 @@ function bootstrap(): void {
     accounts.switchTo(id, () => manager.reloadAuth())
     return accounts.accounts()
   })
-  ipcMain.handle(IPC.prewarm, () => manager.prewarm())
+  ipcMain.handle(IPC.prewarm, async () => {
+    await shellPath
+    manager.prewarm()
+  })
   ipcMain.handle(IPC.quickProject, () => store.quick())
   ipcMain.handle(IPC.setTag, async (_e, projectId: string, conversationId: string, tag: string | null) => {
     await manager.setTag(projectId, conversationId, tag)
     projectsChanged()
   })
-  ipcMain.handle(IPC.approveDenied, (_e, projectId: string, conversationId: string, calls: DeniedCall[]) => manager.approveDenied(projectId, conversationId, calls))
-  ipcMain.handle(IPC.command, (_e, projectId: string, conversationId: string, text: string) => manager.command(projectId, conversationId, text))
-  ipcMain.handle(IPC.shellOutput, (_e, projectId: string, conversationId: string, result: ShellResult) => manager.shellOutput(projectId, conversationId, result))
+  ipcMain.handle(IPC.approveDenied, async (_e, projectId: string, conversationId: string, calls: DeniedCall[]) => {
+    await shellPath
+    manager.approveDenied(projectId, conversationId, calls)
+  })
+  ipcMain.handle(IPC.command, async (_e, projectId: string, conversationId: string, text: string) => {
+    await shellPath
+    manager.command(projectId, conversationId, text)
+  })
+  ipcMain.handle(IPC.shellOutput, async (_e, projectId: string, conversationId: string, result: ShellResult) => {
+    await shellPath
+    manager.shellOutput(projectId, conversationId, result)
+  })
   ipcMain.handle(IPC.setRemote, (_e, projectId: string, conversationId: string, on: boolean) => manager.setRemote(projectId, conversationId, on))
 
   // Windows: 기본 메뉴의 Alt 니모닉(Alt+F 파일, Alt+H 도움말 …)이 Alt+홈 줄 프로젝트 이동과 겹치므로 메뉴를 없앤다.

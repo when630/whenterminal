@@ -551,8 +551,8 @@ function plain(md: string): string {
 }
 
 function relPath(file: string, root: string): string {
-  const f = file.replace(/\\/g, '/')
-  const r = root.replace(/\\/g, '/').replace(/\/$/, '')
+  const f = file.replace(/\\/g, '/').normalize('NFC')
+  const r = root.replace(/\\/g, '/').replace(/\/$/, '').normalize('NFC')
   return f.toLowerCase().startsWith(r.toLowerCase() + '/') ? f.slice(r.length + 1) : f
 }
 

@@ -122,6 +122,8 @@
   - 메뉴는 없애지 않고 앱·편집·윈도우 메뉴만 둔다. Edit 메뉴가 없으면 Cmd+C/V가 죽는다
   - 전역 호출 키 후보에서 `Control+Space`를 뺀다. macOS 입력 소스 전환 키라 등록이 성공해도 한/영 전환을 가로챈다
   - 트레이 아이콘은 템플릿 이미지(검정+투명), Dock 아이콘 클릭(`activate`)으로 창 다시 열기
+  - Finder로 켜면 PATH가 `/usr/bin:/bin:/usr/sbin:/sbin`뿐이라 CLI가 띄우는 MCP 서버·훅·명령이 Homebrew·nvm 명령을 못 찾는다. 시작할 때 로그인 셸(`$SHELL -ilc`)에서 PATH를 읽어 앞에 붙이고(`shell-path.ts` `whenShellPath`), CLI를 띄우는 길(index.ts의 startTask·send·command·shellOutput·approveDenied·prewarm 핸들러, `withProbe`)은 이걸 기다린다. 새로 CLI를 띄우는 길을 만들면 같이 기다릴 것. claude 실행 파일은 `executable.ts`가 설치 자리를 직접 본다. 로그인 자동 실행 판정은 `wasOpenedAtLogin`을 믿을 수 없어 loginwindow 시작 시각과 비교(`launchedAtMacLogin`)
+  - 한글 파일 이름은 NFD로 올 수 있으니 경로 비교·검색 전에 `normalize('NFC')`
 - 구독 한도(사이드바): `src/main/agent/usage.ts`가 SDK `usage_EXPERIMENTAL…`(실험적 API, 이름이 바뀔 수 있음)로 5시간·주간·모델별 주간 창을 받는다. 살아 있는 세션이 없으면 `withProbe`로 CLI만 띄움. 앱 시작·작업 완료 2.5초 뒤·5분마다 갱신, `rate_limit_event`는 해당 창에 바로 반영
   - 모델별 주간 창(`model_scoped`, 예: FABLE WEEKLY)은 캐시에서 답한 응답에는 아예 빠져 온다. 그때는 직전 값을 그대로 둔다(`toUsage`의 `prev`, 초기화 시각이 지났으면 0%)
   - 사용량 칸 어디를 눌러도 새로 고친다(`.usage` onClick, 받는 동안 `.loading`. zen은 새로 고침 버튼이 있는 머리줄을 숨겨서)

@@ -707,8 +707,9 @@ export function firstPendingPermission(project: Project, convs: ConversationMap)
 
 /** 프로젝트 폴더 안의 경로는 앞부분을 떼고 보여준다 */
 export function relPath(text: string, root: string): string {
-  const r = root.replace(/\\/g, '/').replace(/\/$/, '')
-  const t = text.replace(/\\/g, '/')
+  // macOS 경로는 한글이 NFD일 수 있어 NFC로 맞춰 비교한다
+  const r = root.replace(/\\/g, '/').replace(/\/$/, '').normalize('NFC')
+  const t = text.replace(/\\/g, '/').normalize('NFC')
   return t.toLowerCase().startsWith(r.toLowerCase() + '/') ? t.slice(r.length + 1) : text
 }
 

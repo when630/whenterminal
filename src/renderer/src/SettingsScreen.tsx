@@ -103,7 +103,7 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
       const res = await window.api.setSettings(next)
       const hk = forId === 'summon' ? await window.api.getHotkey() : undefined
       onSaved(res.settings, hk)
-      setSaveError(null)
+      setSaveError(forId ? null : (res.error ?? null))
       if (res.error && forId) setMessage({ id: forId, text: res.error })
     } catch (err) {
       setSaveError(`설정을 저장하지 못했어요: ${err instanceof Error ? err.message : String(err)}`)

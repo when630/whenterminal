@@ -142,6 +142,12 @@ function applyBackdrop(s: Settings): void {
 
 
 let win: BrowserWindow | null = null
+/** /diag용: 창 보이기·숨기기 요청과 이벤트를 최근 60개 (다시 열 때 렉을 볼 때 렌더러 기록과 시각을 맞춘다) */
+const windowEvents: string[] = []
+function noteWindow(what: string): void {
+  windowEvents.push(`${new Date().toISOString()} ${what}`)
+  if (windowEvents.length > 60) windowEvents.shift()
+}
 let tray: Tray | null = null
 let quitting = false
 
@@ -617,7 +623,7 @@ function bootstrap(): void {
     if (attached) dbg.detach()
     // GC 뒤 할당자별 크기 (스냅샷 밖의 PartitionAlloc·Skia·글꼴 캐시 등). 원본은 memory.trace.json
     const memoryInfra = await captureMemoryDump(join(dir, 'memory.trace.json'))
-    const report = { at: new Date().toISOString(), version: app.getVersion(), uptimeSec: Math.round(process.uptime()), appMetrics: app.getAppMetrics(), beforeGc: before, metrics, dom, memoryInfra, renderer }
+    const report = { at: new Date().toISOString(), version: app.getVersion(), uptimeSec: Math.round(process.uptime()), appMetrics: app.getAppMetrics(), beforeGc: before, metrics, dom, memoryInfra, windowEvents, renderer }
     writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2))
     await wc.takeHeapSnapshot(join(dir, 'renderer.heapsnapshot'))
     return dir
@@ -763,6 +769,7 @@ function createWindow(): void {
     // 최소화하면서 Windows가 이미 다음 창을 활성화했으므로 숨기기만 한다
     if (!isMac && !forcingFront && settingsStore.get().hideTaskbar && win?.isVisible()) win.hide()
   })
+  for (const ev of ['show', 'hide', 'minimize', 'restore', 'focus', 'blur'] as const) win.on(ev as 'show', () => noteWindow(`event ${ev}`))
   win.on('show', () => sendShown(!win?.isMinimized()))
   win.on('restore', () => sendShown(!!win?.isVisible()))
   // 로그인할 때 숨긴 채로 시작하면 hide 이벤트가 없다
@@ -827,6 +834,7 @@ function createTray(): void {
 
 function showWindow(): void {
   if (!win) return
+  noteWindow(`showWindow visible=${win.isVisible()} minimized=${win.isMinimized()}`)
   // macOS: hideWindow가 앱째 숨겼으면 먼저 풀어 준다
   if (isMac) app.show()
   if (win.isMinimized()) win.restore()
@@ -841,6 +849,7 @@ function showWindow(): void {
  */
 function hideWindow(): void {
   if (!win) return
+  noteWindow('hideWindow')
   if (isMac) {
     win.hide()
     app.hide()
@@ -869,6 +878,7 @@ let forcingFront = false
 function showFromBackground(): void {
   if (!win) return
   if (isMac) return showWindow()
+  noteWindow(`showFromBackground visible=${win.isVisible()} minimized=${win.isMinimized()} focused=${win.isFocused()}`)
   // 이미 앞에 떠서 포커스가 있으면 그대로 둔다 (덱으로 대화·프로젝트를 바꾸는 흔한 경우).
   // 최소화했다가 바로 복원하면 Chromium이 버린 화면을 다시 그리지 못해 내용이 빈 채로 남을 때가 있었다
   if (win.isVisible() && !win.isMinimized() && win.isFocused()) return

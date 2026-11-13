@@ -1,6 +1,6 @@
 import { forkSession, getSessionMessages, listSessions, resolveSettings, tagSession, type Query } from '@anthropic-ai/claude-agent-sdk'
 import { randomUUID } from 'node:crypto'
-import { cwdOf, EFFORT_LEVELS, openConversations, QUICK_ALLOWED_TOOLS, QUICK_DISALLOWED_TOOLS, QUICK_PROJECT_ID, type AccountStatus, type AgentOption, type DeniedCall, type EffortInfo, type EffortLevel, type McpServerInfo, type ModelOption, type AgentEventEnvelope, type PermissionExtra, type RemoteInfo, type RewindResult, type RewindScope, type SessionOption, type SessionStatus, type ShellResult, type TaskOutput, AgentMode, PermissionDecision, RateLimitInfo, SlashCommandInfo } from '@shared/types'
+import { cwdOf, EFFORT_LEVELS, openConversations, QUICK_ALLOWED_TOOLS, QUICK_DISALLOWED_TOOLS, QUICK_PROJECT_ID, type AccountStatus, type McpAuthStart, type AgentOption, type DeniedCall, type EffortInfo, type EffortLevel, type McpServerInfo, type ModelOption, type AgentEventEnvelope, type PermissionExtra, type RemoteInfo, type RewindResult, type RewindScope, type SessionOption, type SessionStatus, type ShellResult, type TaskOutput, AgentMode, PermissionDecision, RateLimitInfo, SlashCommandInfo } from '@shared/types'
 import type { LimitLevel } from '@shared/usage'
 import type { ProjectStore } from '../store'
 import { AgentSession, baseOptions, modelLabel, shellMessage, toContext, type BasePrefs } from './session'
@@ -20,6 +20,20 @@ export const BUDGET_BY_LEVEL: Partial<Record<LimitLevel, number>> = { 80: 150_00
 const HOLD_MARGIN_MS = 5_000
 import { clearCommandCache, commandsFor, remember, withProbe } from './commands'
 import { SpareKeeper } from './spare'
+
+/** MCP OAuth 응답 (CLI control 응답 그대로) */
+interface McpAuthResponse {
+  authUrl?: string
+  requiresUserAction?: boolean
+  callbackExpected?: boolean
+}
+
+/** mcpAuthenticate·mcpSubmitOAuthCallbackUrl은 sdk.mjs의 Query에 있지만 sdk.d.ts의 Query 타입에는 없다 */
+function mcpAuth(q: Query): { authenticate: (name: string) => Promise<McpAuthResponse | undefined>; callback: (name: string, url: string) => Promise<unknown> } {
+  const h = q as unknown as { mcpAuthenticate?: (name: string, redirectUri?: string) => Promise<McpAuthResponse | undefined>; mcpSubmitOAuthCallbackUrl?: (name: string, url: string) => Promise<unknown> }
+  if (typeof h.mcpAuthenticate !== 'function' || typeof h.mcpSubmitOAuthCallbackUrl !== 'function') throw new Error('이 SDK 버전은 MCP 로그인을 지원하지 않아요')
+  return { authenticate: (name) => h.mcpAuthenticate!.call(q, name), callback: (name, url) => h.mcpSubmitOAuthCallbackUrl!.call(q, name, url) }
+}
 import { fullToolResult, readHistory, toolImages } from './history'
 import { readTaskOutput } from './task-output'
 import { draftTitle, saveSessionTitle, sessionTitle } from './title'
@@ -630,6 +644,38 @@ export class AgentManager {
 
   async mcpToggle(projectId: string, conversationId: string, name: string, enabled: boolean): Promise<void> {
     await this.getOrCreate(projectId, conversationId).ensureQuery().toggleMcpServer(name, enabled)
+  }
+
+  /**
+   * MCP 서버 OAuth 로그인 시작 (CLI의 /mcp 로그인과 같은 흐름). 로그인 페이지 주소를 돌려주고, 사용자가 브라우저에서 마치면
+   * CLI가 localhost에서 돌아오는 주소를 받아 토큰을 저장하고 스스로 연결한다. 그래서 이 대화의 CLI를 띄워 둔 채로 한다
+   */
+  async mcpAuthenticate(projectId: string, conversationId: string, name: string): Promise<McpAuthStart> {
+    const r = (await mcpAuth(this.getOrCreate(projectId, conversationId).ensureQuery()).authenticate(name)) ?? {}
+    if (!r.authUrl) throw new Error(r.requiresUserAction === false ? '이미 로그인돼 있어요. RECONNECT를 눌러요' : '로그인 주소를 받지 못했어요')
+    return { url: r.authUrl, callbackExpected: r.callbackExpected !== false }
+  }
+
+  /** 브라우저가 localhost로 돌아오지 못했을 때(포트가 막힘 등) 주소창의 주소를 직접 넘긴다 */
+  async mcpAuthCallback(projectId: string, conversationId: string, name: string, callbackUrl: string): Promise<void> {
+    await mcpAuth(this.getOrCreate(projectId, conversationId).ensureQuery()).callback(name, callbackUrl)
+  }
+
+  /**
+   * /refresh: 대화의 CLI를 내리고(다음 메시지가 같은 세션으로 다시 띄운다) 화면 기록을 세션 파일에서 다시 읽는다.
+   * 다른 곳(터미널의 claude 등)에서 이어 쓴 세션을 앱에 맞추거나, CLI가 꼬였을 때 쓴다
+   */
+  async refresh(projectId: string, conversationId: string): Promise<void> {
+    const project = this.store.get(projectId)
+    const conv = this.store.getConversation(projectId, conversationId)
+    if (!project || !conv) throw new Error(`대화 없음: ${projectId}/${conversationId}`)
+    if (this.waiting.some((w) => w.conversationId === conversationId)) throw new Error('차례를 기다리는 메시지가 있어요. 보낸 뒤나 뺀 뒤에 새로 고쳐요')
+    const s = this.sessions.get(conversationId)
+    // 턴·확인 대기·백그라운드 작업(CLI와 함께 끝난다)·보낼 메시지가 있으면 내리지 않는다
+    if (s && !s.recycle()) throw new Error('실행 중이거나 백그라운드 작업이 있어요. 끝나거나 멈춘 뒤에 새로 고쳐요')
+    const items = conv.sessionId ? await readHistory(conv.sessionId, cwdOf(project, conv)).catch(() => []) : []
+    this.broadcast({ projectId, conversationId, event: { kind: 'replace', items } })
+    void this.peek(projectId, conversationId)
   }
 
   async listAgents(projectId: string): Promise<AgentOption[]> {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MAX_PROJECTS, MODE_CYCLE, needsChoice, QUICK_PROJECT_ID, openConversations, type AgentMode, type StoredTask, type PermissionDecision, type PermissionExtra, type Project, type UpdateState, type UsageInfo, type AccountsInfo } from '@shared/types'
-import { applyEvent, collectBackground, collectTasks, IDLE_KEY, mostUrgentConversation, type ConversationMap, type TaskInfo, type TaskRef } from './state'
+import { applyEvent, collectBackground, collectTasks, IDLE_KEY, returnConversation, type ConversationMap, type TaskInfo, type TaskRef } from './state'
 import { Home, type DispatchOrigin } from './Home'
 import { Chat, type PanelControl } from './Chat'
 import type { ToolPanel } from './panels'
@@ -62,6 +62,9 @@ export function App(): React.JSX.Element {
     prevChat.current = lastChat.current
     lastChat.current = { projectId: view.projectId, conversationId: view.conversationId }
   }
+  // 프로젝트마다 마지막으로 본 대화 (다른 프로젝트에 갔다 돌아오면 보던 탭으로)
+  const lastByProject = useRef(new Map<string, string>())
+  if (view.screen === 'chat') lastByProject.current.set(view.projectId, view.conversationId)
   const [settings, setSettings] = useState<Settings>(window.api.initialSettings)
   const km = useMemo(() => effectiveKeymap(settings), [settings])
   const [usage, setUsage] = useState<UsageInfo | null>(null)
@@ -289,7 +292,7 @@ export function App(): React.JSX.Element {
       const v = viewRef.current
       const b = besideRef.current
       if (v.screen === 'chat' && v.projectId !== p.id && b?.projectId === p.id) return afterMorph(() => showChat(b))
-      openChat(p.id, mostUrgentConversation(p, convs))
+      openChat(p.id, returnConversation(p, convs, lastByProject.current.get(p.id)))
     },
     [projects, convs, openChat, showChat],
   )

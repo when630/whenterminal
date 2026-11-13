@@ -411,6 +411,60 @@ function McpPanel({ projectId, conversationId, onClose, onRunInTerminal }: Props
       load()
     }
   }
+  // 브라우저 로그인 중인 서버: CLI가 돌아오는 주소를 받아 스스로 연결하므로 상태가 바뀔 때까지 2초마다 다시 읽는다 (3분까지)
+  const [auth, setAuth] = useState<{ name: string; callbackExpected: boolean; url: string } | null>(null)
+  const [pasted, setPasted] = useState('')
+  useEffect(() => {
+    if (!auth) return
+    const until = Date.now() + 180_000
+    const t = setInterval(() => {
+      if (Date.now() > until) {
+        clearInterval(t)
+        setAuth(null)
+        setMessage({ ok: false, text: '로그인을 마치지 못했어요. 다시 LOGIN을 눌러요' })
+        return
+      }
+      window.api.mcpStatus(projectId, conversationId).then((l) => {
+        setList(l)
+        const st = l.find((x) => x.name === auth.name)?.status
+        if (st && st !== 'needs-auth' && st !== 'pending') {
+          setAuth(null)
+          setPasted('')
+          setMessage({ ok: st === 'connected', text: st === 'connected' ? `${auth.name} · 연결했어요` : `${auth.name} · 로그인은 했지만 연결하지 못했어요. RECONNECT를 눌러요` })
+        }
+      }, () => undefined)
+    }, 2000)
+    // claude.ai 커넥터는 claude.ai에서 마친 뒤 앱으로 돌아오면 다시 연결해 본다
+    const onFocus = (): void => {
+      if (!auth.callbackExpected) void window.api.mcpReconnect(projectId, conversationId, auth.name).catch(() => undefined)
+    }
+    window.addEventListener('focus', onFocus)
+    return () => {
+      clearInterval(t)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [auth, projectId, conversationId])
+  const login = async (name: string): Promise<void> => {
+    setBusy(name)
+    try {
+      const r = await window.api.mcpAuthenticate(projectId, conversationId, name)
+      setAuth({ name, ...r })
+      setMessage({ ok: true, text: r.callbackExpected ? `${name} · 브라우저에서 로그인을 마치면 바로 연결돼요` : `${name} · claude.ai에서 연결을 마치고 돌아오면 다시 연결해요` })
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setBusy(null)
+    }
+  }
+  const submitCallback = async (): Promise<void> => {
+    if (!auth || !pasted.trim()) return
+    try {
+      await window.api.mcpAuthCallback(projectId, conversationId, auth.name, pasted.trim())
+      setMessage({ ok: true, text: `${auth.name} · 주소를 넘겼어요. 연결되는 중이에요` })
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : String(err) })
+    }
+  }
   const needsAuth = list?.some((s) => s.status === 'needs-auth')
   const loginHint = async (): Promise<void> => {
     const base = (await window.api.loginCommand()).replace(/\s+auth login$/, '')
@@ -444,6 +498,11 @@ function McpPanel({ projectId, conversationId, onClose, onRunInTerminal }: Props
                   {s.error && <span className="pn-sub bad">{s.error}</span>}
                 </span>
                 <span className="pn-tags">
+                  {s.status === 'needs-auth' && (
+                    <button type="button" className="btn" disabled={busy === s.name || auth?.name === s.name} onClick={() => void login(s.name)}>
+                      {auth?.name === s.name ? 'WAITING' : 'LOGIN'}
+                    </button>
+                  )}
                   {s.status !== 'disabled' && (
                     <button type="button" className="btn" disabled={busy === s.name} onClick={() => void act(s.name, () => window.api.mcpReconnect(projectId, conversationId, s.name))}>
                       RECONNECT
@@ -458,9 +517,32 @@ function McpPanel({ projectId, conversationId, onClose, onRunInTerminal }: Props
           )
         })}
       </ul>
-      {needsAuth && (
+      {auth?.callbackExpected && (
         <div className="pn-foot">
-          <p>로그인이 필요한 서버가 있어요. OAuth 로그인은 CLI에서만 할 수 있어요. 아래 터미널에서 claude를 띄우고 <code>/mcp</code>를 쳐서 로그인한 뒤 REFRESH를 눌러요.</p>
+          <p>브라우저 로그인을 마쳤는데 연결되지 않으면, 로그인 뒤 열린 페이지의 주소(localhost로 시작)를 복사해 여기에 붙여 넣어요.</p>
+          <div className="pn-callback">
+            <input
+              className="mono"
+              value={pasted}
+              placeholder="http://localhost:…/callback?code=…"
+              aria-label="콜백 주소"
+              onChange={(e) => setPasted(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void submitCallback()
+                }
+              }}
+            />
+            <button type="button" className="btn" disabled={!pasted.trim()} onClick={() => void submitCallback()}>
+              SUBMIT
+            </button>
+          </div>
+        </div>
+      )}
+      {needsAuth && !auth && (
+        <div className="pn-foot">
+          <p>로그인이 필요한 서버는 LOGIN을 누르면 브라우저에서 로그인 페이지가 열려요. 마치면 바로 연결돼요. 앱에서 안 되면 터미널에서 claude를 띄우고 <code>/mcp</code>로 로그인해요.</p>
           <button type="button" className="btn" onClick={() => void loginHint()}>
             OPEN CLAUDE IN TERMINAL
           </button>

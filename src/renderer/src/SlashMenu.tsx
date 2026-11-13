@@ -11,6 +11,7 @@ export const LOCAL: SlashCommandInfo[] = [
   { name: 'files', description: '프로젝트의 파일·폴더를 찾고 내용을 읽어요. md는 읽기 모드, html은 미리 보기로', argumentHint: '', builtin: true },
   { name: 'git', description: '브랜치·작업 공간·커밋 기록과 커밋마다 바뀐 내용을 봐요', argumentHint: '', builtin: true },
   { name: 'resume', description: '이 폴더의 지난 세션을 이어 열어요', argumentHint: '', builtin: true },
+  { name: 'refresh', description: '세션을 내렸다가 다시 붙이고 기록을 세션 파일에서 다시 읽어요', argumentHint: '', builtin: true },
   { name: 'fork', description: '지금 대화를 복제해 새 탭에서 따로 이어 가요', argumentHint: '[이름]', builtin: true },
   { name: 'export', description: '대화를 마크다운 파일로 저장해요', argumentHint: '', builtin: true },
   { name: 'diag', description: '앱이 메모리를 어디에 쓰는지 진단 파일로 남겨요', argumentHint: '', builtin: true },

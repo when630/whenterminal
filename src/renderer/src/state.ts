@@ -655,6 +655,17 @@ export function mostUrgentConversation(project: Project, convs: ConversationMap)
   return bestId
 }
 
+/**
+ * 프로젝트로 돌아올 때 열 대화: 사람이 봐야 할 대화(승인 대기·오류)가 있으면 그것, 아니면 그 프로젝트에서 마지막으로 본 탭(아직 열려 있으면),
+ * 처음이면 mostUrgentConversation. 끝난(done) 탭이 이어 연(/resume) 쉬는 탭보다 앞서 보던 탭이 바뀌던 것을 막는다
+ */
+export function returnConversation(project: Project, convs: ConversationMap, last: string | undefined): string {
+  const urgent = mostUrgentConversation(project, convs)
+  const st = convs[urgent]?.status
+  if (st === 'waiting_approval' || st === 'error') return urgent
+  return last && openConversations(project).some((c) => c.id === last) ? last : urgent
+}
+
 export interface TaskRef {
   project: Project
   projectIndex: number

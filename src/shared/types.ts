@@ -273,6 +273,12 @@ export interface SessionOption {
   conversationId?: string
 }
 
+/** MCP OAuth 로그인 시작 결과. callbackExpected면 CLI가 localhost에서 돌아오는 주소를 받고, 아니면(claude.ai 커넥터) claude.ai에서 마친 뒤 다시 연결한다 */
+export interface McpAuthStart {
+  url: string
+  callbackExpected: boolean
+}
+
 /** MCP 서버 상태 (SDK McpServerStatus) */
 export interface McpServerInfo {
   name: string
@@ -841,6 +847,9 @@ export const IPC = {
   mcpStatus: 'agent:mcp-status',
   mcpReconnect: 'agent:mcp-reconnect',
   mcpToggle: 'agent:mcp-toggle',
+  mcpAuthenticate: 'agent:mcp-authenticate',
+  mcpAuthCallback: 'agent:mcp-auth-callback',
+  refreshConversation: 'agent:refresh',
   listAgents: 'agent:list-agents',
   permissionsInfo: 'agent:permissions-info',
   setPermissionRule: 'agent:set-permission-rule',
@@ -928,6 +937,12 @@ export interface WhenTerminalApi {
   mcpStatus(projectId: string, conversationId: string): Promise<McpServerInfo[]>
   mcpReconnect(projectId: string, conversationId: string, name: string): Promise<void>
   mcpToggle(projectId: string, conversationId: string, name: string, enabled: boolean): Promise<void>
+  /** MCP 서버 OAuth 로그인을 시작하고 브라우저로 로그인 페이지를 연다. 끝나면 CLI가 스스로 연결한다 */
+  mcpAuthenticate(projectId: string, conversationId: string, name: string): Promise<McpAuthStart>
+  /** 브라우저가 localhost로 돌아오지 못했을 때 주소창의 콜백 주소를 직접 넘긴다 */
+  mcpAuthCallback(projectId: string, conversationId: string, name: string, callbackUrl: string): Promise<void>
+  /** 대화의 CLI를 내렸다가 같은 세션으로 다시 붙이고 기록을 세션 파일에서 다시 읽는다 (/refresh) */
+  refreshConversation(projectId: string, conversationId: string): Promise<void>
   listAgents(projectId: string): Promise<AgentOption[]>
   permissionsInfo(projectId: string, conversationId: string): Promise<PermissionsInfo>
   /** 권한 규칙 추가·삭제. 설정 파일에 쓰며 다음 세션부터 적용 */

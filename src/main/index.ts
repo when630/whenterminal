@@ -546,6 +546,19 @@ function bootstrap(): void {
   ipcMain.handle(IPC.mcpStatus, (_e, projectId: string, conversationId: string) => manager.mcpStatus(projectId, conversationId))
   ipcMain.handle(IPC.mcpReconnect, (_e, projectId: string, conversationId: string, name: string) => manager.mcpReconnect(projectId, conversationId, name))
   ipcMain.handle(IPC.mcpToggle, (_e, projectId: string, conversationId: string, name: string, enabled: boolean) => manager.mcpToggle(projectId, conversationId, name, enabled))
+  ipcMain.handle(IPC.mcpAuthenticate, async (_e, projectId: string, conversationId: string, name: string) => {
+    await shellPath
+    const start = await manager.mcpAuthenticate(projectId, conversationId, name)
+    // 로그인 페이지는 사용자의 브라우저에서 (http·https만)
+    if (/^https?:\/\//i.test(start.url)) void shell.openExternal(start.url)
+    return start
+  })
+  ipcMain.handle(IPC.mcpAuthCallback, (_e, projectId: string, conversationId: string, name: string, callbackUrl: string) => manager.mcpAuthCallback(projectId, conversationId, name, callbackUrl))
+  ipcMain.handle(IPC.refreshConversation, async (_e, projectId: string, conversationId: string) => {
+    await shellPath
+    await manager.refresh(projectId, conversationId)
+    projectsChanged()
+  })
   ipcMain.handle(IPC.listAgents, (_e, projectId: string) => manager.listAgents(projectId))
   ipcMain.handle(IPC.permissionsInfo, (_e, projectId: string, conversationId: string) => {
     const project = store.get(projectId)

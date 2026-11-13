@@ -735,6 +735,10 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
         case 'files': return setBrowseOpen(true)
         case 'git': return openTool({ kind: 'git' })
         case 'resume': return openTool({ kind: 'resume' })
+        case 'refresh':
+          setNotice({ ok: true, text: 'REFRESH · 세션을 다시 붙이는 중이에요' })
+          void window.api.refreshConversation(project.id, conversationId).then(() => setNotice({ ok: true, text: 'REFRESH · 다시 붙였어요' }), (err) => setNotice({ ok: false, text: err instanceof Error ? err.message : String(err) }))
+          return
         case 'fork':
           void window.api.forkConversation(project.id, conversationId, arg || undefined).then(onSelectConversation, (err) => setNotice({ ok: false, text: err instanceof Error ? err.message : String(err) }))
           return

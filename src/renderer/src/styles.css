@@ -1351,6 +1351,9 @@ button.pn-row:hover:not(:disabled) .pn-sub, button.pn-row:hover:not(:disabled) .
 .pn-filter input::placeholder, .pn-add input::placeholder { color: var(--gray-2); font-weight: 500; }
 .pn-foot { padding: 12px 28px; border-bottom: var(--rule); font-size: 13px; line-height: 1.6; color: var(--gray); }
 .pn-foot p { margin: 0 0 8px; }
+.pn-callback { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.pn-callback input { width: 100%; padding: 6px 0; border: 0; border-bottom: var(--rule); background: transparent; color: var(--ink); font: 13px var(--mono); outline: none; }
+.pn-callback input::placeholder { color: var(--gray-2); }
 .pn-foot code, .pn-rules code { padding: 1px 5px; background: var(--code-bg); color: var(--code-fg); font: 12px var(--mono); }
 .pn-sec { padding: 12px 28px 14px; border-bottom: var(--rule); }
 .pn-sec .pn-note { margin: 0 0 8px; }

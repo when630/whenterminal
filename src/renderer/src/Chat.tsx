@@ -26,6 +26,7 @@ import { formatReset, limitAllowed, worstLimit } from '@shared/usage'
 import { afterMorph, isMorphing, morph } from './morph'
 import { BesideContext } from './beside'
 import { FileMenu, mentionText, rankCommands, SlashMenu, useSlashCommands, type Mention } from './SlashMenu'
+import { showLagReport } from './show-lag'
 
 interface Props {
   project: Project
@@ -2422,6 +2423,8 @@ async function diagnose(convs: ConversationMap): Promise<string> {
     conversations,
     terminals: terminalStats(),
     memory: await window.api.rendererMemory(),
+    // 창을 다시 열 때 렉: 다시 보일 때마다 3초 동안의 프레임 간격·긴 작업, 평소의 긴 프레임
+    showLag: showLagReport(),
     localStorageChars: (() => {
       try {
         let n = 0

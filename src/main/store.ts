@@ -81,6 +81,19 @@ export class ProjectStore {
     this.save()
   }
 
+  /** 탭 순서 바꾸기: 대화를 beforeId 앞으로 (null이면 맨 뒤). 닫혀 보고함에만 남은 대화도 배열에 있으므로 자리 대신 ID로 */
+  moveConversation(projectId: string, conversationId: string, beforeId: string | null): void {
+    const project = this.get(projectId)
+    if (!project || conversationId === beforeId) return
+    const from = project.conversations.findIndex((c) => c.id === conversationId)
+    if (from < 0) return
+    const [conv] = project.conversations.splice(from, 1)
+    const at = beforeId ? project.conversations.findIndex((c) => c.id === beforeId) : -1
+    if (at < 0) project.conversations.push(conv)
+    else project.conversations.splice(at, 0, conv)
+    this.save()
+  }
+
   addConversation(projectId: string, extra: Partial<Conversation> = {}, id?: string): Conversation {
     const project = this.get(projectId)
     if (!project) throw new Error(`프로젝트 없음: ${projectId}`)

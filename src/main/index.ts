@@ -4,16 +4,16 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { release } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cwdOf, IPC, MAX_PROJECTS, type Conversation, type DeniedCall, type ModelOption, type StoredTask, type UsageInfo, type SplitInfo, type AgentEventEnvelope, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRuleSource, type RateLimitInfo, type RewindScope, type ShellResult, type TerminalShell, type EffortLevel, type GitDiffTarget } from '@shared/types'
+import { cwdOf, IPC, MAX_PROJECTS, openConversations, type Conversation, type WorktreeStart, type DeniedCall, type ModelOption, type StoredTask, type UsageInfo, type SplitInfo, type AgentEventEnvelope, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRuleSource, type RateLimitInfo, type RewindScope, type ShellResult, type TerminalShell, type EffortLevel, type GitDiffTarget } from '@shared/types'
 import { limitAllowed, worstLimit } from '@shared/usage'
 import { newConversationId, ProjectStore } from './store'
 import { memoryFiles, permissionsInfo, setPermissionRule } from './agent/config'
 import { exportMarkdown } from './agent/history'
 import { loginCommand, watchClaudeExecutable } from './executable'
 import { AccountStore } from './accounts'
-import { branchOf, createWorktree, discardWorktree, isGitRepo, mergeWorktree, worktreeChanges } from './worktree'
+import { abortWorktreeMerge, adoptWorktree, branchOf, createWorktree, discardWorktree, isGitRepo, latestSession, mergeWorktree, pushWorktree, removeWorktreeIfClean, sessionWorktree, updateWorktree, worktreeChanges, worktreeState } from './worktree'
 import { listChildren, searchFiles } from './files'
-import { gitCheckout, gitCommit, gitDiff, gitLog, gitOverview } from './git-view'
+import { gitCheckout, gitCommit, gitDiff, gitLog, gitOverview, samePath } from './git-view'
 import { setupArtifactView } from './artifact-view'
 import { fetchRemoteImages, handleFileScheme, localImageUrl, registerFileScheme, viewFile } from './file-view'
 import { captureMemoryDump } from './memory-dump'
@@ -344,26 +344,43 @@ function bootstrap(): void {
     store.removeProject(projectId)
     projectsChanged()
   })
-  // 탭의 +: 하위 대화. 설정이 켜져 있으면 git worktree에서, git이 아니면 플랜 모드로 시작
-  ipcMain.handle(IPC.addConversation, async (_e, projectId: string) => {
+  // 새 탭: 일반 탭은 프로젝트 폴더에서, 작업 공간 탭(worktree)은 git worktree에서. 작업 공간을 만들 수 없으면 탭을 만들지 않고 안내 글을 돌려준다
+  ipcMain.handle(IPC.addConversation, async (_e, projectId: string, worktree?: boolean | WorktreeStart): Promise<Conversation | string> => {
     const project = store.get(projectId)
     if (!project) throw new Error(`프로젝트 없음: ${projectId}`)
     const extra: Partial<Conversation> = {}
     const id = newConversationId()
-    if (settingsStore.get().worktree) {
-      if (await isGitRepo(project.path)) {
-        try {
-          extra.worktree = await createWorktree(project.path, settingsStore.get().worktreeDir, id)
-        } catch (err) {
-          console.warn('worktree를 만들지 못해 프로젝트 폴더에서 실행', err)
+    let copied = 0
+    if (worktree) {
+      if (!(await isGitRepo(project.path))) return 'git 저장소가 아니라 작업 공간 탭을 만들 수 없어요.'
+      const start: WorktreeStart = typeof worktree === 'object' ? worktree : {}
+      try {
+        if (start.existing) {
+          // 남은 worktree를 다시 연다: 같은 폴더의 마지막 세션을 잇는다. 이미 열린 탭이면 그 탭으로
+          const ref = await adoptWorktree(project.path, start.existing)
+          const open = openConversations(project).find((c) => c.worktree && samePath(c.worktree.root ?? c.worktree.path, ref.root!))
+          if (open) return open
+          extra.worktree = ref
+          const last = await latestSession(ref.path)
+          if (last) Object.assign(extra, { sessionId: last.sessionId, title: last.title.slice(0, 80), titleSource: 'auto' })
+        } else {
+          const made = await createWorktree(project.path, settingsStore.get().worktreeDir, id, start)
+          extra.worktree = made.ref
+          copied = made.copied
         }
-      } else {
-        extra.mode = 'plan'
+      } catch (err) {
+        console.warn('worktree를 만들지 못함', err)
+        return `작업 공간을 만들지 못했어요. ${err instanceof Error ? err.message.split(/\r?\n/)[0] : ''}`.trim()
       }
     }
     const conv = store.addConversation(projectId, extra, id)
     projectsChanged()
+    if (copied) manager.notice(projectId, id, `.worktreeinclude에 맞는 파일 ${copied}개를 작업 공간에 복사했어요.`)
     return conv
+  })
+  ipcMain.handle(IPC.moveConversation, (_e, projectId: string, conversationId: string, beforeId: string | null) => {
+    store.moveConversation(projectId, conversationId, beforeId)
+    projectsChanged()
   })
   ipcMain.handle(IPC.closeConversation, (_e, projectId: string, conversationId: string) => {
     // 셸이 작업 공간 폴더를 잡고 있으면 정리하지 못하므로 먼저 끝낸다
@@ -377,7 +394,13 @@ function bootstrap(): void {
     projectsChanged()
   })
   ipcMain.handle(IPC.saveTask, (_e, projectId: string, conversationId: string, task: StoredTask) => {
-    if (store.saveTask(projectId, conversationId, task)) projectsChanged()
+    const project = store.get(projectId)
+    const wt = store.getConversation(projectId, conversationId)?.worktree
+    if (store.saveTask(projectId, conversationId, task)) {
+      projectsChanged()
+      // 닫아 둔 대화의 보고서를 보관해 대화가 지워지면 남겨 둔 작업 공간도 정리한다 (변경이 없을 때만)
+      if (project && wt) void removeWorktreeIfClean(project.path, wt)
+    }
   })
   ipcMain.handle(IPC.startTask, async (_e, projectId: string, text: string, continueId?: string) => {
     await shellPath
@@ -478,10 +501,30 @@ function bootstrap(): void {
       throw err
     }
   })
-  ipcMain.handle(IPC.worktreeMerge, async (_e, projectId: string, conversationId: string) => {
+  ipcMain.handle(IPC.worktreeState, async (_e, projectId: string, conversationId: string) => {
+    const t = worktreeOf(projectId, conversationId)
+    return t ? worktreeState(t.project.path, t.wt) : null
+  })
+  ipcMain.handle(IPC.worktreeMerge, async (_e, projectId: string, conversationId: string, squash?: boolean) => {
     const t = worktreeOf(projectId, conversationId)
     if (!t) return { ok: false, message: '작업 공간이 없는 대화예요' }
-    return mergeWorktree(t.project.path, t.wt, t.conv.title)
+    return mergeWorktree(t.project.path, t.wt, t.conv.title, !!squash)
+  })
+  ipcMain.handle(IPC.worktreeUpdate, async (_e, projectId: string, conversationId: string) => {
+    const t = worktreeOf(projectId, conversationId)
+    if (!t) return { ok: false, message: '작업 공간이 없는 대화예요' }
+    return updateWorktree(t.project.path, t.wt, t.conv.title)
+  })
+  ipcMain.handle(IPC.worktreePush, async (_e, projectId: string, conversationId: string) => {
+    const t = worktreeOf(projectId, conversationId)
+    if (!t) return { ok: false, message: '작업 공간이 없는 대화예요' }
+    await shellPath
+    return pushWorktree(t.project.path, t.wt, t.conv.title)
+  })
+  ipcMain.handle(IPC.worktreeAbortMerge, async (_e, projectId: string, conversationId: string) => {
+    const t = worktreeOf(projectId, conversationId)
+    if (!t) return { ok: false, message: '작업 공간이 없는 대화예요' }
+    return abortWorktreeMerge(t.wt)
   })
   ipcMain.handle(IPC.worktreeDiscard, async (_e, projectId: string, conversationId: string) => {
     const t = worktreeOf(projectId, conversationId)
@@ -537,8 +580,10 @@ function bootstrap(): void {
     return r
   })
   ipcMain.handle(IPC.listSessions, (_e, projectId: string) => manager.listSessions(projectId))
-  ipcMain.handle(IPC.attachSession, async (_e, projectId: string, conversationId: string, sessionId: string, title: string) => {
-    const id = await manager.attachSession(projectId, conversationId, sessionId, title)
+  ipcMain.handle(IPC.attachSession, async (_e, projectId: string, conversationId: string, sessionId: string, title: string, where?: { cwd?: string; branch?: string }) => {
+    const project = store.get(projectId)
+    const wt = project && where?.cwd ? await sessionWorktree(project.path, where.cwd, where.branch, settingsStore.get().worktreeDir) : null
+    const id = await manager.attachSession(projectId, conversationId, sessionId, title, wt ?? undefined)
     projectsChanged()
     return id
   })

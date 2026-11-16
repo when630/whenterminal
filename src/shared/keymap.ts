@@ -9,7 +9,7 @@ export type ActionId =
   | 'addProject' | 'focusAsk' | 'down' | 'up' | 'toRunning' | 'toReports' | 'open' | 'archive' | 'newTask'
   | 'allow' | 'always' | 'deny'
   | 'nextConversation' | 'prevConversation' | 'closeConversation' | 'closeProject' | 'clear' | 'compact' | 'cycleMode'
-  | 'panelNext' | 'panelPrev' | 'panelBack' | 'stopTask' | 'renameConversation' | 'newConversation' | 'terminal'
+  | 'panelNext' | 'panelPrev' | 'panelBack' | 'stopTask' | 'renameConversation' | 'newConversation' | 'newWorktree' | 'terminal'
   | 'terminalNew' | 'terminalNext' | 'terminalPrev' | 'terminalClose' | 'terminalFind' | 'cycleEffort' | 'rewind' | 'scrollBottom' | 'away' | 'files' | 'projectUp' | 'projectDown' | 'palette' | 'git' | 'sendAfter'
   | 'splitToggle' | 'paneLeft' | 'paneRight' | 'expandActivity'
 
@@ -55,13 +55,14 @@ export const ACTIONS: ActionDef[] = [
   { id: 'allow', label: 'Allow', scope: 'approval', default: 'Y' },
   { id: 'always', label: 'Always allow', scope: 'approval', default: 'A' },
   { id: 'deny', label: 'Deny', scope: 'approval', default: 'N' },
-  { id: 'newConversation', label: 'New tab', scope: 'chat', default: 'Ctrl+Shift+T' },
+  { id: 'newConversation', label: 'New tab', scope: 'chat', default: 'Ctrl+T' },
+  { id: 'newWorktree', label: 'New worktree tab', scope: 'chat', default: 'Ctrl+Shift+T' },
   { id: 'files', label: 'Find & read project files', scope: 'chat', default: 'Ctrl+P' },
   { id: 'git', label: 'Git: branches, commits & diffs', scope: 'chat', default: 'Ctrl+G' },
   { id: 'splitToggle', label: 'Split view: open / close', scope: 'chat', default: 'Ctrl+Alt+V' },
   { id: 'paneLeft', label: 'Split view: focus left pane', scope: 'chat', default: 'Ctrl+Alt+H' },
   { id: 'paneRight', label: 'Split view: focus right pane', scope: 'chat', default: 'Ctrl+Alt+L' },
-  { id: 'terminal', label: 'Terminal: open / focus / fold', scope: 'chat', default: 'Ctrl+T' },
+  { id: 'terminal', label: 'Terminal: open / focus / fold', scope: 'chat', default: 'Alt+T' },
   { id: 'terminalNew', label: 'Terminal: new tab', scope: 'chat', default: 'Ctrl+Alt+T' },
   { id: 'terminalNext', label: 'Terminal: next tab', scope: 'chat', default: 'Ctrl+Alt+J' },
   { id: 'terminalPrev', label: 'Terminal: previous tab', scope: 'chat', default: 'Ctrl+Alt+K' },
@@ -274,10 +275,10 @@ export interface Settings {
   notify: NotifySettings
   /** 동시에 실행할 대화 수 (OPEN-003). 0이면 제한 없음. 넘치면 대기열에서 차례를 기다린다 */
   maxConcurrent: number
-  /** 탭의 +로 만든 하위 대화를 git worktree에서 실행 (OPEN-002). git 저장소가 아니면 플랜 모드로 시작 */
-  worktree: boolean
-  /** 하위 대화 worktree를 만들 폴더. 상대 경로면 프로젝트 폴더 기준, 절대 경로도 된다. 기본은 Claude Code와 같은 .claude/worktrees */
+  /** 작업 공간 탭(newWorktree·탭 줄의 +WT)의 git worktree를 만들 폴더. 상대 경로면 프로젝트 폴더 기준, 절대 경로도 된다. 기본은 Claude Code와 같은 .claude/worktrees */
   worktreeDir: string
+  /** 작업 공간 탭을 만든 뒤 그 탭의 터미널에서 실행할 명령 (예: npm ci). 비우면 실행하지 않는다 */
+  worktreeSetup: string
   /** 로그인할 때 자동 실행 (창은 숨긴 채 트레이에). 패키징한 앱에서만 동작 */
   openAtLogin: boolean
   /** Windows: 작업 표시줄에 앱 버튼을 두지 않는다 (트레이·전역 호출 키로만 연다). 최소화하면 트레이로 숨긴다 */
@@ -299,7 +300,7 @@ export interface Settings {
   keymap: Partial<Keymap>
 }
 
-export const DEFAULT_SETTINGS: Settings = { skin: 'poster', theme: 'poster', skinThemes: {},textFont: 'skin', questionFont: 'skin', answerFont: 'skin', codeFont: 'skin', appIcon: 'prompt', maxConcurrent: 3, worktree: true, worktreeDir: '.claude/worktrees', openAtLogin: false, hideTaskbar: false, acrylic: true, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
+export const DEFAULT_SETTINGS: Settings = { skin: 'poster', theme: 'poster', skinThemes: {},textFont: 'skin', questionFont: 'skin', answerFont: 'skin', codeFont: 'skin', appIcon: 'prompt', maxConcurrent: 3, worktreeDir: '.claude/worktrees', worktreeSetup: '', openAtLogin: false, hideTaskbar: false, acrylic: true, terminalShell: 'auto', away: false, promptSuggestions: true, budgetWhenHot: true, notify: { approval: true, done: true, terminal: true, usage: true, whenFocused: false }, keymap: {} }
 
 export function effectiveKeymap(settings: Settings): Keymap {
   return { ...DEFAULT_KEYMAP, ...settings.keymap }

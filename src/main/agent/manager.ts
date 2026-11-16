@@ -1,6 +1,6 @@
 import { forkSession, getSessionMessages, listSessions, resolveSettings, tagSession, type Query } from '@anthropic-ai/claude-agent-sdk'
 import { randomUUID } from 'node:crypto'
-import { cwdOf, EFFORT_LEVELS, openConversations, QUICK_ALLOWED_TOOLS, QUICK_DISALLOWED_TOOLS, QUICK_PROJECT_ID, type AccountStatus, type McpAuthStart, type AgentOption, type DeniedCall, type EffortInfo, type EffortLevel, type McpServerInfo, type ModelOption, type AgentEventEnvelope, type PermissionExtra, type RemoteInfo, type RewindResult, type RewindScope, type SessionOption, type SessionStatus, type ShellResult, type TaskOutput, AgentMode, PermissionDecision, RateLimitInfo, SlashCommandInfo } from '@shared/types'
+import { cwdOf, EFFORT_LEVELS, openConversations, QUICK_ALLOWED_TOOLS, QUICK_DISALLOWED_TOOLS, QUICK_PROJECT_ID, type AccountStatus, type McpAuthStart, type AgentOption, type DeniedCall, type EffortInfo, type EffortLevel, type McpServerInfo, type ModelOption, type AgentEventEnvelope, type PermissionExtra, type RemoteInfo, type RewindResult, type RewindScope, type SessionOption, type SessionStatus, type ShellResult, type TaskOutput, type WorktreeRef, AgentMode, PermissionDecision, RateLimitInfo, SlashCommandInfo } from '@shared/types'
 import type { LimitLevel } from '@shared/usage'
 import type { ProjectStore } from '../store'
 import { AgentSession, baseOptions, modelLabel, shellMessage, toContext, type BasePrefs } from './session'
@@ -37,7 +37,8 @@ function mcpAuth(q: Query): { authenticate: (name: string) => Promise<McpAuthRes
 import { fullToolResult, readHistory, toolImages } from './history'
 import { readTaskOutput } from './task-output'
 import { draftTitle, saveSessionTitle, sessionTitle } from './title'
-import { removeWorktreeIfClean } from '../worktree'
+import { ensureWorktreeSync, removeWorktreeIfClean, renameWorktreeBranch } from '../worktree'
+import { samePath } from '../git-view'
 
 /** 대화별 AgentSession을 만들고 보관한다. 동시 실행 제한(OPEN-003)과 대기열도 여기서 */
 export class AgentManager {
@@ -211,9 +212,30 @@ export class AgentManager {
       if (now.title === title) return
       this.store.updateConversation(projectId, conversationId, { title, titleSource: 'auto' })
       this.onProjectsChanged()
+      void this.renameBranch(projectId, conversationId)
     } catch (err) {
       console.warn('세션 제목을 읽지 못함', err)
     }
+  }
+
+  /** 작업 공간 브랜치를 탭 제목(CLI가 만든 제목·직접 붙인 이름)으로 바꾼다 (worktree-<제목>) */
+  private async renameBranch(projectId: string, conversationId: string): Promise<void> {
+    const conv = this.store.getConversation(projectId, conversationId)
+    if (!conv?.worktree || conv.worktree.adopted) return
+    try {
+      const branch = await renameWorktreeBranch(conv.worktree, conv.title, conversationId)
+      const now = this.store.getConversation(projectId, conversationId)
+      if (!branch || !now?.worktree) return
+      this.store.updateConversation(projectId, conversationId, { worktree: { ...now.worktree, branch } })
+      this.onProjectsChanged()
+    } catch (err) {
+      console.warn('작업 공간 브랜치 이름을 바꾸지 못함', err)
+    }
+  }
+
+  /** 대화 기록에 안내 한 줄 */
+  notice(projectId: string, conversationId: string, text: string, tone: 'info' | 'warn' | 'error' = 'info'): void {
+    this.broadcast({ projectId, conversationId, event: { kind: 'notice', text, tone } })
   }
 
   /** 직접 이름 붙이기. 세션이 있으면 세션 기록에도 남긴다 (CLI /resume 목록과 같게) */
@@ -223,6 +245,7 @@ export class AgentManager {
     const conv = this.store.getConversation(projectId, conversationId)
     if (!title || !project || !conv) return
     this.store.updateConversation(projectId, conversationId, { title, titleSource: 'custom' })
+    void this.renameBranch(projectId, conversationId)
     if (conv.sessionId) {
       try {
         await saveSessionTitle(conv.sessionId, cwdOf(project, conv), title)
@@ -454,7 +477,7 @@ export class AgentManager {
     const next = this.store.closeConversation(projectId, conversationId)
     // 하위 대화의 작업 공간: 변경이 없을 때만 지운다 (보고서 때문에 남겨 둔 대화는 그대로)
     if (project && conv?.worktree && !this.store.getConversation(projectId, conversationId)) {
-      void removeWorktreeIfClean(project.path, conv.worktree.path)
+      void removeWorktreeIfClean(project.path, conv.worktree)
     }
     return next
   }
@@ -589,14 +612,16 @@ export class AgentManager {
   }
 
   /** 지난 세션을 이어 연다. 아직 아무것도 보내지 않은 대화면 거기에 붙이고, 아니면 새 탭을 만든다 */
-  async attachSession(projectId: string, conversationId: string, sessionId: string, title: string): Promise<string> {
+  async attachSession(projectId: string, conversationId: string, sessionId: string, title: string, worktree?: WorktreeRef): Promise<string> {
     const project = this.store.get(projectId)
     if (!project) throw new Error(`프로젝트 없음: ${projectId}`)
     const already = project.conversations.find((c) => c.sessionId === sessionId && !c.closedAt)
     if (already) return already.id
+    // 세션은 돌던 폴더에서 열어야 이어진다: 작업 공간에서 돌던 세션이면 그 작업 공간의 빈 탭에, 없으면 그 작업 공간으로 새 탭
+    const folder = worktree ? worktree.path : project.path
     const conv = this.store.getConversation(projectId, conversationId)
-    const fresh = conv && !conv.sessionId && !conv.lastTask && !this.sessions.get(conv.id)?.isBusy()
-    const target = fresh ? conv : this.store.addConversation(projectId, {})
+    const fresh = conv && samePath(cwdOf(project, conv), folder) && !conv.sessionId && !conv.lastTask && !this.sessions.get(conv.id)?.isBusy()
+    const target = fresh ? conv : this.store.addConversation(projectId, worktree ? { worktree } : {})
     this.sessions.get(target.id)?.switchSession(sessionId)
     this.store.updateConversation(projectId, target.id, { sessionId, title: title.slice(0, 80), titleSource: 'auto', contextPercent: undefined })
     const items = await readHistory(sessionId, cwdOf(project, target)).catch(() => [])
@@ -728,7 +753,7 @@ export class AgentManager {
     const project = this.store.get(projectId)
     for (const conv of project?.conversations ?? []) {
       this.endSession(conv.id)
-      if (project && conv.worktree) void removeWorktreeIfClean(project.path, conv.worktree.path)
+      if (project && conv.worktree) void removeWorktreeIfClean(project.path, conv.worktree)
     }
   }
 
@@ -745,6 +770,14 @@ export class AgentManager {
     const project = this.store.get(projectId)
     const conv = this.store.getConversation(projectId, conversationId)
     if (!project || !conv) throw new Error(`대화 없음: ${projectId}/${conversationId}`)
+    if (conv.worktree) {
+      try {
+        const restored = ensureWorktreeSync(project.path, conv.worktree)
+        if (restored) this.notice(projectId, conversationId, restored, 'warn')
+      } catch (err) {
+        this.notice(projectId, conversationId, `작업 공간 폴더가 없고 다시 만들지도 못했어요. ${err instanceof Error ? err.message.split(/\r?\n/)[0] : ''}`.trim(), 'error')
+      }
+    }
     const session = new AgentSession({
       cwd: cwdOf(project, conv),
       mode: conv.mode,

@@ -23,7 +23,7 @@ const LOG_PAGE = 300
 /** 커밋이 하나도 없는 저장소에서 비교 기준으로 쓰는 빈 트리 */
 const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
 
-const samePath = (a: string, b: string): boolean => {
+export const samePath = (a: string, b: string): boolean => {
   const n = (p: string): string => resolve(p).replace(/[\\/]+$/, '')
   return process.platform === 'win32' ? n(a).toLowerCase() === n(b).toLowerCase() : n(a) === n(b)
 }

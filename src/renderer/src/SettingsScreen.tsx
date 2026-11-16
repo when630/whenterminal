@@ -371,35 +371,23 @@ export function SettingsScreen({ settings, activeHotkey, update, onClose, onSave
           </div>
         </section>
 
-        <section className="set-sec set-sec-cont" aria-label="하위 대화 작업 공간">
+        <section className="set-sec set-sec-cont" aria-label="작업 공간 탭">
           <div className="krow">
             <span className="krow-label">
-              Worktree for new tabs
-              <span className="krow-note">탭의 +로 만든 대화를 git worktree(새 브랜치 wt/…)에서 실행해 파일 충돌을 막아요. git 저장소가 아니면 플랜 모드로 시작해요</span>
+              Worktree folder
+              <span className="krow-note">작업 공간 탭(탭 줄의 +WT)을 만들 git worktree 자리예요. 상대 경로면 프로젝트 폴더 기준이에요(프로젝트와 같은 드라이브). 저장소 안이면 git이 새 파일로 보지 않게 .git/info/exclude에 적어 둬요. 이미 만든 작업 공간은 그 자리에 둬요</span>
             </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings.worktree}
-              aria-label="하위 대화는 따로 작업"
-              className={`switch ${settings.worktree ? 'on' : ''}`}
-              onClick={() => void save({ ...settings, worktree: !settings.worktree })}
-            >
-              <i />
-              <span>{settings.worktree ? 'ON' : 'OFF'}</span>
-            </button>
+            <WorktreeDirInput value={settings.worktreeDir} onSave={(worktreeDir) => void save({ ...settings, worktreeDir })} />
             <span className="krow-side" />
           </div>
-          {settings.worktree && (
-            <div className="krow">
-              <span className="krow-label">
-                Worktree folder
-                <span className="krow-note">상대 경로면 프로젝트 폴더 기준이에요(프로젝트와 같은 드라이브). 저장소 안이면 git이 새 파일로 보지 않게 .git/info/exclude에 적어 둬요. 이미 만든 작업 공간은 그 자리에 둬요</span>
-              </span>
-              <WorktreeDirInput value={settings.worktreeDir} onSave={(worktreeDir) => void save({ ...settings, worktreeDir })} />
-              <span className="krow-side" />
-            </div>
-          )}
+          <div className="krow">
+            <span className="krow-label">
+              Worktree setup command
+              <span className="krow-note">작업 공간 탭을 만들면 그 탭의 터미널에서 이 명령을 실행해요(예: npm ci). 비우면 실행하지 않아요. .env 같은 git 무시 파일은 저장소 맨 위 .worktreeinclude에 적으면 복사해요</span>
+            </span>
+            <TextSetting value={settings.worktreeSetup} label="작업 공간을 만든 뒤 실행할 명령" placeholder="npm ci" onSave={(worktreeSetup) => void save({ ...settings, worktreeSetup })} />
+            <span className="krow-side" />
+          </div>
         </section>
 
         {TOGGLES.map((t) => (
@@ -663,7 +651,35 @@ function UpdateSection({ update }: { update: UpdateState | null }): React.JSX.El
   )
 }
 
-/** 하위 대화 worktree 폴더. 칸을 떠나거나 Enter면 저장, 비우면 기본값(.claude/worktrees) */
+/** 한 줄 글 설정. 칸을 떠나거나 Enter면 저장 (비워도 저장) */
+function TextSetting({ value, label, placeholder, onSave }: { value: string; label: string; placeholder: string; onSave: (v: string) => void }): React.JSX.Element {
+  const [text, setText] = useState(value)
+  useEffect(() => setText(value), [value])
+  const commit = (): void => {
+    const next = text.trim()
+    setText(next)
+    if (next !== value) onSave(next)
+  }
+  return (
+    <input
+      className="set-input mono"
+      value={text}
+      spellCheck={false}
+      aria-label={label}
+      placeholder={placeholder}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+          e.preventDefault()
+          e.currentTarget.blur()
+        }
+      }}
+    />
+  )
+}
+
+/** 작업 공간 탭 worktree 폴더. 칸을 떠나거나 Enter면 저장, 비우면 기본값(.claude/worktrees) */
 function WorktreeDirInput({ value, onSave }: { value: string; onSave: (dir: string) => void }): React.JSX.Element {
   const [text, setText] = useState(value)
   useEffect(() => setText(value), [value])

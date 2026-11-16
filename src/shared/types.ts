@@ -119,8 +119,8 @@ export interface Conversation {
   modelChoice?: string
   /** 사용자가 고른 effort. 없으면 모델·설정의 기본값 */
   effort?: EffortLevel
-  /** 하위 대화의 별도 작업 공간 (git worktree). 있으면 세션이 이 폴더에서 돈다 */
-  worktree?: { path: string; branch: string }
+  /** 작업 공간 탭의 git worktree. 있으면 세션이 이 폴더에서 돈다 */
+  worktree?: WorktreeRef
   /** 작업 폴더 밖에서 더 읽고 쓸 수 있는 폴더 (/add-dir) */
   additionalDirectories?: string[]
   /** 세션 태그 (/tag). 홈 카드를 태그로 거른다. SDK tagSession으로 세션 기록에도 남긴다 */
@@ -128,6 +128,29 @@ export interface Conversation {
 }
 
 /** 대화가 실제로 작업하는 폴더 */
+/**
+ * 작업 공간(git worktree). path는 대화가 도는 폴더, root는 worktree 맨 위 (프로젝트가 저장소의 하위 폴더면 path는 그 아래 같은 하위 폴더).
+ * root가 없으면(예전 기록) path가 맨 위
+ */
+export interface WorktreeRef {
+  path: string
+  branch: string
+  root?: string
+  /** 사용자 것을 연 작업 공간 (이미 있던 브랜치·worktree): 브랜치 이름을 탭 제목으로 바꾸지 않고, 닫아도 폴더·브랜치를 지우지 않는다 */
+  adopted?: boolean
+}
+
+/** 작업 공간 탭을 어떻게 시작할지. 없으면 지금 HEAD에서 새 브랜치 */
+export interface WorktreeStart {
+  /** 이 브랜치(로컬·원격 추적)에서 새 브랜치를 딴다 */
+  base?: string
+  /** 이미 있는 로컬 브랜치를 그대로 체크아웃한다 */
+  branch?: string
+  /** 이미 있는 worktree 폴더(맨 위)를 탭으로 연다. 그 폴더의 마지막 세션을 이어 연다 */
+  existing?: string
+}
+export const worktreeRoot = (wt: WorktreeRef): string => wt.root ?? wt.path
+
 export const cwdOf = (p: Project, c: Conversation | undefined): string => c?.worktree?.path ?? p.path
 
 /** 탭·목록에 보이는 대화 (닫힌 대화 제외) */
@@ -379,6 +402,21 @@ export interface WorktreeChanges {
   truncated: boolean
   dirty: boolean
   ahead: number
+  /** 작업 공간에 아직 안 들어온 대상 브랜치의 커밋 수 (UPDATE로 가져온다) */
+  behind: number
+  /** 작업 공간이 병합 중인지 (UPDATE 충돌을 아직 풀지 않음) */
+  merging: boolean
+  /** 풀지 않은 충돌 파일 */
+  conflicts: string[]
+}
+
+/** 작업 공간 합치기·따라잡기 결과. conflicts가 있으면 작업 공간에 충돌을 남겨 둔 것 (UPDATE만) */
+export interface WorktreeOpResult {
+  ok: boolean
+  message: string
+  conflicts?: string[]
+  /** PUSH & PR로 만든(또는 이미 있던) PR 주소 */
+  url?: string
 }
 
 /** 고를 수 있는 모델 (SDK ModelInfo) */
@@ -768,6 +806,7 @@ export const IPC = {
   removeProject: 'projects:remove',
   moveProject: 'projects:move',
   addConversation: 'conversations:add',
+  moveConversation: 'conversations:move',
   closeConversation: 'conversations:close',
   renameConversation: 'conversations:rename',
   reopenConversation: 'conversations:reopen',
@@ -790,7 +829,11 @@ export const IPC = {
   localImage: 'files:local-image',
   saveImage: 'files:save-image',
   worktreeChanges: 'worktree:changes',
+  worktreeState: 'worktree:state',
   worktreeMerge: 'worktree:merge',
+  worktreeUpdate: 'worktree:update',
+  worktreePush: 'worktree:push',
+  worktreeAbortMerge: 'worktree:abort-merge',
   worktreeDiscard: 'worktree:discard',
   pickFiles: 'files:pick',
   listModels: 'agent:list-models',
@@ -898,7 +941,10 @@ export interface WhenTerminalApi {
   removeProject(projectId: string): Promise<void>
   /** 프로젝트를 목록의 to번째(0부터) 자리로 옮긴다 */
   moveProject(projectId: string, to: number): Promise<void>
-  addConversation(projectId: string): Promise<Conversation>
+  /** 새 탭. worktree면 git worktree 탭이고, 만들 수 없으면 안내 글(string)을 돌려준다 */
+  addConversation(projectId: string, worktree?: boolean | WorktreeStart): Promise<Conversation | string>
+  /** 탭 순서: 대화를 beforeId 앞으로 (null이면 맨 뒤) */
+  moveConversation(projectId: string, conversationId: string, beforeId: string | null): Promise<void>
   /** 대화(세션)를 닫는다. 실행 중이면 중단한다. 마지막 대화였다면 빈 대화를 새로 만든다. 남은 대화 중 옮겨 갈 ID를 돌려준다 */
   closeConversation(projectId: string, conversationId: string): Promise<string>
   /** 대화 이름을 직접 붙인다. 이후 자동 제목으로 바꾸지 않는다 */
@@ -931,7 +977,8 @@ export interface WhenTerminalApi {
   /** 이 프로젝트 폴더(작업 공간 포함)의 지난 세션들 (최근 순) */
   listSessions(projectId: string): Promise<SessionOption[]>
   /** 지난 세션을 이어 연다: 빈 대화면 거기에, 아니면 새 탭으로. 옮겨 갈 대화 ID */
-  attachSession(projectId: string, conversationId: string, sessionId: string, title: string): Promise<string>
+  /** where: 세션이 돌던 폴더·브랜치. 이 저장소의 다른 worktree면 그 작업 공간 탭으로 연다 */
+  attachSession(projectId: string, conversationId: string, sessionId: string, title: string, where?: { cwd?: string; branch?: string }): Promise<string>
   /** 지금 대화를 포크해 새 탭으로. 새 대화 ID */
   forkConversation(projectId: string, conversationId: string, title?: string): Promise<string>
   mcpStatus(projectId: string, conversationId: string): Promise<McpServerInfo[]>
@@ -991,7 +1038,16 @@ export interface WhenTerminalApi {
   /** 작업 공간(worktree) 대화의 변경 요약과 diff */
   worktreeChanges(projectId: string, conversationId: string): Promise<WorktreeChanges | null>
   /** 커밋 안 한 변경을 커밋하고 프로젝트의 현재 브랜치에 합친다 */
-  worktreeMerge(projectId: string, conversationId: string): Promise<{ ok: boolean; message: string }>
+  /** 닫기 전 확인용: 커밋 안 한 변경·아직 합치지 않은 커밋 수 (작업 공간이 없으면 null) */
+  worktreeState(projectId: string, conversationId: string): Promise<{ dirty: boolean; ahead: number } | null>
+  /** 합치기. squash면 커밋 하나로 합치고 작업 공간 브랜치를 대상 브랜치에 맞춘다 */
+  worktreeMerge(projectId: string, conversationId: string, squash?: boolean): Promise<WorktreeOpResult>
+  /** 따라잡기: 프로젝트의 지금 브랜치를 작업 공간에 병합한다. 충돌은 작업 공간에 남긴다 */
+  worktreeUpdate(projectId: string, conversationId: string): Promise<WorktreeOpResult>
+  /** 작업 공간에서 진행 중인 병합(UPDATE 충돌)을 되돌린다 */
+  worktreeAbortMerge(projectId: string, conversationId: string): Promise<WorktreeOpResult>
+  /** 작업 공간 브랜치를 원격에 올리고 gh로 PR을 만든다 (커밋 안 한 변경은 먼저 커밋) */
+  worktreePush(projectId: string, conversationId: string): Promise<WorktreeOpResult>
   /** 작업 공간과 브랜치를 지우고 대화를 닫는다. 옮겨 갈 대화 ID */
   worktreeDiscard(projectId: string, conversationId: string): Promise<string>
   /** 파일 선택 창. 고른 파일들의 경로 (취소면 빈 배열) */

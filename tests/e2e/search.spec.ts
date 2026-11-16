@@ -11,7 +11,7 @@ test('Ctrl+Shift+T로 새 탭을 연다', async ({ win }) => {
   await win.keyboard.press('Alt+a')
   await expect(win.locator('.tab-wrap')).toHaveCount(1)
   await win.locator('#composer-input').click()
-  await win.keyboard.press('Control+Shift+t')
+  await win.keyboard.press('Control+t')
   await expect(win.locator('.tab-wrap')).toHaveCount(2)
   await expect(win.locator('.tab-wrap.active .tab-n')).toHaveText('02')
 })

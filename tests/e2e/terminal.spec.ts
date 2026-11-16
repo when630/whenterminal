@@ -15,9 +15,9 @@ test('아래 터미널: 실제 셸 실행, 접기·펼치기, 탭을 옮겨도 �
   const input = win.locator('#composer-input')
   await expect(term).toHaveCount(0)
 
-  // Ctrl+T: 펼치고 터미널로. 셸 이름·폴더가 보이고 실제 명령이 돈다
+  // Alt+T: 펼치고 터미널로. 셸 이름·폴더가 보이고 실제 명령이 돈다
   await input.click()
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(term).toHaveClass(/open/)
   await expect(term.locator('.term-shell')).not.toBeEmpty({ timeout: 20_000 })
   await expect(term.locator('.term-cwd')).toContainText('alpha')
@@ -27,19 +27,19 @@ test('아래 터미널: 실제 셸 실행, 접기·펼치기, 탭을 옮겨도 �
   await win.keyboard.press('Enter')
   await expect(rows).toContainText(/hello-terminal[\s\S]*hello-terminal/, { timeout: 20_000 }) // 친 줄 + 출력
 
-  // 터미널에서 Esc는 셸 몫 (대화창이 그대로 있다), Ctrl+T는 접고 입력창으로
+  // 터미널에서 Esc는 셸 몫 (대화창이 그대로 있다), Alt+T는 접고 입력창으로
   await win.keyboard.press('Escape')
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(term).toHaveClass(/folded/)
   await expect(input).toBeFocused()
   // 다시 펼치면 출력이 남아 있다
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(term).toHaveClass(/open/)
   await expect(rows).toContainText('hello-terminal')
 
   // 새 탭에는 터미널이 없고, 돌아오면 그대로
   await input.click()
-  await win.keyboard.press('Control+Shift+t')
+  await win.keyboard.press('Control+t')
   await expect(win.locator('.tab-wrap')).toHaveCount(2)
   await expect(term).toHaveCount(0)
   await win.locator('.tab-wrap').first().locator('.tab').click()
@@ -79,7 +79,7 @@ test('아래 터미널: 셸 이름을 눌러 다른 셸로 바꾸고, 다음 터
   const term = win.locator('.term')
   const rows = term.locator('.xterm-rows')
   await win.locator('#composer-input').click()
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(term.locator('.term-shell')).not.toHaveText('…', { timeout: 20_000 })
 
   // 설치된 셸만 나오고, 고르면 그 셸이 새로 뜬다 (EXITED 없이)
@@ -98,7 +98,7 @@ test('아래 터미널: 셸 이름을 눌러 다른 셸로 바꾸고, 다음 터
   // 닫았다 다시 열어도 cmd (설정의 기본값이 바뀌었다)
   await term.locator('.term-x').click()
   await win.locator('#composer-input').click()
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(term.locator('.term-shell')).toHaveText(/^cmd/, { timeout: 20_000 })
 })
 
@@ -108,7 +108,7 @@ test('아래 터미널: 탭 여러 개 (+·Ctrl+Alt+T 만들기, Ctrl+Alt+J/K �
   const term = win.locator('.term')
   const rows = term.locator('.xterm-rows')
   await win.locator('#composer-input').click()
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(rows).not.toBeEmpty({ timeout: 20_000 })
   // 탭이 하나면 탭 줄은 없다
   await expect(term.locator('.term-tab')).toHaveCount(0)
@@ -156,7 +156,7 @@ test('아래 터미널: 탭 여러 개 (+·Ctrl+Alt+T 만들기, Ctrl+Alt+J/K �
   await expect(win.locator('#composer-input')).toBeFocused()
 
   // 입력창에서도 닫힌다 (포커스는 입력창 그대로)
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(rows).not.toBeEmpty({ timeout: 20_000 })
   await win.locator('#composer-input').click()
   await win.keyboard.press('Control+Alt+w')
@@ -171,7 +171,7 @@ test('아래 터미널: Ctrl+F 찾기, 경로 Ctrl+클릭은 입력창에 @경�
   const rows = term.locator('.xterm-rows')
   const input = win.locator('#composer-input')
   await input.click()
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(rows).not.toBeEmpty({ timeout: 20_000 })
   await win.keyboard.type('echo src/app.ts:12')
   await win.keyboard.press('Enter')
@@ -214,7 +214,7 @@ test.describe('명령 끝남', () => {
     const term = win.locator('.term')
     const rows = term.locator('.xterm-rows')
     await win.locator('#composer-input').click()
-    await win.keyboard.press('Control+t')
+    await win.keyboard.press('Alt+t')
     await expect(rows).toContainText('>', { timeout: 20_000 })
     await win.keyboard.type('Start-Sleep -Seconds 3; echo slept-done')
     await win.keyboard.press('Enter')
@@ -239,7 +239,7 @@ test('아래 터미널: 붙여넣기는 Ctrl+V·Ctrl+Shift+V 모두 한 번만',
   const term = win.locator('.term')
   const rows = term.locator('.xterm-rows')
   await win.locator('#composer-input').click()
-  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Alt+t')
   await expect(term).toHaveClass(/open/)
   await expect(rows).not.toBeEmpty({ timeout: 20_000 })
   const count = async (word: string): Promise<number> => ((await rows.innerText()).match(new RegExp(word, 'g')) ?? []).length

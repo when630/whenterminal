@@ -512,6 +512,12 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .wt-msg { padding: 10px 28px; font-weight: 700; font-size: 13.5px; border-bottom: var(--rule); white-space: pre-wrap; }
 .wt-msg.ok { background: var(--sel-bg); color: var(--sel-fg); }
 .wt-msg.bad { background: var(--signal); color: var(--on-signal); }
+.wt-msg-act { margin-left: 14px; vertical-align: middle; }
+/* UPDATE 충돌: 사람이 봐야 하는 것이라 신호색 */
+.wt-conflict { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 28px; border-bottom: var(--rule); border-left: 4px solid var(--signal); }
+.wt-conflict-head { font: var(--kr-w) 14px/1 var(--kr); color: var(--signal); }
+.wt-conflict-files { flex: 1; min-width: 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.wt-conflict-acts { display: flex; gap: 8px; }
 .wt-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
 /* 앱 안 아티팩트(webview): 본문을 꽉 채우고 스크롤은 페이지가 한다 */
 .wt-body:has(> .art-view) { display: flex; overflow: hidden; padding-bottom: 0; }
@@ -710,6 +716,22 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .tab-x:hover { opacity: 1 !important; background: var(--signal); color: var(--on-signal); }
 .tab-wrap.armed .tab-x { opacity: 1; width: 64px; background: var(--signal); color: var(--on-signal); font: var(--kr-w) 14px/1 var(--kr); }
 .tab.add { font: var(--disp-w) 24px/1 var(--disp); padding: 0 16px; }
+/* 작업 공간에 합치지 않은 것이 있는 탭의 닫기 확인(UNMERGED?): 스킨이 정한 고정 폭보다 글자가 길다 */
+.tab-wrap.armed .tab-x.unmerged, :root[data-skin] .tab-wrap.armed .tab-x.unmerged { width: auto; padding: 0 10px; }
+/* 작업 공간 탭 버튼(+WT): 스킨이 +를 동그라미·고정 폭으로 만들어도 글자가 들어가게 */
+.tab.add.add-wt, :root[data-skin] .tab.add.add-wt { width: auto; min-width: 0; padding: 0 10px; font-size: 13px; letter-spacing: 0.04em; border-radius: 999px; }
+:root:not([data-skin]) .tab.add.add-wt, :root[data-skin='tui'] .tab.add.add-wt, :root[data-skin='zen'] .tab.add.add-wt { border-radius: 0; }
+/* 탭 끌어다 놓기: 끄는 탭은 흐리게, 놓을 자리(탭의 왼쪽·오른쪽)에 세로 막대 */
+.tab-wrap { position: relative; }
+/* 작업 공간 탭 시작점 목록 (+WT 옆 ▾): body에 붙여 버튼 아래 고정 위치 */
+.tab.add.add-wt-more { padding: 0 8px; font-size: 13px; min-width: 0; width: auto; }
+:root[data-skin] .tab.add.add-wt-more { width: auto; padding: 0 8px; font-size: 13px; }
+.model-list.wt-pick-list, :root[data-skin] .model-list.wt-pick-list { position: fixed; right: auto; border-top: var(--rule); z-index: 30; }
+.wt-pick-empty { padding: 14px 16px; color: var(--gray); font-size: 13px; }
+.tab-wrap.dragging { opacity: 0.35; }
+.tab-wrap.drop-before::before, .tab-wrap.drop-after::after { content: ''; position: absolute; top: 2px; bottom: 2px; width: 3px; background: var(--ink); z-index: 2; pointer-events: none; }
+.tab-wrap.drop-before::before { left: -2px; }
+.tab-wrap.drop-after::after { right: -2px; }
 .tb-right { display: flex; align-items: stretch; flex-wrap: wrap; }
 .badge { display: inline-flex; align-items: center; gap: 8px; padding: 0 16px; border-left: var(--rule); font: var(--kr-w) 15px/1 var(--kr); white-space: nowrap; }
 .badge-running { background: var(--paper); }

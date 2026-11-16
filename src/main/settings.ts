@@ -63,10 +63,11 @@ function sanitize(raw: unknown): Settings {
     whenFocused: typeof n.whenFocused === 'boolean' ? n.whenFocused : d.whenFocused,
   }
   const maxConcurrent = Number.isInteger(o.maxConcurrent) && o.maxConcurrent! >= 0 && o.maxConcurrent! <= 16 ? o.maxConcurrent! : DEFAULT_SETTINGS.maxConcurrent
-  const worktree = typeof o.worktree === 'boolean' ? o.worktree : DEFAULT_SETTINGS.worktree
   const dir = typeof o.worktreeDir === 'string' ? o.worktreeDir.trim().replace(/[\\/]+$/, '') : ''
   // 경로에 쓸 수 없는 글자(Windows)·NUL이 있으면 기본값
   const worktreeDir = dir && dir.length <= 260 && !/[\0<>"|?*]/.test(dir) ? dir : DEFAULT_SETTINGS.worktreeDir
+  const setup = typeof o.worktreeSetup === 'string' ? o.worktreeSetup.replace(/\r?\n/g, ' ').trim() : ''
+  const worktreeSetup = setup.length <= 500 ? setup : DEFAULT_SETTINGS.worktreeSetup
   const openAtLogin = typeof o.openAtLogin === 'boolean' ? o.openAtLogin : DEFAULT_SETTINGS.openAtLogin
   const appIcon = APP_ICONS.some((i) => i.id === o.appIcon) ? o.appIcon! : DEFAULT_SETTINGS.appIcon
   const terminalShell = TERMINAL_SHELLS.includes(o.terminalShell as TerminalShell) ? o.terminalShell! : DEFAULT_SETTINGS.terminalShell
@@ -76,5 +77,5 @@ function sanitize(raw: unknown): Settings {
   const acrylic = bool(o.acrylic, DEFAULT_SETTINGS.acrylic)
   const promptSuggestions = bool(o.promptSuggestions, DEFAULT_SETTINGS.promptSuggestions)
   const budgetWhenHot = bool(o.budgetWhenHot, DEFAULT_SETTINGS.budgetWhenHot)
-  return { skin, theme, skinThemes, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktree, worktreeDir, openAtLogin, hideTaskbar, acrylic, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
+  return { skin, theme, skinThemes, textFont, questionFont, answerFont, codeFont, appIcon, notify, maxConcurrent, worktreeDir, worktreeSetup, openAtLogin, hideTaskbar, acrylic, terminalShell, away, promptSuggestions, budgetWhenHot, keymap }
 }

@@ -20,6 +20,8 @@ import { FilesOverlay } from './FilesOverlay'
 import { createPortal } from 'react-dom'
 import { AttachButton, useAttach } from './attach'
 import { WorktreePanel } from './WorktreePanel'
+import { WorktreePicker } from './WorktreePicker'
+import type { WorktreeStart } from '@shared/types'
 import { EffortPicker, ModelPicker } from './ModelPicker'
 import { useDraft } from './drafts'
 import { formatReset, limitAllowed, worstLimit } from '@shared/usage'
@@ -46,6 +48,12 @@ interface Props {
   /** 확인 없이 바로 닫기 (/close로 직접 입력했을 때) */
   onClose: (conversationId: string) => void
   onSelectConversation: (conversationId: string) => void
+  /** 새 탭 (worktree면 git worktree 탭) */
+  onNewTab: (worktree: boolean | WorktreeStart) => void
+  /** 닫기를 확인 중인 탭(closeArmedId)이 작업 공간에 합치지 않은 것이 있는 탭인지 */
+  closeUnmerged?: boolean
+  /** 탭 순서: 끌어다 놓은 대화를 beforeId 앞으로 (null이면 맨 뒤) */
+  onMoveConversation: (conversationId: string, beforeId: string | null) => void
   onRespond: (projectId: string, conversationId: string, requestId: string, decision: PermissionDecision, extra?: PermissionExtra) => void
   /** App이 키 처리로 이 대화창을 다룰 통로. 분할창에서는 활성 창만 받는다 */
   panelRef?: React.MutableRefObject<PanelControl | null>
@@ -101,7 +109,7 @@ export interface PanelControl {
   command: (name: string) => void
 }
 
-export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onRespond, panelRef, jump, openPanel, away, suggestions, active = true, elsewhereId = null, besideProjectId = null, sameFolder = false, paneClass = '', onOpenBeside, onActivate }: Props): React.JSX.Element {
+export function Chat({ project, projects, conversationId, convs, mode, usage, clearArmed, closeArmedId, closeUnmerged = false, projectArmed, onClearRequest, onCloseRequest, onClose, onSelectConversation, onNewTab, onMoveConversation, onRespond, panelRef, jump, openPanel, away, suggestions, active = true, elsewhereId = null, besideProjectId = null, sameFolder = false, paneClass = '', onOpenBeside, onActivate }: Props): React.JSX.Element {
   const state = convs[conversationId] ?? emptyConversation()
   const km = useKeymap()
   // 쓰던 글은 대화마다 남는다 (탭을 옮기거나 앱을 껐다 켜도)
@@ -177,6 +185,39 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const tabs = usePresenceList(liveTabs, (c) => c.id, 240, project.id)
   const tabSeen = useRef<{ pid: string; ids: Set<string> }>({ pid: '', ids: new Set() })
   if (tabSeen.current.pid !== project.id) tabSeen.current = { pid: project.id, ids: new Set(tabs.map((t) => t.key)) }
+  // 탭 끌어다 놓기: 끄는 탭과 놓을 자리(그 탭의 왼쪽·오른쪽)
+  const [tabDrag, setTabDrag] = useState<string | null>(null)
+  const [tabOver, setTabOver] = useState<{ id: string; after: boolean } | null>(null)
+  const dropTab = (): void => {
+    if (tabDrag && tabOver && tabDrag !== tabOver.id) {
+      const at = liveTabs.findIndex((c) => c.id === tabOver.id)
+      const beforeId = tabOver.after ? (liveTabs[at + 1]?.id ?? null) : tabOver.id
+      const from = liveTabs.findIndex((c) => c.id === tabDrag)
+      // 제자리(바로 뒤 탭 앞)면 그대로
+      if (at >= 0 && from >= 0 && beforeId !== tabDrag && beforeId !== (liveTabs[from + 1]?.id ?? null)) onMoveConversation(tabDrag, beforeId)
+    }
+    setTabDrag(null)
+    setTabOver(null)
+  }
+  // 순서가 바뀌면 탭이 이전 자리에서 새 자리로 미끄러진다 (탭이 생기거나 닫히는 것은 움직이지 않는다)
+  const tabEls = useRef(new Map<string, HTMLElement>())
+  const tabLefts = useRef(new Map<string, number>())
+  const tabOrder = useRef('')
+  useLayoutEffect(() => {
+    const ids = liveTabs.map((c) => c.id)
+    const key = `${project.id}:${ids.join('|')}`
+    const prev = tabOrder.current
+    const reorder = prev !== '' && prev !== key && prev.startsWith(`${project.id}:`) && prev.split('|').length === ids.length && ids.every((id) => prev.includes(id))
+    tabOrder.current = key
+    for (const [id, el] of tabEls.current) {
+      const left = el.offsetLeft
+      const was = tabLefts.current.get(id)
+      tabLefts.current.set(id, left)
+      if (reorder && was !== undefined && was !== left && !reducedMotion()) {
+        el.animate([{ transform: `translateX(${was - left}px)` }, { transform: 'none' }], { duration: 280, easing: EASE })
+      }
+    }
+  })
 
   // 열자마자 컨텍스트 사용률·모델이 보이도록, 이번 실행에서 아직 받지 않았으면 메시지 없이 읽어 온다
   const needsPeek = !state.context
@@ -961,7 +1002,27 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               const st = convs[c.id]?.status ?? 'idle'
               const armedHere = closeArmedId === c.id
               return (
-                <span key={c.id} className={`tab-wrap ${c.id === conversationId ? 'active' : ''} ${armedHere ? 'armed' : ''} ${leaving ? 'leaving' : tabSeen.current.ids.has(c.id) ? '' : 'enter'}`}>
+                <span
+                  key={c.id}
+                  ref={(el) => {
+                    if (el) tabEls.current.set(c.id, el)
+                    else tabEls.current.delete(c.id)
+                  }}
+                  className={`tab-wrap ${c.id === conversationId ? 'active' : ''} ${armedHere ? 'armed' : ''} ${leaving ? 'leaving' : tabSeen.current.ids.has(c.id) ? '' : 'enter'} ${tabDrag === c.id ? 'dragging' : ''} ${tabOver?.id === c.id && tabDrag !== c.id ? (tabOver.after ? 'drop-after' : 'drop-before') : ''}`}
+                  onDragOver={(e) => {
+                    if (!tabDrag || leaving) return
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                    const r = e.currentTarget.getBoundingClientRect()
+                    const after = e.clientX > r.left + r.width / 2
+                    if (tabOver?.id !== c.id || tabOver.after !== after) setTabOver({ id: c.id, after })
+                  }}
+                  onDrop={(e) => {
+                    if (!tabDrag) return
+                    e.preventDefault()
+                    dropTab()
+                  }}
+                >
                 {editingId === c.id ? (
                   <span className={`tab tab-editing ${c.id === conversationId ? 'active' : ''}`}>
                     <span className="tab-n">{String(i + 1).padStart(2, '0')}</span>
@@ -998,7 +1059,17 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                   ref={c.id === conversationId ? (el) => { el?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }) } : undefined}
                   onClick={(e) => (e.shiftKey && onOpenBeside ? onOpenBeside(c.id) : onSelectConversation(c.id))}
                   onDoubleClick={() => setEditingId(c.id)}
-                  title={`${c.title} · ${STATUS_LABEL[st]}\n더블클릭하면 이름을 바꿔요`}
+                  draggable={!leaving}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.dataTransfer.setData('text/x-wt-tab', c.id)
+                    setTabDrag(c.id)
+                  }}
+                  onDragEnd={() => {
+                    setTabDrag(null)
+                    setTabOver(null)
+                  }}
+                  title={`${c.title} · ${STATUS_LABEL[st]}\n더블클릭하면 이름을 바꾸고, 끌어서 순서를 바꿔요`}
                 >
                   <span className="tab-n">{String(i + 1).padStart(2, '0')}</span>
                   <span className="tab-t">{c.title}</span>
@@ -1008,25 +1079,26 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 )}
                 <button
                   type="button"
-                  className="tab-x"
+                  className={`tab-x ${armedHere && closeUnmerged ? 'unmerged' : ''}`}
                   aria-label={armedHere ? '한 번 더 누르면 닫혀요' : `${c.title} 닫기`}
                   title={armedHere ? '한 번 더 누르면 닫혀요' : '대화 닫기 · 두 번 누르면 닫혀요'}
                   onClick={() => onCloseRequest(c.id)}
                 >
-                  {armedHere ? 'CLOSE?' : '×'}
+                  {armedHere ? (closeUnmerged ? 'UNMERGED?' : 'CLOSE?') : '×'}
                 </button>
                 </span>
               )
             })}
-            <button
-              type="button"
-              className="tab add"
-              title="하위 대화 추가"
-              aria-label="하위 대화 추가"
-              onClick={async () => onSelectConversation((await window.api.addConversation(project.id)).id)}
-            >
+            <button type="button" className="tab add" title="새 탭을 프로젝트 폴더에서 열어요" aria-label="새 탭" onClick={() => onNewTab(false)}>
               +
             </button>
+            {/* 작업 공간 탭: git 저장소일 때만. 새 브랜치 worktree-…의 git worktree에서 돌아 다른 탭과 파일이 겹치지 않는다 */}
+            {branch && (
+              <button type="button" className="tab add add-wt" title="새 탭을 git worktree(새 브랜치 worktree-…)에서 열어요. 다른 탭과 파일이 겹치지 않아요" aria-label="새 작업 공간 탭" onClick={() => onNewTab(true)}>
+                +WT
+              </button>
+            )}
+            {branch && <WorktreePicker project={project} conversationId={conversationId} onPick={onNewTab} />}
           </nav>
           <div className="tb-meta">
             <ModelPicker projectId={project.id} conversationId={conversationId} current={model} choice={conv?.modelChoice} usage={usage} />
@@ -1156,6 +1228,12 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             onSelectConversation(next)
             forgetTerminals(conversationId)
           }}
+          // 충돌 풀기는 보통 메시지로 보내고(쓰던 글은 그대로), 기록에서 Claude가 푸는 것을 보게 화면을 닫는다
+          onAskResolve={(text) => {
+            setShowChanges(false)
+            submit(text, true)
+          }}
+          onCloseTab={() => onClose(conversationId)}
         />
       ) : panelShown.item.tool ? (
         <ToolPanelView

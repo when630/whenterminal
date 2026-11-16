@@ -343,7 +343,7 @@ function ResumePanel({ projectId, conversationId, onClose, onOpenConversation }:
     if (s.conversationId) return onOpenConversation(s.conversationId)
     setOpening(s.sessionId)
     try {
-      onOpenConversation(await window.api.attachSession(projectId, conversationId, s.sessionId, s.title))
+      onOpenConversation(await window.api.attachSession(projectId, conversationId, s.sessionId, s.title, { cwd: s.cwd, branch: s.branch }))
       onClose()
     } catch (err) {
       setMessage({ ok: false, text: `세션을 열지 못했어요: ${err instanceof Error ? err.message : String(err)}` })
@@ -370,6 +370,8 @@ function ResumePanel({ projectId, conversationId, onClose, onOpenConversation }:
               </span>
               <span className="pn-tags">
                 {s.branch && <span className="chip">{s.branch}</span>}
+                {/* 작업 공간(git worktree)에서 돌던 세션: 고르면 그 작업 공간 탭으로 열린다 */}
+                {s.cwd && /[\\/]worktrees[\\/]/.test(s.cwd) && <span className="chip" title={s.cwd}>WT</span>}
                 {s.conversationId && <span className="chip ok">OPEN</span>}
                 {opening === s.sessionId && <span className="chip">…</span>}
               </span>

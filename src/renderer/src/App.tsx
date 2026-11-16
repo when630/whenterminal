@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { MAX_PROJECTS, MODE_CYCLE, needsChoice, QUICK_PROJECT_ID, openConversations, type AgentMode, type StoredTask, type PermissionDecision, type PermissionExtra, type Project, type UpdateState, type UsageInfo, type AccountsInfo } from '@shared/types'
+import { MAX_PROJECTS, MODE_CYCLE, needsChoice, QUICK_PROJECT_ID, openConversations, type AgentMode, type StoredTask, type PermissionDecision, type PermissionExtra, type Project, type UpdateState, type UsageInfo, type AccountsInfo, type WorktreeStart } from '@shared/types'
 import { applyEvent, collectBackground, collectTasks, IDLE_KEY, returnConversation, type ConversationMap, type TaskInfo, type TaskRef } from './state'
 import { Home, type DispatchOrigin } from './Home'
 import { Chat, type PanelControl } from './Chat'
@@ -17,7 +17,7 @@ import { LOCAL } from './SlashMenu'
 import { QuickAsk } from './QuickAsk'
 import type { SearchHit } from '@shared/types'
 import { usePresence } from './motion'
-import { forgetTerminals, newTerminal, showTerminal, stepTerminal } from './terminal'
+import { execInTerminal, forgetTerminals, newTerminal, showTerminal, stepTerminal } from './terminal'
 import { pruneDrafts } from './drafts'
 import { useTooltips } from './tooltip'
 import { requestRefocus } from './focus'
@@ -381,9 +381,20 @@ export function App(): React.JSX.Element {
     setBeside((b) => (b && (b.conversationId === conversationId || b.conversationId === next) ? null : b))
   }, [])
 
+  // 작업 공간 탭을 닫으려 할 때 커밋 안 한 변경·합치지 않은 커밋이 있으면 그 탭 × 문구를 바꾸고 안내한다
+  const [unmergedId, setUnmergedId] = useState<string | null>(null)
   const requestClose = useCallback((projectId: string, conversationId: string) => {
+    const arming = !(armed?.kind === 'close' && armed.id === conversationId)
     confirmTwice('close', conversationId, () => void closeConversation(projectId, conversationId))
-  }, [confirmTwice, closeConversation])
+    setUnmergedId(null)
+    const wt = projects.find((p) => p.id === projectId)?.conversations.find((c) => c.id === conversationId)?.worktree
+    if (!arming || !wt) return
+    void window.api.worktreeState(projectId, conversationId).then((st) => {
+      if (!st || (!st.dirty && st.ahead === 0)) return
+      setUnmergedId(conversationId)
+      showFlash(`${wt.branch}에 ${st.dirty ? '커밋하지 않은 변경' : `합치지 않은 커밋 ${st.ahead}개`}이 있어요. 닫아도 작업 공간과 브랜치는 남아요.`)
+    })
+  }, [armed, confirmTwice, closeConversation, projects, showFlash])
 
   /** 프로젝트를 목록에서 닫는다 (폴더·파일은 그대로). 그 프로젝트를 보고 있었다면 홈으로 */
   const removeProject = useCallback(async (projectId: string) => {
@@ -433,6 +444,27 @@ export function App(): React.JSX.Element {
   goHomeRef.current = goHome
   // 탭 이동은 하루에 수없이 하는 키 동작이라 모핑하지 않는다 (탭 색만 --t-fast로 바뀐다)
   const selectConversation = (projectId: string, conversationId: string): void => afterMorph(() => showChat({ projectId, conversationId }))
+  /** 새 탭을 열고 그리로. worktree면 git worktree 탭 (만들 수 없으면 사이드바 안내) */
+  const newTab = (projectId: string, worktree: boolean | WorktreeStart): void => {
+    void window.api.addConversation(projectId, worktree).then((c) => {
+      if (typeof c === 'string') return showFlash(c)
+      showChat({ projectId, conversationId: c.id })
+      const setup = settings.worktreeSetup.trim()
+      if (c.worktree && setup && !(typeof worktree === 'object' && worktree.existing)) void execInTerminal(projectId, c.id, setup)
+    })
+  }
+  /** 탭 순서 바꾸기 (끌어다 놓기): 화면은 바로 바꾸고 메인에 저장한다 */
+  const moveConversation = (projectId: string, conversationId: string, beforeId: string | null): void => {
+    setProjects((list) => list.map((p) => {
+      if (p.id !== projectId) return p
+      const rest = p.conversations.filter((c) => c.id !== conversationId)
+      const conv = p.conversations.find((c) => c.id === conversationId)
+      if (!conv) return p
+      const at = beforeId ? rest.findIndex((c) => c.id === beforeId) : -1
+      return { ...p, conversations: at < 0 ? [...rest, conv] : [...rest.slice(0, at), conv, ...rest.slice(at)] }
+    }))
+    void window.api.moveConversation(projectId, conversationId, beforeId)
+  }
   /** 옆 창에 연다 (탭·사이드바 대화 줄 Shift+클릭). 대화창이 아니면 그냥 연다 */
   const openBeside = (projectId: string, conversationId: string): void => {
     const v = viewRef.current
@@ -551,7 +583,7 @@ export function App(): React.JSX.Element {
     if (own && !(e.key === 'Escape' && own.dataset.passEsc === 'true')) return
     // 터미널에 포커스가 있으면 키는 셸 몫이다 (Esc·Ctrl+C·Ctrl+L·Ctrl+K …). 앱을 오가는 키 몇 개만 앱이 받는다
     if ((e.target as HTMLElement | null)?.closest?.('[data-terminal]')) {
-      const app = (['terminal', 'terminalNew', 'terminalNext', 'terminalPrev', 'terminalClose', 'goHome', 'help', 'palette', 'search', 'nextConversation', 'prevConversation', 'newConversation', 'openSettings', 'splitToggle', 'paneLeft', 'paneRight'] as ActionId[]).some((id) => matches(e, km[id]))
+      const app = (['terminal', 'terminalNew', 'terminalNext', 'terminalPrev', 'terminalClose', 'goHome', 'help', 'palette', 'search', 'nextConversation', 'prevConversation', 'newConversation', 'newWorktree', 'openSettings', 'splitToggle', 'paneLeft', 'paneRight'] as ActionId[]).some((id) => matches(e, km[id]))
       if (!app && projectIndexFromKey(e, physicalCode(e)) === null) return
       // 셸에는 가지 않게
       e.stopPropagation()
@@ -729,10 +761,8 @@ export function App(): React.JSX.Element {
     if (is('git')) return take(() => chatPanelRef.current?.git())
     if (is('splitToggle')) return take(toggleSplit)
     if (is('paneLeft') || is('paneRight')) return take(() => focusPane(is('paneLeft')))
-    // 새 탭: 탭 줄의 +와 같다 (설정에 따라 작업 공간을 만든다)
-    if (is('newConversation')) {
-      return take(() => void window.api.addConversation(projectId).then((c) => showChat({ projectId, conversationId: c.id })))
-    }
+    // 새 탭: 탭 줄의 +(일반)·+WT(작업 공간)와 같다
+    if (is('newConversation') || is('newWorktree')) return take(() => newTab(projectId, is('newWorktree')))
     if (is('clear')) return take(() => requestClear(projectId, conversationId))
     if (is('cycleMode')) {
       return take(() => {
@@ -861,11 +891,14 @@ export function App(): React.JSX.Element {
         usage={usage}
         clearArmed={armed?.kind === 'clear' && armed.id === conversationId}
         closeArmedId={armed?.kind === 'close' ? armed.id : null}
+        closeUnmerged={armed?.kind === 'close' && armed.id === unmergedId}
         projectArmed={armed?.kind === 'project' && armed.id === project.id}
         onClearRequest={() => requestClear(project.id, conversationId)}
         onCloseRequest={(id) => requestClose(project.id, id)}
         onClose={(id) => void closeConversation(project.id, id)}
         onSelectConversation={(id) => selectConversation(project.id, id)}
+        onNewTab={(worktree) => newTab(project.id, worktree)}
+        onMoveConversation={(id, beforeId) => moveConversation(project.id, id, beforeId)}
         onRespond={respond}
         panelRef={active ? chatPanelRef : undefined}
         jump={jump?.conversationId === conversationId ? jump : null}

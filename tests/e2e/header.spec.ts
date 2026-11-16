@@ -12,7 +12,7 @@ test('입력 초안: 탭을 옮기거나 새로 고쳐도 대화마다 남고, �
   await input.click()
   await win.keyboard.type('쓰던 글')
   // 새 탭은 빈 입력창
-  await win.keyboard.press('Control+Shift+t')
+  await win.keyboard.press('Control+t')
   await expect(win.locator('.tab-wrap')).toHaveCount(2)
   await expect(input).toHaveValue('')
   await input.click()
@@ -72,7 +72,7 @@ test('effort: 마지막으로 고른 값으로 새 대화가 시작하고, Defau
   await expect.poll(() => convOf(env.userData).effort).toBe('low')
 
   // 새 탭은 고른 값으로
-  await win.keyboard.press('Control+Shift+t')
+  await win.keyboard.press('Control+t')
   await expect(win.locator('.tab-wrap')).toHaveCount(2)
   await expect(effort.locator('.effort-v')).toHaveText('LOW')
   const second = (): Record<string, unknown> =>
@@ -83,7 +83,7 @@ test('effort: 마지막으로 고른 값으로 새 대화가 시작하고, Defau
   await effort.click()
   await list.locator('.model-row').first().click({ timeout: 30_000 })
   await expect.poll(() => second().effort).toBeUndefined()
-  await win.keyboard.press('Control+Shift+t')
+  await win.keyboard.press('Control+t')
   await expect(win.locator('.tab-wrap')).toHaveCount(3)
   await expect(effort).toHaveClass(/meta-default/)
 })
@@ -173,4 +173,25 @@ test('한도 경고: 80% 넘으면 알리고, 다 썼을 때 초기화 시각을
   await input.press('Enter')
   await expect(input).toHaveValue('')
   await expect.poll(sent).toEqual(['보내 두기', '한도 시험!'])
+})
+
+test('탭을 끌어다 놓아 순서를 바꾸면 저장된다', async ({ win, env }) => {
+  const order = (): string[] =>
+    (JSON.parse(readFileSync(join(env.userData, 'projects.json'), 'utf8')) as { conversations: { id: string; closedAt?: number }[] }[])[0].conversations.filter((c) => !c.closedAt).map((c) => c.id)
+  await win.keyboard.press('Alt+a')
+  await win.locator('#composer-input').click()
+  await win.keyboard.press('Control+t')
+  await win.keyboard.press('Control+t')
+  const tabs = win.locator('.tab-wrap')
+  await expect(tabs).toHaveCount(3)
+  await expect.poll(() => order().length).toBe(3)
+  const [a, b, c] = order()
+  const titles = await win.locator('.tab-t').allTextContents()
+  // 세 번째 탭을 첫 탭의 왼쪽에 놓는다
+  await tabs.nth(2).locator('.tab').dragTo(tabs.nth(0), { targetPosition: { x: 4, y: 8 } })
+  await expect(win.locator('.tab-t')).toHaveText([titles[2], titles[0], titles[1]])
+  await expect.poll(order).toEqual([c, a, b])
+  // 첫 탭을 마지막 탭의 오른쪽에
+  await tabs.nth(0).locator('.tab').dragTo(tabs.nth(2), { targetPosition: { x: (await tabs.nth(2).boundingBox())!.width - 4, y: 8 } })
+  await expect.poll(order).toEqual([a, b, c])
 })

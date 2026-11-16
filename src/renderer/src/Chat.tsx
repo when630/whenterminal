@@ -1154,7 +1154,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
           {placeholder.item && (
             <div className={`placeholder ${placeholder.leaving ? 'leaving' : ''}`}>
               무엇을 맡길까요?
-              <span className="mono">{project.path}</span>
+              {/* 대화가 도는 폴더 (작업 공간 탭이면 worktree) */}
+              <span className="mono">{conv?.worktree?.path ?? project.path}</span>
             </div>
           )}
           {nodes.map((node, at) => {

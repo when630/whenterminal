@@ -34,6 +34,10 @@ const isMac = process.platform === 'darwin'
 // 바로가기로 켠 것(작업 폴더 = 설치 폴더)과 같게 맞춘다. 안 그러면 작업 폴더에 기대는 동작이 달라진다
 // (예: 그 폴더에 cmd.exe가 있어 node-pty가 이름만 받은 셸을 못 찾고 'File not found: '로 실패했다)
 if (process.platform === 'win32' && app.isPackaged && process.argv.includes('--hidden')) process.chdir(dirname(process.execPath))
+// Windows 창 가림 계산을 끈다. 켜 두면 다른 창에 가려졌다고 볼 때 그리기를 멈췄다가 다시 보일 때 처음부터 그려서,
+// 포커스가 오갈 때마다 화면이 0.7~1.4초 멈췄다(/diag showLag: 렌더러는 놀고 있는데 다음 프레임이 늦음).
+// 비교하려면 WT_OCCLUSION=1로 켠다. 숨김·최소화 때의 정지는 렌더러 window-shown.ts가 따로 한다
+if (process.platform === 'win32' && process.env.WT_OCCLUSION !== '1') app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion')
 // 앞에서부터 등록을 시도. Ctrl+Space는 한글 IME 등이 선점하고 있으면 실패한다 (OPEN-005)
 // Windows PC에서는 Control+Space / Control+Alt+Space / Alt+Space가 다른 앱에 선점되어 있음 (2026-10-09 확인)
 // macOS는 Control+Space(입력 소스 전환)를 가로채도 등록이 성공해 버리므로 아예 후보에서 뺀다.

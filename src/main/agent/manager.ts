@@ -85,14 +85,23 @@ export class AgentManager {
     this.holdTimer = null
     this.holdUntil = until
     if (until) {
-      this.holdTimer = setTimeout(() => {
-        this.holdUntil = null
-        this.holdTimer = null
-        this.onHoldEnd()
-        this.drain()
-      }, until - Date.now())
+      this.armHold(until)
       this.announcePositions()
     } else this.drain()
+  }
+
+  /**
+   * 보류가 풀릴 때를 기다린다. 타이머는 단조 시계로 흘러 벽시계와 따로 가므로(19.8시간에 1.4초, 주간 창은 며칠을 기다린다)
+   * 깼을 때 아직 그 시각이 아니면 남은 만큼 다시 건다. 일찍 풀면 초기화 전에 흘려보낸 작업이 거절된다
+   */
+  private armHold(until: number): void {
+    this.holdTimer = setTimeout(() => {
+      if (Date.now() < until) return this.armHold(until)
+      this.holdUntil = null
+      this.holdTimer = null
+      this.onHoldEnd()
+      this.drain()
+    }, Math.max(0, until - Date.now()))
   }
 
   /** 새 세션에 걸 토큰 예산. 설정이 꺼져 있거나 한도가 낮으면 없음 */

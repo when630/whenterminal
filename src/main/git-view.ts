@@ -81,7 +81,7 @@ export async function gitOverview(cwd: string): Promise<GitOverview | null> {
     const remote = byLength.find((r) => name.startsWith(`${r}/`)) ?? name.split('/')[0]
     return [{ name, remote, branch: name.slice(remote.length + 1), sha, date: Number(date) * 1000, subject: subject ?? '', tracked: branches.find((b) => b.upstream === name)?.name }]
   })
-  const status = (await tryGit(here?.path ?? cwd, 'status', '--porcelain')) ?? ''
+  const status = (await tryGit(here?.path ?? cwd, '--no-optional-locks', 'status', '--porcelain')) ?? ''
   return { root: resolve(top), head, detached, branches, remoteBranches, remotes, worktrees, changed: status.split(/\r?\n/).filter(Boolean).length }
 }
 

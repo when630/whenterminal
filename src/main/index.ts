@@ -146,11 +146,12 @@ function applyBackdrop(s: Settings): void {
 
 
 let win: BrowserWindow | null = null
-/** /diag용: 창 보이기·숨기기 요청과 이벤트를 최근 60개 (다시 열 때 렉을 볼 때 렌더러 기록과 시각을 맞춘다) */
+/** /diag용: 창 보이기·숨기기 요청과 이벤트를 최근 400개 (다시 열 때 렉을 볼 때 렌더러 기록과 시각을 맞춘다).
+ * 숨기고 여는 한 번에 8줄쯤 쓴다. 60개였을 때는 긴 프레임 기록(18시간치)의 마지막 1.4시간만 맞춰 볼 수 있었다 */
 const windowEvents: string[] = []
 function noteWindow(what: string): void {
   windowEvents.push(`${new Date().toISOString()} ${what}`)
-  if (windowEvents.length > 60) windowEvents.shift()
+  if (windowEvents.length > 400) windowEvents.shift()
 }
 let tray: Tray | null = null
 let quitting = false

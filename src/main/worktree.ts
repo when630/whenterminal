@@ -8,6 +8,10 @@ import { samePath, worktreesOf } from './git-view'
 import { worktreeRoot, type GitBranch, type WorktreeOpResult, type WorktreeRef } from '@shared/types'
 
 const run = promisify(execFile)
+/**
+ * `status`는 `--no-optional-locks`로 부른다. 기본값이면 인덱스를 다시 써 두느라 index.lock을 잡는데, 브랜치 표시가 30초마다·창 focus·
+ * 상태가 바뀔 때마다 읽으므로 그사이 Claude가 돌리는 add·commit이 잠금에 걸려 실패할 수 있다 (git-status 문서의 BACKGROUND REFRESH)
+ */
 const git = async (cwd: string, ...args: string[]): Promise<string> => (await run('git', ['-C', cwd, ...args], { timeout: 20_000 })).stdout.trim()
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -53,7 +57,7 @@ export async function branchOf(path: string): Promise<GitBranch | null> {
   }
   let dirty = false
   try {
-    dirty = (await git(path, 'status', '--porcelain', '--untracked-files=no')).length > 0
+    dirty = (await git(path, '--no-optional-locks', 'status', '--porcelain', '--untracked-files=no')).length > 0
   } catch {
     // 상태는 몰라도 된다
   }
@@ -283,7 +287,7 @@ export async function removeWorktreeIfClean(projectPath: string, wt: WorktreeRef
   const root = worktreeRoot(wt)
   try {
     if (existsSync(root)) {
-      if ((await git(root, 'status', '--porcelain')) !== '') return false
+      if ((await git(root, '--no-optional-locks', 'status', '--porcelain')) !== '') return false
       if (!(await removeWorktreeDir(projectPath, root, false))) return false
     }
   } catch {
@@ -302,7 +306,7 @@ export async function worktreeState(projectPath: string, wt: WorktreeRef): Promi
   const root = worktreeRoot(wt)
   if (!existsSync(root)) return null
   try {
-    const dirty = (await git(root, 'status', '--porcelain')) !== ''
+    const dirty = (await git(root, '--no-optional-locks', 'status', '--porcelain')) !== ''
     const target = await git(projectPath, 'rev-parse', '--abbrev-ref', 'HEAD')
     const ahead = Number(await git(projectPath, 'rev-list', '--count', `${target}..${wt.branch}`)) || 0
     return { dirty, ahead }
@@ -338,7 +342,7 @@ export async function worktreeChanges(projectPath: string, ref: WorktreeRef): Pr
   const wt = { path: worktreeRoot(ref), branch: ref.branch }
   const target = await git(projectPath, 'rev-parse', '--abbrev-ref', 'HEAD')
   const base = await git(wt.path, 'merge-base', 'HEAD', target)
-  const status = await git(wt.path, 'status', '--porcelain')
+  const status = await git(wt.path, '--no-optional-locks', 'status', '--porcelain')
   const untracked = (await git(wt.path, 'ls-files', '--others', '--exclude-standard')).split('\n').filter(Boolean)
   const nameStatus = (await git(wt.path, 'diff', '--name-status', base)).split('\n').filter(Boolean)
   const files = [
@@ -373,7 +377,7 @@ const gitMessage = (err: unknown, fallback: string): string => {
 
 /** 커밋 안 한 변경이 있으면 대화 제목으로 커밋한다 */
 async function commitPending(path: string, title: string): Promise<void> {
-  if ((await git(path, 'status', '--porcelain')) === '') return
+  if ((await git(path, '--no-optional-locks', 'status', '--porcelain')) === '') return
   await git(path, 'add', '-A')
   await git(path, 'commit', '-m', title)
 }

@@ -37,7 +37,7 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
     let last = performance.now()
     let raf = 0
     const tick = (now: number): void => {
-      // 프레임이 드물게 와도(부하·절전) 속도는 그대로. 창이 숨었다 돌아올 때는 visibilitychange에서 last를 다시 잡는다
+      // 프레임이 드물게 와도(부하·절전) 속도는 그대로. 창이 숨었다 돌아올 때는 start가 last를 다시 잡는다
       const dt = Math.min(now - last, 250) / 1000
       last = now
       if (half > 0) {
@@ -58,20 +58,15 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
       last = performance.now()
       raf = requestAnimationFrame(tick)
     }
-    const onVisible = (): void => {
-      if (!document.hidden) start()
-    }
     // 앱이 떠 있는 동안 OS의 애니메이션 효과 설정이 바뀌어도 따라간다
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     start()
     const offShown = onWindowShown(start)
-    document.addEventListener('visibilitychange', onVisible)
     mq.addEventListener('change', start)
     return () => {
       cancelAnimationFrame(raf)
       offShown()
       ro.disconnect()
-      document.removeEventListener('visibilitychange', onVisible)
       mq.removeEventListener('change', start)
     }
   }, [])

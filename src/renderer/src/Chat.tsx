@@ -29,6 +29,7 @@ import { afterMorph, isMorphing, morph } from './morph'
 import { BesideContext } from './beside'
 import { FileMenu, mentionText, rankCommands, SlashMenu, useSlashCommands, type Mention } from './SlashMenu'
 import { showLagReport } from './show-lag'
+import { isWindowShown, onWindowShown } from './window-shown'
 
 interface Props {
   project: Project
@@ -1477,11 +1478,14 @@ function useBranch(projectId: string, conversationId: string, status: string): G
       void window.api.gitBranch(projectId, conversationId).then((value) => alive && setBranch({ id: conversationId, value }), () => {})
     }
     read()
-    const timer = setInterval(() => document.visibilityState === 'visible' && read(), 30_000)
+    // 창이 숨은 동안은 읽지 않는다 (document.visibilityState는 이 앱에서 늘 visible이라 쓸 수 없다). 다시 보이면 바로 맞춘다
+    const timer = setInterval(() => isWindowShown() && read(), 30_000)
+    const offShown = onWindowShown((shown) => shown && read())
     window.addEventListener('focus', read)
     return () => {
       alive = false
       clearInterval(timer)
+      offShown()
       window.removeEventListener('focus', read)
     }
   }, [projectId, conversationId, status])

@@ -94,7 +94,10 @@ observe('long-animation-frame', (e) => {
   const loaf = e as LoafEntry
   if (current && e.startTime >= current.t0 && e.startTime - current.t0 <= WATCH_MS) current.rec.slowFrames.push(frameOf(loaf, current.t0))
   if (e.duration >= SLOW_FRAME_MS) {
-    slow.push({ ...frameOf(loaf, 0), when: new Date(performance.timeOrigin + e.startTime).toISOString() })
+    // timeOrigin + startTime은 오래 켜 두면 벽시계보다 앞선다(단조 시계가 따로 흘러 19.8시간에 +1.4초).
+    // 창 이벤트(메인의 Date 시각)와 맞춰 보도록 지금 벽시계에서 경과만큼 거슬러 간다
+    const when = Date.now() - (performance.now() - e.startTime)
+    slow.push({ ...frameOf(loaf, 0), when: new Date(when).toISOString() })
     if (slow.length > KEEP_SLOW) slow.shift()
   }
 })

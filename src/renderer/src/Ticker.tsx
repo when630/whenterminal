@@ -26,48 +26,71 @@ export function Ticker({ running, reports, background }: Props): React.JSX.Eleme
     fit()
     // 한 벌의 폭은 크기가 바뀔 때만 잰다. 프레임마다 scrollWidth를 읽으면 그때마다 문서 전체 레이아웃을 강제로 다시 한다
     let half = el.scrollWidth / 2
-    const ro = new ResizeObserver(() => {
-      fit()
-      half = el.scrollWidth / 2
-    })
-    ro.observe(box)
-    ro.observe(el)
-    // 처음에는 오른쪽 끝 바깥에서 들어온다
-    let offset = -box.clientWidth
-    let last = performance.now()
-    let raf = 0
-    const tick = (now: number): void => {
-      // 프레임이 드물게 와도(부하·절전) 속도는 그대로. 창이 숨었다 돌아올 때는 start가 last를 다시 잡는다
-      const dt = Math.min(now - last, 250) / 1000
-      last = now
-      if (half > 0) {
-        offset += SPEED * dt
-        if (offset >= half) offset %= half
-        el.style.transform = `translate3d(${-offset}px, 0, 0)`
-      }
-      raf = requestAnimationFrame(tick)
+    /*
+     * 흐름은 el.animate(transform)로 합성 스레드에 맡긴다. 예전에는 rAF에서 프레임마다 style.transform을 써서
+     * 그때마다 스타일을 다시 계산했고, 홈에서 가만히 있어도 Blink GC 할당이 초당 0.65~0.77MB였다(poster).
+     * offset은 왼쪽으로 민 거리: 음수면 아직 오른쪽 끝 바깥에서 들어오는 중(intro), 0~half는 한 벌씩 도는 중(loop)
+     */
+    let anim: Animation | null = null
+    let intro = true
+    let base = -box.clientWidth
+    const offsetNow = (): number => {
+      if (!anim) return base
+      const o = base + ((Number(anim.currentTime) || 0) / 1000) * SPEED
+      return intro ? Math.min(o, 0) : half > 0 ? o % half : 0
     }
-    const start = (): void => {
-      cancelAnimationFrame(raf)
-      // 창이 숨은 동안은 돌지 않는다 (숨어도 그리기는 계속하므로)
-      if (!isWindowShown()) return
+    const stop = (): void => {
+      if (!anim) return
+      base = offsetNow()
+      anim.onfinish = null
+      // 무한 반복 애니메이션은 꼭 취소한다 (안 하면 문서 타임라인이 요소를 붙잡는다)
+      anim.cancel()
+      anim = null
+    }
+    const play = (from: number): void => {
+      stop()
+      base = from
+      // 창이 숨은 동안·전광판을 숨긴 스킨(display: none)·움직임 줄이기에서는 돌지 않는다
+      const visible = box.getClientRects().length > 0
+      if (!isWindowShown() || !visible || half <= 0) return
       if (reducedMotion()) {
         el.style.transform = ''
         return
       }
-      last = performance.now()
-      raf = requestAnimationFrame(tick)
+      const linear = { easing: 'linear', fill: 'none' } as const
+      intro = from < 0
+      if (intro) {
+        anim = el.animate([{ transform: `translate3d(${-from}px, 0, 0)` }, { transform: 'translate3d(0, 0, 0)' }], { ...linear, duration: (-from / SPEED) * 1000 })
+        anim.onfinish = () => {
+          anim = null
+          play(0)
+        }
+        return
+      }
+      base = 0
+      anim = el.animate([{ transform: 'translate3d(0, 0, 0)' }, { transform: `translate3d(${-half}px, 0, 0)` }], { ...linear, duration: (half / SPEED) * 1000, iterations: Infinity })
+      anim.currentTime = ((from % half) / SPEED) * 1000
     }
+    const restart = (): void => play(offsetNow())
+    const ro = new ResizeObserver(() => {
+      fit()
+      half = el.scrollWidth / 2
+      // 폭이 바뀌면(글자·창 크기·스킨이 전광판을 숨기거나 보임) 지금 자리에서 새 길이로 다시 건다
+      restart()
+    })
+    ro.observe(box)
+    ro.observe(el)
     // 앱이 떠 있는 동안 OS의 애니메이션 효과 설정이 바뀌어도 따라간다
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    start()
-    const offShown = onWindowShown(start)
-    mq.addEventListener('change', start)
+    play(base)
+    // 숨길 때는 window-shown이 도는 애니메이션을 멈췄다 다시 튼다. 숨은 채 시작해 아직 안 건 경우만 여기서 건다
+    const offShown = onWindowShown((shown) => shown && !anim && restart())
+    mq.addEventListener('change', restart)
     return () => {
-      cancelAnimationFrame(raf)
+      stop()
       offShown()
       ro.disconnect()
-      mq.removeEventListener('change', start)
+      mq.removeEventListener('change', restart)
     }
   }, [])
   const unread = reports.filter((r) => r.task.unread).length

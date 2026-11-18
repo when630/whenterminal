@@ -230,6 +230,8 @@ export class AgentSession {
   private model?: string
   /** 백그라운드 작업 id → 띄운 도구 호출 (task_started에서) */
   private taskTools = new Map<string, string>()
+  /** 하위 에이전트(띄운 Agent 도구 호출 ID) → 마지막으로 알린 모델 */
+  private subModels = new Map<string, string>()
   private background: BackgroundTask[] = []
   /** 활동이 아닌 감시자(ambient) 작업 id. 끝남 알림도 구분선으로 보이지 않는다 */
   private ambientTasks = new Set<string>()
@@ -1183,6 +1185,12 @@ export class AgentSession {
       case 'assistant':
         if (msg.parent_tool_use_id !== null) {
           const parent = msg.parent_tool_use_id
+          // 하위 에이전트가 실제로 돈 모델 (Agent 입력의 model은 요청일 뿐, 없으면 정의·부모를 따른다)
+          const model = msg.message.model
+          if (model && this.subModels.get(parent) !== model) {
+            this.subModels.set(parent, model)
+            this.emit({ kind: 'sub_model', parent, model, label: modelLabel(model) })
+          }
           for (const block of msg.message.content) {
             if (block.type === 'text' && block.text.trim()) this.emit({ kind: 'sub', parent, item: { type: 'text', text: block.text } })
             else if (block.type === 'tool_use') this.emit({ kind: 'sub', parent, item: { type: 'tool', toolUseId: block.id, name: block.name, input: block.input } })

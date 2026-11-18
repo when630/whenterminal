@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { AgentProgress, SubItem, TaskOutput } from '@shared/types'
 import { useOpened } from './opened'
-import { agentInfo, describeBackground, isAgentTool, isRunningTool, relPath, subActivity, summarizeInput, type ConversationState, type ToolItem } from './state'
+import { agentInfo, agentTag, describeBackground, isAgentTool, isRunningTool, relPath, subActivity, summarizeInput, type ConversationState, type ToolItem } from './state'
 import { clock, useNow } from './time'
 import { Markdown } from './Markdown'
 import { useBackLabel } from './beside'
@@ -43,6 +43,7 @@ export function TaskDetail({ target, state, projectId, conversationId, root, onC
         toolUseId={agentToolUseId}
         item={agentItem}
         subs={state.subs ?? {}}
+        subModel={state.subModels?.[agentToolUseId]}
         progress={state.progress?.[agentToolUseId]}
         live={live}
         background={target.kind === 'task'}
@@ -136,6 +137,8 @@ interface AgentProps {
   toolUseId: string
   item?: ToolItem
   subs: Record<string, SubItem[]>
+  /** 이 에이전트가 실제로 돈 모델 */
+  subModel?: string
   progress?: AgentProgress
   live: boolean
   background: boolean
@@ -147,7 +150,7 @@ interface AgentProps {
   stopping: boolean
 }
 
-function AgentDetail({ toolUseId, item, subs, progress, live, background, startedAt, now, root, onClose, onStop, stopping }: AgentProps): React.JSX.Element {
+function AgentDetail({ toolUseId, item, subs, subModel, progress, live, background, startedAt, now, root, onClose, onStop, stopping }: AgentProps): React.JSX.Element {
   const backLabel = useBackLabel()
   const info = agentInfo(item?.input)
   const list = subs[toolUseId] ?? []
@@ -164,7 +167,7 @@ function AgentDetail({ toolUseId, item, subs, progress, live, background, starte
       <header className="wt-head">
         <div className="wt-title">
           <span className="kr">AGENT</span>
-          {info.type && <span className="td-type">{info.type}</span>}
+          {agentTag(item?.input, subModel) && <span className="td-type">{agentTag(item?.input, subModel)}</span>}
           <span className={`td-state ${live ? 'live' : ''}`}>{live ? (background ? 'BACKGROUND' : 'RUNNING') : item?.isError ? 'ERROR' : 'DONE'}</span>
         </div>
         <div className="wt-actions">

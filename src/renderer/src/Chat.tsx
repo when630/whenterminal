@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { refocusAfterClick, stillTyping, useRefocus } from './focus'
 import { ALWAYS_SCOPE_LABEL, ALWAYS_SCOPE_TIP, ELICITATION_TOOL, MODE_CYCLE, MODE_LABEL, openConversations, REFUSAL_TOOL, STATUS_LABEL, type AgentOption, type AskQuestion, type EffortInfo, type EffortLevel, type GitBranch, type UsageInfo, type SlashCommandInfo, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRequest, type Project, type BackgroundTask, type AgentProgress, type RefusalChoice, type SubItem } from '@shared/types'
-import { activityLabel, agentInfo, artifactsOf, describeBackground, emptyConversation, foldActivity, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ActivityRow, type ArtifactLink, type ConversationMap, type HookItem, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
+import { activityLabel, agentInfo, agentRun, agentTag, artifactsOf, describeBackground, emptyConversation, foldActivity, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ActivityRow, type ArtifactLink, type ConversationMap, type HookItem, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
 import type { GoalInfo, MemoryRecall, RemoteInfo } from '@shared/types'
 import { PANEL_TITLE, ToolPanelView, type ToolPanel } from './panels'
 import { usePromptHistory } from './drafts'
@@ -1172,6 +1172,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
                 // 에이전트 줄만 하위 기록을 받는다 (나머지 줄은 하위 기록이 바뀌어도 다시 그리지 않게)
                 subs={item.type === 'tool' && isAgentTool(item.name) ? state.subs : undefined}
                 progress={item.type === 'tool' && isAgentTool(item.name) ? state.progress : undefined}
+                subModel={item.type === 'tool' && isAgentTool(item.name) ? state.subModels?.[item.toolUseId] : undefined}
                 onRun={acts.run}
                 onQueueEdit={acts.edit}
                 onQueueCancel={acts.cancel}
@@ -1283,6 +1284,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
             artifacts={artifacts}
             items={state.items}
             subs={state.subs}
+            subModels={state.subModels}
             progress={state.progress}
             root={root}
             selected={detail}
@@ -1514,6 +1516,7 @@ interface PanelProps {
   onArtifact: (a: ArtifactLink) => void
   items: TranscriptItem[]
   subs?: Record<string, SubItem[]>
+  subModels?: Record<string, string>
   progress?: Record<string, AgentProgress>
   root: string
   /** 지금 세부 내용을 펼쳐 둔 것 */
@@ -1538,7 +1541,7 @@ const sameTarget = (a: DetailTarget, b: DetailTarget): boolean =>
  * 오른쪽 상태 패널: 실행 중이거나, 백그라운드 셸·모니터가 돌거나, 아티팩트가 연결돼 있으면 펼쳐진다.
  * 그 밖에는 끝난 뒤 마지막 단계를 잠깐 보여 주고 접힌다
  */
-function StatusPanel({ task, status, background, agents, artifacts, artifactOpen, onArtifact, items, subs, progress, root, selected, onOpen, onTools, onStopTask }: PanelProps): React.JSX.Element {
+function StatusPanel({ task, status, background, agents, artifacts, artifactOpen, onArtifact, items, subs, subModels, progress, root, selected, onOpen, onTools, onStopTask }: PanelProps): React.JSX.Element {
   const now = useNow(1000)
   // 멈춤을 눌렀지만 아직 목록에서 빠지지 않은 작업
   const [stopping, setStopping] = useState<string[]>([])
@@ -1569,7 +1572,7 @@ function StatusPanel({ task, status, background, agents, artifacts, artifactOpen
                     <span className="sp-bg-row">
                       <span className="sp-bg-sq" aria-hidden="true" />
                       <b>AGENT</b>
-                      {info.type && <span className="sp-bg-type">{info.type}</span>}
+                      {agentTag(a.input, subModels?.[a.toolUseId]) && <span className="sp-bg-type">{agentTag(a.input, subModels?.[a.toolUseId])}</span>}
                       <span className="sp-bg-t">{clock(now - a.at)}</span>
                     </span>
                     <span className="sp-bg-d">{info.description || 'AGENT'}</span>
@@ -1599,6 +1602,7 @@ function StatusPanel({ task, status, background, agents, artifacts, artifactOpen
                     <span className="sp-bg-row">
                       <span className="sp-bg-sq" aria-hidden="true" />
                       <b>{d.label}</b>
+                      {agent && agentTag(d.input, subModels?.[agent]) && <span className="sp-bg-type">{agentTag(d.input, subModels?.[agent])}</span>}
                       <span className="sp-bg-t">{clock(now - b.startedAt)}</span>
                     </span>
                     <span className="sp-bg-d">{desc}</span>
@@ -1698,6 +1702,8 @@ interface ItemProps {
   enter: boolean
   subs?: Record<string, SubItem[]>
   progress?: Record<string, AgentProgress>
+  /** 하위 에이전트가 실제로 돈 모델 (에이전트 줄만) */
+  subModel?: string
   onRun?: (command: string) => void
   /** 차례를 기다리는 메시지를 꺼내 고치기 · 빼기 */
   onQueueEdit?: (queuedId: string) => void
@@ -1723,7 +1729,7 @@ function hookState(h: HookItem): { text: string; state: string } {
 }
 
 /** 대화 기록 한 줄. memo: 다른 대화·다른 줄의 이벤트로 기록 전체를 다시 그리지 않는다 */
-export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand, onImage, onToolImages, hooks }: ItemProps): React.JSX.Element {
+export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, progress, subModel, onRun, onQueueEdit, onQueueCancel, onRewind, onExpand, onImage, onToolImages, hooks }: ItemProps): React.JSX.Element {
   const e = enter ? ' enter' : ''
   // 펼쳐 둔 도구·훅 줄은 다시 그려져도(활동 묶음이 줄 하나에서 묶음으로 바뀔 때) 펼친 채로
   const [opened, onToggle, initialOpen] = useOpened(item.type === 'tool' ? `tool:${item.toolUseId}` : item.type === 'hook' ? `hook:${item.hookId}` : undefined)
@@ -1804,6 +1810,7 @@ export const Item = memo(function Item({ item, idx: di, n, root, enter, subs, pr
             <span className="tool-name">{item.name}</span>
             <span className="tool-arg">
               {relPath(summarizeInput(item.input), root)}
+              {isAgentTool(item.name) && agentRun(item.input, subModel) && <span className="tool-sub"> · {agentRun(item.input, subModel)}</span>}
               {sub && <span className="tool-sub"> · {subTools} TOOLS</span>}
               {/* 이 호출에 걸린 훅: 줄을 따로 두지 않고 표시만. 오류 난 훅만 신호색 */}
               {!!hooks?.length && (

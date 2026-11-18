@@ -45,6 +45,8 @@ export interface ConversationState {
   background?: BackgroundTask[]
   /** 하위 에이전트가 한 일. 키는 그 에이전트를 띄운 Agent 도구 호출 ID (중첩된 에이전트도 같은 표에) */
   subs?: Record<string, SubItem[]>
+  /** 하위 에이전트가 실제로 돈 모델의 표시 이름. 키는 subs와 같다 */
+  subModels?: Record<string, string>
   /** 작업(하위 에이전트 등)의 진행 수치. 키는 작업을 띄운 도구 호출 ID */
   progress?: Record<string, AgentProgress>
   /** 턴이 끝난 뒤 예측한 다음 지시. 입력창에 흐리게 보이고 Tab으로 받는다. 다음 메시지를 보내면 지운다 */
@@ -251,6 +253,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       s.items = fromHistory(event.items)
       s.restored = s.items.length
       s.subs = undefined
+      s.subModels = undefined
       s.progress = undefined
       s.permissions = []
       s.context = undefined
@@ -374,6 +377,9 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       }
       break
     }
+    case 'sub_model':
+      s.subModels = { ...s.subModels, [event.parent]: event.label }
+      break
     case 'sub_result': {
       const list = s.subs?.[event.parent]
       const idx = list?.findLastIndex((i) => i.type === 'tool' && i.toolUseId === event.toolUseId) ?? -1
@@ -407,6 +413,7 @@ export function applyEvent(prev: ConversationState | undefined, event: AgentEven
       // 화면 기록도 비운다. 보고서(task)는 보고함에 남긴다
       s.items = [{ type: 'divider', text: 'CLEARED · 컨텍스트를 비웠어요. 다음 메시지부터 새 세션이에요', at: now }]
       s.subs = undefined
+      s.subModels = undefined
       s.progress = undefined
       // 되살린 기록도 함께 사라졌으므로, 새 항목이 등장 애니메이션 없이 나오지 않게 한다
       s.restored = undefined
@@ -514,12 +521,12 @@ function fromHistory(items: HistoryItem[]): TranscriptItem[] {
 }
 
 /** 백그라운드 작업의 종류 라벨과 보여 줄 설명. 띄운 도구 호출이 화면 기록에 있으면 그 이름·명령을 쓴다 */
-export function describeBackground(b: BackgroundTask, items: TranscriptItem[]): { label: string; text: string; command: string } {
+export function describeBackground(b: BackgroundTask, items: TranscriptItem[]): { label: string; text: string; command: string; input?: unknown } {
   const found = b.toolUseId ? items.findLast((i) => i.type === 'tool' && i.toolUseId === b.toolUseId) : undefined
   const tool = found?.type === 'tool' ? found : undefined
   const o = (tool?.input ?? {}) as Record<string, unknown>
   const command = (str(o.command) || str(o.description) || str(o.prompt)).split('\n')[0]
-  return { label: backgroundLabel(b.type, tool?.name), text: b.description || command, command }
+  return { label: backgroundLabel(b.type, tool?.name), text: b.description || command, command, input: tool?.input }
 }
 
 function backgroundLabel(type: string, tool?: string): string {
@@ -547,6 +554,19 @@ export function runningAgents(items: TranscriptItem[], background: BackgroundTas
 export function agentInfo(input: unknown): { description: string; type: string; prompt: string } {
   const o = (input ?? {}) as Record<string, unknown>
   return { description: str(o.description), type: str(o.subagent_type), prompt: str(o.prompt) }
+}
+
+/** 하위 에이전트의 모델·effort 라벨 ('HAIKU 4.5 · LOW'). 모델은 실제로 돈 것(actual)이 오면 그것, 아니면 Agent 입력에서 요청한 별칭.
+ *  effort는 실제 값이 SDK로 오지 않아 입력에 적었을 때만. 둘 다 모르면 빈 글 */
+export function agentRun(input: unknown, actual?: string): string {
+  const o = (input ?? {}) as Record<string, unknown>
+  const model = actual || str(o.model)
+  return [model, str(o.effort)].filter(Boolean).join(' · ').toUpperCase()
+}
+
+/** 종류와 모델·effort를 한 칸에 ('Explore · HAIKU 4.5 · LOW') */
+export function agentTag(input: unknown, actual?: string): string {
+  return [agentInfo(input).type, agentRun(input, actual)].filter(Boolean).join(' · ')
 }
 
 /** 하위 에이전트가 지금(또는 마지막으로) 하는 일 한 줄 */

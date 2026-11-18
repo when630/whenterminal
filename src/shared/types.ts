@@ -770,6 +770,8 @@ export type AgentEvent =
   | { kind: 'background'; tasks: BackgroundTask[] }
   /** 하위 에이전트의 글·도구 호출. parent는 그 에이전트를 띄운 Agent 도구 호출 */
   | { kind: 'sub'; parent: string; item: SubItem }
+  /** 하위 에이전트가 실제로 돈 모델 (첫 답에서, 바뀌면 다시) */
+  | { kind: 'sub_model'; parent: string; model: string; label: string }
   | { kind: 'sub_result'; parent: string; toolUseId: string; content: string; isError: boolean }
   /** 백그라운드 작업 알림 한 줄 (끝남·멈춤·모니터 이벤트) */
   | { kind: 'task_note'; text: string }

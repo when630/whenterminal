@@ -1306,7 +1306,8 @@ pre.msg.notice.output.error { box-shadow: inset 8px 0 0 var(--signal); }
 /* ── 사용자 메시지: 기다리는 중 EDIT/CANCEL, 쉴 때 REWIND(올리면) ── */
 .msg.user { position: relative; transition: color var(--t-med) var(--ease-io); }
 .msg.user.pending { color: var(--gray); }
-.msg-acts { position: absolute; top: 14px; right: 28px; display: inline-flex; align-items: center; gap: 6px; }
+.msg-acts { position: absolute; top: 14px; right: 28px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; word-break: normal; }
+/* 말풍선(.msg: pre-wrap·break-word) 밖에 absolute로 붙는 스킨(soft·glass: 말풍선 왼쪽)은 남은 폭이 0에 가까워, 물려받은 줄바꿈이면 한 글자씩 세로로 접힌다 */
 .msg-acts.hover { opacity: 0; transition: opacity var(--t-fast) var(--ease-out); }
 .msg.user:hover .msg-acts.hover, .msg-acts.hover:focus-within { opacity: 1; }
 .msg-wait { font: 600 10px/1 var(--disp); letter-spacing: 0.12em; color: var(--gray); animation: blink-soft var(--pulse) var(--ease-io) infinite; }

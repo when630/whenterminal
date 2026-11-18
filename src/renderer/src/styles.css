@@ -887,7 +887,10 @@ kbd { display: inline-block; font: 500 11px/1 var(--mono); padding: 3px 5px; col
 .sub-tool .sub-out { opacity: 0.8; }
 .tool-sub { opacity: 0.6; }
 @media (max-width: 980px) { .chat-body.open { grid-template-columns: minmax(0, 1fr) 0px; } }
-.transcript { position: relative; flex: 1; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 24px; }
+.transcript { position: relative; flex: 1; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 24px; contain: size layout; }
+/* contain: size layout — 기록 칸 크기를 내용과 떼어 레이아웃 경계로 만든다. 없으면 시계 글자 하나·스트리밍 조각마다 조상 flex·grid가 기록 크기를 다시 재며
+   기록 전체를 다시 배치해 레이아웃 한 번에 수 MB를 할당했다(DOM 1.7만 개: 실행 중 9.9MB/s, 스트리밍 88MB/s → 0.6·5.9MB/s). 크기는 부모(flex:1·grid 칸)가 정한다.
+   paint는 넣지 않는다(glass의 판 그림자가 잘린다). 안에 position: fixed를 두면 기준 상자가 이 칸이 되므로 덮개는 body에 portal로 */
 /* 기록 항목은 줄어들지 않는다: overflow가 있는 항목(명령 출력 pre)은 flex 기본값이면 기록이 길어질 때 한 줄로 찌그러진다 */
 .transcript > * { width: 100%; flex: none; }
 /* 위로 올려 읽는 중이면 기록 칸 아래쪽에 떠 있는 맨 아래로 버튼. 높이 0인 sticky 줄이라 기록 길이를 바꾸지 않는다 */

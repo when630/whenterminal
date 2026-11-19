@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { refocusAfterClick, stillTyping, useRefocus } from './focus'
 import { ALWAYS_SCOPE_LABEL, ALWAYS_SCOPE_TIP, ELICITATION_TOOL, MODE_CYCLE, MODE_LABEL, openConversations, REFUSAL_TOOL, STATUS_LABEL, type AgentOption, type AskQuestion, type EffortInfo, type EffortLevel, type GitBranch, type UsageInfo, type SlashCommandInfo, type AgentMode, type PermissionDecision, type PermissionExtra, type PermissionRequest, type Project, type BackgroundTask, type AgentProgress, type RefusalChoice, type SubItem } from '@shared/types'
-import { activityLabel, agentInfo, agentRun, agentTag, artifactsOf, describeBackground, emptyConversation, foldActivity, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ActivityRow, type ArtifactLink, type ConversationMap, type HookItem, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
+import { activityLabel, agentInfo, agentRun, agentTag, artifactsOf, describeBackground, emptyConversation, foldActivity, isAgentTool, isRunningTool, relPath, runningAgents, STAGES, subActivity, summarizeInput, type ActivityRow, type ArtifactLink, type ConversationMap, type HookItem, type RenderNode, type TaskInfo, type ToolItem, type TranscriptItem } from './state'
 import type { GoalInfo, MemoryRecall, RemoteInfo } from '@shared/types'
 import { PANEL_TITLE, ToolPanelView, type ToolPanel } from './panels'
 import { usePromptHistory } from './drafts'
@@ -233,19 +233,39 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   const stick = useRef(true)
   // 따라가기를 놓았으면 맨 아래로 버튼을 보인다
   const [scrolledUp, setScrolledUp] = useState(false)
+  // 기록 창: 끝의 TRANSCRIPT_WINDOW 덩어리(줄·활동 묶음)만 그린다. 큰 대화(기록 수천 줄, DOM 1만 개 넘게)는
+  // GC가 화면을 100~250ms씩 멈췄다. 따라가는 동안(stick)은 끝에 맞춰 앞을 버리고, 위로 올려 읽는 동안은 시작을 붙잡아 두며
+  // 위 끝에 가까워지면 앞 덩어리를 더 붙인다. 검색·도구 목록 점프는 그 덩어리까지 넓힌다
+  const [held, setHeld] = useState<{ id: string; start: number } | null>(null)
+  const shownStart = useRef(0)
+  // 앞을 붙일 때 보던 줄이 같은 자리에 남도록 (붙이기 전 화면 위치)
+  const anchor = useRef<{ el: Element; top: number } | null>(null)
   const setStick = (on: boolean): void => {
     stick.current = on
     setScrolledUp(!on)
+    setHeld((h) => (on ? null : h && h.id === conversationId ? h : { id: conversationId, start: shownStart.current }))
   }
   const lastTop = useRef(0)
+  const lastHeight = useRef(0)
   const onScroll = (): void => {
     const el = scrollRef.current
     if (!el) return
     // 바닥이면 다시 따라가고, 위로 올렸을 때만 놓는다. 따라 내려가는 부드러운 스크롤 도중(아직 바닥이 아님)에 놓치지 않게
+    // 기록 창이 앞을 버려 높이가 줄면 scrollTop도 줄지만 위로 올린 게 아니다
+    const shrunk = el.scrollHeight < lastHeight.current - 1
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) setStick(true)
-    else if (el.scrollTop < lastTop.current - 1) setStick(false)
+    else if (el.scrollTop < lastTop.current - 1 && !shrunk) setStick(false)
     lastTop.current = el.scrollTop
+    lastHeight.current = el.scrollHeight
+    if (!stick.current && shownStart.current > 0 && !anchor.current && el.scrollTop < el.clientHeight) {
+      const top = el.getBoundingClientRect().top
+      const first = [...el.children].find((c) => c.getBoundingClientRect().bottom > top)
+      if (first) anchor.current = { el: first, top: first.getBoundingClientRect().top }
+      setHeld({ id: conversationId, start: Math.max(0, shownStart.current - TRANSCRIPT_STEP) })
+    }
   }
+  /** 점프하기 전에 기록 창을 그 덩어리(고른 함수가 돌려준 자리)까지 넓힌다 */
+  const revealNode = useRef<(pick: (nodes: RenderNode[]) => number) => void>(() => {})
   const toBottom = (): void => {
     setStick(true)
     const el = scrollRef.current
@@ -272,7 +292,9 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     el.scrollTo({ top: el.scrollHeight, behavior: streaming ? 'instant' : 'smooth' })
   }, [state.items.length, lastItem, !!permission.item, compacting.item, working.item])
   // 검색 결과로 열었으면 그 메시지로 스크롤하고 잠깐 강조한다. 기록을 되살리는 중이면 다 들어올 때까지 기다린다
-  const jumped = useRef(0)
+  // 한 번 간 검색 결과는 다시 가지 않는다. App의 jump는 남아 있어 대화창이 다시 그려질 때(홈에 갔다 오기 등) 같은 자리로 또 올라갔다
+  // 그래서 이 화면이 아니라 모듈에 적어 둔다
+  const jumped = jumpedNonce
   useEffect(() => {
     if (!jump || jumped.current === jump.nonce || state.items.length === 0) return
     const terms = searchTerms(jump.query)
@@ -292,6 +314,7 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     setDetail(null)
     setShowChanges(false)
     setStick(false)
+    revealNode.current((nodes) => nodes.findLastIndex((node) => node.idx <= idx))
     // 맨 아래로 따라가는 스크롤이 끝난 뒤에 옮긴다
     setTimeout(() => {
       // 요약 묶음 안으로 접힌 도구일 수 있어 순번 대신 data-idx로 찾고, 묶음을 펼친다
@@ -637,6 +660,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
       setShowChanges(false)
     }
     setStick(false)
+    const isIt = (r: ActivityRow): boolean => r.item.type === 'tool' && r.item.toolUseId === toolUseId
+    revealNode.current((nodes) => nodes.findIndex((node) => (node.kind === 'item' ? isIt(node) : node.rows.some(isIt))))
     setTimeout(() => {
       const el = scrollRef.current?.querySelector<HTMLDetailsElement>(`[data-tool-id="${toolUseId}"]`)
       if (!el) return
@@ -878,7 +903,6 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
   }
 
   const projectIndex = projects.findIndex((p) => p.id === project.id)
-  let toolCount = 0
   // 답변 글 사이의 활동(도구·훅·생각·기억)은 한 줄 묶음으로 접어 그린다
   // 도구 줄이 품는 훅 목록은 내용이 같으면 앞 렌더의 배열을 그대로 준다 (Item이 memo라 새 배열이면 매번 다시 그린다)
   const hookCache = useRef(new Map<string, HookItem[]>())
@@ -898,6 +922,28 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
     hookCache.current = next
     return out
   }, [state.items])
+  // 기록 창의 시작 덩어리 (위 held 설명)
+  // 따라가는 동안 덩어리가 들어올 때마다 맨 앞을 버리지 않게 TRIM씩 묶어서 버린다 (창은 WINDOW~WINDOW+TRIM)
+  const tailStart = Math.max(0, Math.floor((nodes.length - TRANSCRIPT_WINDOW) / TRANSCRIPT_TRIM) * TRANSCRIPT_TRIM)
+  const start = held?.id === conversationId ? Math.min(held.start, tailStart) : tailStart
+  shownStart.current = start
+  revealNode.current = (pick) => {
+    const at = pick(nodes)
+    if (at >= 0 && at < shownStart.current) setHeld({ id: conversationId, start: Math.max(0, at - 10) })
+  }
+  useLayoutEffect(() => {
+    const a = anchor.current
+    anchor.current = null
+    const el = scrollRef.current
+    if (!a || !el || !a.el.isConnected) return
+    // 스크롤 앵커링이 이미 맞췄으면 차이가 0이다. 그때 scrollTop을 건드리면 휠의 부드러운 스크롤이 끊긴다
+    const delta = a.el.getBoundingClientRect().top - a.top
+    if (Math.abs(delta) > 1) el.scrollTop += delta
+  }, [start])
+  // 도구 줄 번호는 기록 처음부터 센다 (그리지 않은 앞 덩어리의 도구까지)
+  const firstIdx = nodes[start]?.idx ?? 0
+  const toolsBefore = useMemo(() => state.items.slice(0, firstIdx).filter((i) => i.type === 'tool').length, [state.items, firstIdx])
+  let toolCount = toolsBefore
   // 모든 활동 묶음을 펼쳐 다 보기 (키맵 expandActivity). 다시 누르면 평소대로(자동으로 접고 펼침)
   const [expandAll, setExpandAll] = useState(false)
   // 기록 줄(Item)은 memo라 콜백이 렌더마다 바뀌면 소용이 없다. 늘 같은 함수를 주고 그 안에서 지금 값을 부른다
@@ -1159,7 +1205,8 @@ export function Chat({ project, projects, conversationId, convs, mode, usage, cl
               <span className="mono">{conv?.worktree?.path ?? project.path}</span>
             </div>
           )}
-          {nodes.map((node, at) => {
+          {nodes.slice(start).map((node, i) => {
+            const at = start + i
             const render = ({ item, idx, hooks }: ActivityRow): React.JSX.Element => (
               <Item
                 key={`${conversationId}:${idx}`}
@@ -1529,6 +1576,12 @@ interface PanelProps {
 
 /** 대화 칸(상태 패널 포함)이 이 폭 이상이면 펼친 화면을 기록 옆에 둔다. 1920 창에서 사이드바를 빼면 넘고, 1280 창·분할한 반쪽은 못 넘는다 */
 const SIDE_PANEL_MIN = 1400
+/** 마지막으로 간 검색 결과 (Chat의 jump). 대화창을 다시 그려도 남도록 모듈에 둔다 */
+const jumpedNonce = { current: 0 }
+/** 기록 창에 처음 그리는 덩어리 수와 위로 올릴 때마다 더 붙이는 수 (Chat held) */
+const TRANSCRIPT_WINDOW = 60
+const TRANSCRIPT_STEP = 60
+const TRANSCRIPT_TRIM = 20
 
 const detailKey = (t: DetailTarget): string => (t.kind === 'task' ? `task:${t.taskId}` : `agent:${t.toolUseId}`)
 /** 상태 패널에서 그 세부 내용의 줄 (모핑의 한쪽) */

@@ -69,4 +69,18 @@ test('Ctrl+Shift+F 대화 검색: 찾고, 고르면 그 대화의 그 메시지�
   await win.keyboard.press('Control+Shift+f')
   await win.keyboard.press('Escape')
   await expect(search).toHaveCount(0)
+
+  // 맨 위의 결과로 갔다가 홈에 다녀오면 다시 그 자리로 올라가지 않고 맨 아래를 보인다
+  await win.keyboard.press('Control+Shift+f')
+  await input.fill('worktree')
+  await expect(search.locator('.search-hit.on .search-role')).toHaveText('CLAUDE')
+  await input.press('Enter')
+  await expect(win.locator('.transcript > .hit')).toHaveText('첫 번째 worktree 설명')
+  await expect(win.locator('.transcript > .hit')).toHaveCount(0, { timeout: 5000 })
+  await win.keyboard.press('Control+h')
+  await win.keyboard.press('Alt+a')
+  await expect(win.locator('.transcript').getByText('마지막 답')).toBeInViewport()
+  await win.waitForTimeout(500)
+  await expect(win.locator('.transcript').getByText('마지막 답')).toBeInViewport()
+  await expect(win.locator('.transcript > .hit')).toHaveCount(0)
 })
